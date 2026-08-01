@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ListingForm } from '@/components/listings/ListingForm';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
-import { getOwnedListingById } from '@/services/listings.service';
+import { getOwnedAdById } from '@/services/ads.service';
 import { toUploaderImages } from '@/services/storage.service';
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export default async function EditListingPage({ params }: PageProps) {
   if (!user) redirect(`/connexion?next=/compte/annonces/${id}/modifier`);
 
   // Renvoie `null` si l'annonce appartient à quelqu'un d'autre.
-  const listing = await getOwnedListingById(parsedId.data, user.id);
+  const listing = await getOwnedAdById(parsedId.data, user.id);
   if (!listing) notFound();
 
   const categories = await getCategories();

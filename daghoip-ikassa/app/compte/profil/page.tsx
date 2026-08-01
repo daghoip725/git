@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { Alert } from '@/components/ui/Alert';
 import { getCurrentUser } from '@/lib/supabase/server';
-import { getMyProfile } from '@/services/profiles.service';
+import { getMyProfile } from '@/services/users.service';
 
 export const metadata: Metadata = {
   title: 'Mon profil',

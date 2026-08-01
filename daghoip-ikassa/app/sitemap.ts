@@ -35,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('listings')
+    .from('ads')
     .select('slug, reference, updated_at')
     .eq('status', 'published')
     .order('published_at', { ascending: false })
@@ -46,9 +46,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [...staticRoutes, ...categoryRoutes];
   }
 
-  const listingRoutes: MetadataRoute.Sitemap = (data ?? []).map((listing) => ({
-    url: `${siteUrl}${buildListingHref(listing.slug, listing.reference)}`,
-    lastModified: new Date(listing.updated_at),
+  const listingRoutes: MetadataRoute.Sitemap = (data ?? []).map((ad) => ({
+    url: `${siteUrl}${buildListingHref(ad.slug, ad.reference)}`,
+    lastModified: new Date(ad.updated_at),
     changeFrequency: 'daily',
     priority: 0.8,
   }));

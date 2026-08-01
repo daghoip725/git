@@ -59,14 +59,18 @@ export const getCurrentUser = cache(async () => {
 });
 
 /**
- * Profil complet de l'utilisateur connecté (jointure `profiles`), ou `null`.
+ * Profil complet de l'utilisateur connecté, coordonnées privées incluses.
+ *
+ * Passe par la RPC `get_my_profile()` (SECURITY DEFINER) : la lecture directe
+ * de `public.users` est restreinte par colonnes et n'exposerait ni `phone`
+ * ni `whatsapp`, même à leur propriétaire.
  */
 export const getCurrentProfile = cache(async () => {
   const user = await getCurrentUser();
   if (!user) return null;
 
   const supabase = await createClient();
-  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  const { data } = await supabase.rpc('get_my_profile');
 
   return data ?? null;
 });

@@ -9,11 +9,7 @@ import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ButtonLink } from '@/components/ui/Button';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getRootCategoriesWithCounts } from '@/services/categories.service';
-import {
-  getFavoriteListingIds,
-  getFeaturedListings,
-  getRecentListings,
-} from '@/services/listings.service';
+import { getFavoriteAdIds, getFeaturedAds, getRecentAds } from '@/services/ads.service';
 
 /**
  * Page d'accueil.
@@ -27,9 +23,9 @@ export default async function HomePage() {
 
   const [categories, featured, recent, favoriteIds] = await Promise.all([
     getRootCategoriesWithCounts(),
-    getFeaturedListings(8),
-    getRecentListings(12),
-    user ? getFavoriteListingIds(user.id) : Promise.resolve(new Set<string>()),
+    getFeaturedAds(8),
+    getRecentAds(12),
+    user ? getFavoriteAdIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
 
   const isAuthenticated = Boolean(user);

@@ -10,17 +10,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { deleteListingAction, setListingStatusAction } from '@/app/actions/listings.actions';
+import { deleteAdAction, setAdStatusAction } from '@/app/actions/ads.actions';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import type { ListingStatus } from '@/types';
-import { LISTING_STATUS_LABELS } from '@/utils/constants';
+import type { AdStatus } from '@/types';
+import { AD_STATUS_LABELS } from '@/utils/constants';
 import { formatListingPrice, formatRelativeDate } from '@/utils/format';
 import { buildListingHref } from '@/utils/slug';
 
-const STATUS_TONES: Record<ListingStatus, BadgeTone> = {
+const STATUS_TONES: Record<AdStatus, BadgeTone> = {
   draft: 'neutral',
   pending_review: 'warning',
   published: 'success',
@@ -38,7 +38,7 @@ export interface ListingRowProps {
     reference: string;
     price: number | null;
     price_type: 'fixed' | 'negotiable' | 'free' | 'on_request';
-    status: ListingStatus;
+    status: AdStatus;
     views_count: number;
     coverImageUrl: string | null;
     created_at: string;
@@ -85,9 +85,7 @@ export function ListingRow({ listing }: ListingRowProps) {
                 {listing.title}
               </h3>
             </Link>
-            <Badge tone={STATUS_TONES[listing.status]}>
-              {LISTING_STATUS_LABELS[listing.status]}
-            </Badge>
+            <Badge tone={STATUS_TONES[listing.status]}>{AD_STATUS_LABELS[listing.status]}</Badge>
           </div>
 
           <p className="mt-1 font-bold text-brand-700">
@@ -116,7 +114,7 @@ export function ListingRow({ listing }: ListingRowProps) {
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => runAction(() => setListingStatusAction(listing.id, 'sold'))}
+                onClick={() => runAction(() => setAdStatusAction(listing.id, 'sold'))}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
               >
                 Marquer comme vendu
@@ -130,7 +128,7 @@ export function ListingRow({ listing }: ListingRowProps) {
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => runAction(() => setListingStatusAction(listing.id, 'published'))}
+                onClick={() => runAction(() => setAdStatusAction(listing.id, 'published'))}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
               >
                 <RotateCcw className="size-3.5" aria-hidden="true" />
@@ -180,7 +178,7 @@ export function ListingRow({ listing }: ListingRowProps) {
               isLoading={isPending}
               onClick={() => {
                 setConfirmOpen(false);
-                runAction(() => deleteListingAction(listing.id));
+                runAction(() => deleteAdAction(listing.id));
               }}
             >
               Supprimer définitivement

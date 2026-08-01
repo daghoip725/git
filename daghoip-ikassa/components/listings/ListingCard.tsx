@@ -4,13 +4,13 @@ import Link from 'next/link';
 
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { Badge } from '@/components/ui/Badge';
-import type { ListingCard as ListingCardData } from '@/services/listings.service';
+import type { AdCardData } from '@/types';
 import { cn } from '@/utils/cn';
 import { formatListingPrice, formatRelativeDate } from '@/utils/format';
 import { buildListingHref } from '@/utils/slug';
 
 export interface ListingCardProps {
-  listing: ListingCardData;
+  listing: AdCardData;
   isFavorite?: boolean;
   isAuthenticated?: boolean;
   /** Charge l'image en priorité (à réserver aux premières cartes visibles). */
@@ -89,9 +89,9 @@ export function ListingCard({
             </time>
           </div>
 
-          {listing.category ? (
+          {listing.categoryName ? (
             <Badge tone="brand" className="mt-2.5">
-              {listing.category.name}
+              {listing.categoryName}
             </Badge>
           ) : null}
         </div>

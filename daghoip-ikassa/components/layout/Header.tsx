@@ -8,8 +8,9 @@ import { SearchBar } from '@/components/layout/SearchBar';
 import { UserMenu } from '@/components/layout/UserMenu';
 import { ButtonLink } from '@/components/ui/Button';
 import { getCurrentUser } from '@/lib/supabase/server';
-import { countUnreadMessages } from '@/services/messages.service';
-import { getPublicProfile } from '@/services/profiles.service';
+import { countUnreadMessages } from '@/services/conversations.service';
+import { getAvatarUrl } from '@/services/storage.service';
+import { getPublicUser } from '@/services/users.service';
 import { MAIN_NAV } from '@/utils/constants';
 
 /**
@@ -19,7 +20,7 @@ import { MAIN_NAV } from '@/utils/constants';
 export async function Header() {
   const user = await getCurrentUser();
   const [profile, unreadCount] = user
-    ? await Promise.all([getPublicProfile(user.id), countUnreadMessages(user.id)])
+    ? await Promise.all([getPublicUser(user.id), countUnreadMessages(user.id)])
     : [null, 0];
 
   return (
@@ -59,7 +60,7 @@ export async function Header() {
             {user && profile ? (
               <UserMenu
                 fullName={profile.full_name}
-                avatarUrl={profile.avatar_url}
+                avatarUrl={getAvatarUrl(profile.avatar_path)}
                 unreadCount={unreadCount}
               />
             ) : (

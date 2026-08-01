@@ -45,8 +45,11 @@ export async function reportListingAction(
 
     const supabase = await createClient();
     const { error } = await supabase.from('reports').insert({
-      listing_id: parsed.data.listingId,
       reporter_id: user.id,
+      // La contrainte `reports_target_matches_type` impose la cohérence entre
+      // `target_type` et la colonne de cible renseignée.
+      target_type: 'ad',
+      ad_id: parsed.data.listingId,
       reason: parsed.data.reason,
       details: parsed.data.details,
     });

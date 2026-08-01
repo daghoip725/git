@@ -1,8 +1,15 @@
 import 'server-only';
 
 /**
- * Lecture des catégories. Les catégories changent rarement : les requêtes sont
- * mémoïsées par requête HTTP via `cache()` de React.
+ * Lecture des catégories.
+ *
+ * Le nombre d'annonces par catégorie est un compteur dénormalisé
+ * (`categories.ads_count`), maintenu par trigger à chaque changement de statut
+ * ou de catégorie d'une annonce : la page d'accueil n'exécute donc plus un
+ * COUNT(*) par catégorie.
+ *
+ * Les catégories changent rarement : les requêtes sont mémoïsées par requête
+ * HTTP via `cache()` de React.
  */
 import { cache } from 'react';
 
@@ -46,50 +53,19 @@ export const getCategoryBySlug = cache(async (slug: string): Promise<Category | 
 });
 
 /**
- * Catégories racines enrichies du nombre d'annonces publiées.
- * Le comptage est fait en une requête agrégée par catégorie (`head: true`).
+ * Catégories racines avec le total d'annonces de la racine et de ses enfants.
+ * Aucune requête supplémentaire : tout vient du compteur dénormalisé.
  */
 export const getRootCategoriesWithCounts = cache(async (): Promise<CategoryWithCount[]> => {
-  const supabase = await createClient();
   const categories = await getCategories();
-  const roots = categories.filter((category) => category.parent_id === null);
 
-  const counts = await Promise.all(
-    roots.map(async (root) => {
-      const descendantIds = [
-        root.id,
-        ...categories.filter((child) => child.parent_id === root.id).map((child) => child.id),
-      ];
+  return categories
+    .filter((category) => category.parent_id === null)
+    .map((root) => {
+      const childrenTotal = categories
+        .filter((child) => child.parent_id === root.id)
+        .reduce((total, child) => total + child.ads_count, 0);
 
-      const { count, error } = await supabase
-        .from('listings')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'published')
-        .in('category_id', descendantIds);
-
-      if (error) {
-        logger.error('Comptage des annonces par catégorie impossible', error, {
-          categorySlug: root.slug,
-        });
-      }
-
-      return { ...root, listingsCount: count ?? 0 } satisfies CategoryWithCount;
-    }),
-  );
-
-  return counts;
+      return { ...root, listingsCount: root.ads_count + childrenTotal };
+    });
 });
-
-/**
- * Identifiants d'une catégorie et de ses enfants directs.
- * Utilisé pour filtrer une recherche sur une catégorie racine.
- */
-export async function getCategoryIdsForSlug(slug: string): Promise<string[]> {
-  const categories = await getCategories();
-  const target = categories.find((category) => category.slug === slug);
-  if (!target) return [];
-  return [
-    target.id,
-    ...categories.filter((child) => child.parent_id === target.id).map((child) => child.id),
-  ];
-}

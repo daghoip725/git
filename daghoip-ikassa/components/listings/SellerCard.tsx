@@ -2,6 +2,7 @@ import { BadgeCheck, Briefcase, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 
 import { Avatar } from '@/components/common/Avatar';
+import { getAvatarUrl } from '@/services/storage.service';
 import { Badge } from '@/components/ui/Badge';
 import type { PublicSeller } from '@/types';
 import { formatLongDate } from '@/utils/format';
@@ -19,7 +20,7 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
       className="rounded-xl border border-neutral-200 bg-white p-4"
     >
       <div className="flex items-start gap-3">
-        <Avatar name={seller.full_name} src={seller.avatar_url} size={52} />
+        <Avatar name={seller.full_name} src={getAvatarUrl(seller.avatar_path)} size={52} />
 
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-bold text-brand-900">

@@ -6,7 +6,7 @@ import { ListingRow } from '@/components/account/ListingRow';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ButtonLink } from '@/components/ui/Button';
 import { getCurrentUser } from '@/lib/supabase/server';
-import { getMyListings } from '@/services/listings.service';
+import { getMyAds } from '@/services/ads.service';
 
 export const metadata: Metadata = {
   title: 'Mes annonces',
@@ -17,7 +17,7 @@ export default async function MyListingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/connexion?next=/compte/annonces');
 
-  const listings = await getMyListings(user.id);
+  const listings = await getMyAds(user.id);
   const publishedCount = listings.filter((listing) => listing.status === 'published').length;
 
   return (

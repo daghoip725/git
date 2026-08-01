@@ -6,12 +6,12 @@ import { updateProfileAction } from '@/app/actions/profile.actions';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Checkbox, Input, Select, Textarea } from '@/components/ui/Field';
-import type { ActionResult, Profile } from '@/types';
+import type { ActionResult, UserProfile } from '@/types';
 import { GABON_CITY_NAMES } from '@/utils/constants';
 import { formatGabonPhone } from '@/utils/phone';
 
 export interface ProfileFormProps {
-  profile: Profile;
+  profile: UserProfile;
   email: string;
 }
 

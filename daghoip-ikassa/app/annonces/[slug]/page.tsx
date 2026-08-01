@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { incrementViewsAction } from '@/app/actions/listings.actions';
+import { incrementViewsAction } from '@/app/actions/ads.actions';
 import { ContactActions } from '@/components/listings/ContactActions';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ImageGallery } from '@/components/listings/ImageGallery';
@@ -15,13 +15,8 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { getSiteUrl } from '@/lib/env';
 import { getCurrentUser } from '@/lib/supabase/server';
-import {
-  getFavoriteListingIds,
-  getListingByReference,
-  getRelatedListings,
-} from '@/services/listings.service';
-import { countPublishedListings } from '@/services/profiles.service';
-import { getPublicImageUrl } from '@/services/storage.service';
+import { getFavoriteAdIds, getAdByReference, getRelatedAds } from '@/services/ads.service';
+import { getAdImageUrl } from '@/services/storage.service';
 import { CONDITION_LABELS, SITE } from '@/utils/constants';
 import { formatListingPrice, formatLongDate, formatRelativeDate, truncate } from '@/utils/format';
 import { buildListingHref, extractReference } from '@/utils/slug';
@@ -33,7 +28,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const reference = extractReference(slug);
-  const listing = reference ? await getListingByReference(reference) : null;
+  const listing = reference ? await getAdByReference(reference) : null;
 
   if (!listing) {
     return { title: 'Annonce introuvable', robots: { index: false, follow: false } };
@@ -41,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const price = formatListingPrice(listing.price, listing.price_type);
   const description = truncate(listing.description.replace(/\s+/g, ' '), 155);
-  const coverUrl = getPublicImageUrl(listing.images[0]?.storage_path);
+  const coverUrl = getAdImageUrl(listing.images[0]?.storage_path);
 
   return {
     title: `${listing.title} — ${price} à ${listing.city}`,
@@ -65,17 +60,20 @@ export default async function ListingDetailPage({ params }: PageProps) {
   const reference = extractReference(slug);
   if (!reference) notFound();
 
-  const listing = await getListingByReference(reference);
+  const listing = await getAdByReference(reference);
   if (!listing) notFound();
 
   const user = await getCurrentUser();
   const isOwner = user?.id === listing.seller_id;
 
-  const [related, favoriteIds, sellerListingsCount] = await Promise.all([
-    getRelatedListings(listing),
-    user ? getFavoriteListingIds(user.id) : Promise.resolve(new Set<string>()),
-    listing.seller ? countPublishedListings(listing.seller.id) : Promise.resolve(0),
+  const [related, favoriteIds] = await Promise.all([
+    getRelatedAds(listing),
+    user ? getFavoriteAdIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
+
+  // Le nombre d'annonces du vendeur est un compteur dénormalisé : plus besoin
+  // d'une requête d'agrégation dédiée.
+  const sellerAdsCount = listing.seller?.ads_count ?? 0;
 
   // Compteur de vues : jamais incrémenté par le propriétaire de l'annonce.
   if (!isOwner && listing.status === 'published') {
@@ -83,7 +81,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
   }
 
   const images = listing.images.flatMap((image, index) => {
-    const url = getPublicImageUrl(image.storage_path);
+    const url = getAdImageUrl(image.storage_path);
     return url ? [{ url, alt: `${listing.title} — photo ${index + 1}` }] : [];
   });
 
@@ -251,7 +249,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
           )}
 
           {listing.seller ? (
-            <SellerCard seller={listing.seller} listingsCount={sellerListingsCount} />
+            <SellerCard seller={listing.seller} listingsCount={sellerAdsCount} />
           ) : null}
 
           <Alert tone="warning" title="Conseils de sécurité">

@@ -13,13 +13,13 @@
 import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 
-import { createListingAction, updateListingAction } from '@/app/actions/listings.actions';
+import { createAdAction, updateAdAction } from '@/app/actions/ads.actions';
 import { ImageUploader } from '@/components/listings/ImageUploader';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Checkbox, Input, Select, Textarea } from '@/components/ui/Field';
 import type { UploaderImage } from '@/services/storage.service';
-import type { ActionResult, Category, ListingCondition, PriceType } from '@/types';
+import type { ActionResult, Category, AdCondition, PriceType } from '@/types';
 import {
   CONDITION_LABELS,
   GABON_CITY_NAMES,
@@ -35,7 +35,7 @@ export interface ListingFormValues {
   categoryId: string;
   priceType: PriceType;
   price: number | null;
-  condition: ListingCondition | null;
+  condition: AdCondition | null;
   city: string;
   district: string | null;
   contactPhone: string | null;
@@ -59,7 +59,7 @@ const PRICE_TYPE_OPTIONS = (Object.keys(PRICE_TYPE_LABELS) as PriceType[]).map((
   label: PRICE_TYPE_LABELS[value],
 }));
 
-const CONDITION_OPTIONS = (Object.keys(CONDITION_LABELS) as ListingCondition[]).map((value) => ({
+const CONDITION_OPTIONS = (Object.keys(CONDITION_LABELS) as AdCondition[]).map((value) => ({
   value,
   label: CONDITION_LABELS[value],
 }));
@@ -83,7 +83,7 @@ export function ListingForm({
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [images, setImages] = useState<UploaderImage[]>(initialValues?.images ?? []);
 
-  const action = mode === 'create' ? createListingAction : updateListingAction;
+  const action = mode === 'create' ? createAdAction : updateAdAction;
   const [state, formAction, isPending] = useActionState<
     ActionResult<{ href: string }> | null,
     FormData

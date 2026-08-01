@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirmez votre compte</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f5;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#FCFCFC;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(9,80,50,0.08);">
+
+            <!-- En-tete aux couleurs de la marque -->
+            <tr>
+              <td style="background-color:#095032;padding:28px 32px;text-align:center;">
+                <p style="margin:0;font-size:22px;font-weight:800;color:#FCFCFC;letter-spacing:-0.3px;">Daghoip</p>
+                <p style="margin:2px 0 0;font-size:15px;font-weight:700;color:#C89F4A;letter-spacing:1px;">IKASSA</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#095032;">Bienvenue sur Daghoip Ikassa</h1>
+                <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#404040;">Votre compte est presque prêt. Confirmez votre adresse e-mail pour publier vos annonces et contacter les vendeurs.</p>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+                  <tr>
+                    <td style="border-radius:8px;background-color:#C89F4A;">
+                      <a href="{{ .ConfirmationURL }}"
+                         style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#095032;text-decoration:none;border-radius:8px;">
+                        Confirmer mon adresse
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#737373;">
+                  Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+                </p>
+                <p style="margin:0 0 20px;font-size:12px;line-height:1.5;word-break:break-all;">
+                  <a href="{{ .ConfirmationURL }}" style="color:#216548;">{{ .ConfirmationURL }}</a>
+                </p>
+
+                <p style="margin:0;padding-top:20px;border-top:1px solid #e5e5e5;font-size:13px;line-height:1.6;color:#737373;">
+                  Ce lien expire dans 1 heure. Si vous n’êtes pas à l’origine de cette inscription, ignorez simplement cet e-mail.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="background-color:#f4f6f5;padding:20px 32px;text-align:center;">
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#737373;">
+                  Daghoip Ikassa — Les petites annonces du Gabon<br />
+                  Libreville, Gabon
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

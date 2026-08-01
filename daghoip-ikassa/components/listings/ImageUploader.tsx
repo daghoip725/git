@@ -13,8 +13,8 @@ import { useRef, useState, type ChangeEvent } from 'react';
 
 import { Alert } from '@/components/ui/Alert';
 import {
-  removeListingImages,
-  uploadListingImages,
+  removeAdImages,
+  uploadAdImages,
   validateImageFile,
   type UploaderImage,
 } from '@/services/storage.service';
@@ -71,7 +71,7 @@ export function ImageUploader({
 
     setIsUploading(true);
     try {
-      const uploaded = await uploadListingImages(files, userId, listingId);
+      const uploaded = await uploadAdImages(files, userId, listingId);
       update([
         ...images,
         ...uploaded.map((item) => ({ storagePath: item.storagePath, url: item.publicUrl })),
@@ -89,7 +89,7 @@ export function ImageUploader({
 
   async function handleRemove(storagePath: string) {
     update(images.filter((image) => image.storagePath !== storagePath));
-    await removeListingImages([storagePath]);
+    await removeAdImages([storagePath]);
   }
 
   /** Déplace une photo dans l'ordre d'affichage (la première est la couverture). */

@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ButtonLink } from '@/components/ui/Button';
 import { getCurrentUser } from '@/lib/supabase/server';
-import { getFavoriteListings } from '@/services/listings.service';
+import { getFavoriteAds } from '@/services/ads.service';
 
 export const metadata: Metadata = {
   title: 'Mes favoris',
@@ -17,7 +17,7 @@ export default async function FavoritesPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/connexion?next=/compte/favoris');
 
-  const listings = await getFavoriteListings(user.id);
+  const listings = await getFavoriteAds(user.id);
   const favoriteIds = new Set(listings.map((listing) => listing.id));
 
   return (

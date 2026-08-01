@@ -3,7 +3,7 @@
  * Tout ce qui est spécifique au marché gabonais (villes, provinces, monnaie,
  * indicatif téléphonique) est centralisé ici.
  */
-import type { ListingCondition, ListingSort, ListingStatus, PriceType } from '@/types';
+import type { AdCondition, AdSort, AdStatus, PriceType } from '@/types';
 
 /** Identité du site, réutilisée par les métadonnées et le footer. */
 export const SITE = {
@@ -94,7 +94,7 @@ export function findProvinceForCity(city: string): GabonProvince | null {
 }
 
 /** Libellés français des états d'une annonce. */
-export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
+export const AD_STATUS_LABELS: Record<AdStatus, string> = {
   draft: 'Brouillon',
   pending_review: 'En attente de validation',
   published: 'En ligne',
@@ -105,7 +105,7 @@ export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
 };
 
 /** Libellés français de l'état d'un article. */
-export const CONDITION_LABELS: Record<ListingCondition, string> = {
+export const CONDITION_LABELS: Record<AdCondition, string> = {
   new: 'Neuf',
   like_new: 'Comme neuf',
   good: 'Bon état',
@@ -122,8 +122,9 @@ export const PRICE_TYPE_LABELS: Record<PriceType, string> = {
 };
 
 /** Options de tri proposées sur la page de recherche. */
-export const SORT_LABELS: Record<ListingSort, string> = {
+export const SORT_LABELS: Record<AdSort, string> = {
   recent: 'Plus récentes',
+  relevance: 'Pertinence',
   price_asc: 'Prix croissant',
   price_desc: 'Prix décroissant',
   popular: 'Plus consultées',
@@ -150,8 +151,11 @@ export const ACCEPTED_IMAGE_TYPES = [
   'image/avif',
 ] as const;
 
-/** Bucket Supabase Storage hébergeant les photos d'annonces. */
-export const LISTINGS_BUCKET = 'listing-images';
+/** Buckets Supabase Storage (voir la migration `…_storage.sql`). */
+export const AD_IMAGES_BUCKET = 'ad-images';
+export const AVATARS_BUCKET = 'avatars';
+export const MESSAGE_ATTACHMENTS_BUCKET = 'message-attachments';
+export const VERIFICATION_DOCS_BUCKET = 'verification-docs';
 
 /** Nombre d'annonces par page sur la recherche. */
 export const DEFAULT_PAGE_SIZE = 24;

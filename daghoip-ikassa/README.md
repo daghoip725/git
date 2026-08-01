@@ -41,14 +41,21 @@ npm run dev                    # http://localhost:3000
 1. Créez un projet sur [supabase.com](https://supabase.com) (région la plus
    proche de vos utilisateurs, par exemple `eu-west-3`).
 
-2. Dans **SQL Editor**, exécutez dans cet ordre :
+2. Appliquez le schéma — cinq migrations, puis les données de référence :
 
-   | Fichier               | Rôle                                                    |
-   | --------------------- | ------------------------------------------------------- |
-   | `supabase/schema.sql` | Tables, contraintes, triggers, RPC, RLS, bucket Storage |
-   | `supabase/seed.sql`   | Catégories et sous-catégories de référence              |
+   ```bash
+   npx supabase link --project-ref <votre-ref>
+   npx supabase db push        # migrations, dans l'ordre
+   npx supabase config push    # Auth, Storage et API depuis supabase/config.toml
+   psql "$DATABASE_URL" -f supabase/seed.sql
+   ```
 
-   Les deux scripts sont **idempotents** : ils peuvent être rejoués sans risque.
+   Ou, depuis le SQL Editor, les fichiers de `supabase/migrations/` dans l'ordre
+   de leur préfixe, puis `supabase/seed.sql`. Tous sont **idempotents**.
+
+   👉 Modèle de données, politiques d'accès, configuration Auth/Storage et
+   tâches planifiées sont documentés dans
+   **[`supabase/README.md`](./supabase/README.md)**.
 
 3. Dans **Project Settings → API**, copiez `Project URL`, la clé `anon` et la
    clé `service_role` vers votre `.env.local`.
@@ -57,20 +64,25 @@ npm run dev                    # http://localhost:3000
    redirection : `https://votre-domaine.ga/auth/callback` (et
    `http://localhost:3000/auth/callback` pour le développement).
 
-5. _(Optionnel mais recommandé)_ Activez l’extension `pg_cron` et planifiez
-   l’expiration automatique des annonces :
+5. _(Recommandé)_ Activez l’extension `pg_cron` (Database → Extensions) puis
+   rejouez `supabase/migrations/20260801000500_performance.sql` : il planifie
+   l’expiration des annonces, les alertes d’échéance, la clôture des abonnements
+   et le rafraîchissement des statistiques.
 
-   ```sql
-   select cron.schedule('expire-listings', '0 3 * * *', $$select public.expire_listings()$$);
+6. Vérifiez le schéma hors ligne, contre un PostgreSQL jetable :
+
+   ```bash
+   ./supabase/tests/run.sh
    ```
 
 ### Promouvoir un modérateur
 
-Le rôle n’est pas modifiable depuis l’application (voir
-[Modèle de sécurité](#modèle-de-sécurité)). Depuis le SQL Editor :
+Le rôle n’est pas modifiable depuis l’application : la colonne est exclue du
+`GRANT UPDATE` (voir [Modèle de sécurité](#modèle-de-sécurité)). Depuis le SQL
+Editor :
 
 ```sql
-update public.profiles set role = 'moderator' where id = '<uuid-utilisateur>';
+update public.users set role = 'moderator' where id = '<uuid-utilisateur>';
 ```
 
 ---
@@ -121,7 +133,7 @@ daghoip-ikassa/
 ├── utils/                      # Fonctions pures (format, téléphone, slug, Zod)
 ├── styles/globals.css          # Design system Tailwind (palette de la marque)
 ├── public/                     # Logo officiel et fichiers statiques
-├── supabase/                   # schema.sql + seed.sql
+├── supabase/                   # Migrations, config Auth/Storage, seed, tests
 ├── Dockerfile docker-compose.yml
 └── middleware.ts               # Rafraîchissement de session + routes protégées
 ```
@@ -169,14 +181,20 @@ que les politiques autorisent.
 Certaines colonnes ne sont tout simplement pas accordées au rôle
 `authenticated` :
 
-- `profiles.phone` / `profiles.whatsapp` — hors du `grant select` public : les
-  coordonnées d’un utilisateur ne sont pas lisibles par les autres. Le
-  propriétaire récupère sa fiche complète via `public.get_my_profile()`
+- `users.phone` / `users.whatsapp` / `users.district` — hors du `grant select`
+  public : les coordonnées d’un utilisateur ne sont pas lisibles par les autres.
+  Le propriétaire récupère sa fiche complète via `public.get_my_profile()`
   (`SECURITY DEFINER`).
-- `profiles.role` / `profiles.is_verified` — hors du `grant update` : **aucune
-  auto-promotion possible**, y compris par requête forgée.
-- `listings.is_featured`, `views_count`, `favorites_count` — hors du
-  `grant update`, et re-forcés par le trigger `listings_before_write`.
+- `users.role` / `users.status` / `users.is_verified` — hors du `grant update` :
+  **aucune auto-promotion possible**, y compris par requête forgée.
+- `ads.is_featured`, `views_count`, `favorites_count` — hors du `grant update` ;
+  posés par trigger ou à la confirmation d’un paiement.
+- `payments` et `notifications` — aucun droit d’écriture client : seuls
+  `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
+
+Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`),
+qui rejoue notamment des tentatives d’auto-promotion administrateur, de
+falsification de compteurs et de lecture du téléphone d’autrui.
 
 ### 3. Validation serveur (Zod)
 

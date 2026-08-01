@@ -3,12 +3,16 @@
 /**
  * Server Actions de gestion des annonces.
  *
- * Chaîne de sécurité :
+ * Chaîne de contrôle, du plus applicatif au plus fondamental :
  *   1. session vérifiée (`requireUser`) ;
  *   2. rate limit par utilisateur ;
  *   3. revalidation Zod complète des entrées ;
- *   4. vérification que les chemins d'images appartiennent bien à l'appelant ;
- *   5. la RLS PostgreSQL tranche en dernier ressort.
+ *   4. vérification que les chemins d'images appartiennent à l'appelant ;
+ *   5. RLS + privilèges de colonnes PostgreSQL — l'autorité finale.
+ *
+ * Le quota d'annonces en ligne est appliqué par le trigger `enforce_ad_quota`
+ * (erreur P0001), pas ici : impossible de le contourner en appelant l'API
+ * directement.
  */
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -18,8 +22,7 @@ import { logger } from '@/lib/logger';
 import { RATE_LIMITS, checkRateLimit } from '@/lib/rate-limit';
 import { createClient, requireUser } from '@/lib/supabase/server';
 import type { ActionResult } from '@/types';
-import { LISTING_LIMITS } from '@/utils/constants';
-import { findProvinceForCity } from '@/utils/constants';
+import { AD_IMAGES_BUCKET, LISTING_LIMITS, findProvinceForCity } from '@/utils/constants';
 import { buildListingHref } from '@/utils/slug';
 import { listingFormSchema, toFieldErrors } from '@/utils/validation';
 
@@ -33,14 +36,14 @@ const storagePathSchema = z
     'Chemin d’image invalide.',
   );
 
-const createListingSchema = z.object({
+const createAdSchema = z.object({
   id: z.string().uuid(),
   imagePaths: z.array(storagePathSchema).max(LISTING_LIMITS.maxImages),
   publish: z.boolean().default(true),
 });
 
 /** Reconstruit les valeurs du formulaire depuis un FormData. */
-function readListingForm(formData: FormData) {
+function readAdForm(formData: FormData) {
   const rawPrice = formData.get('price');
   const price =
     typeof rawPrice === 'string' && rawPrice.trim() !== ''
@@ -68,8 +71,8 @@ function readListingForm(formData: FormData) {
 }
 
 /** Vérifie que chaque chemin d'image appartient à l'utilisateur et à l'annonce. */
-function assertOwnedPaths(paths: string[], userId: string, listingId: string) {
-  const prefix = `${userId}/${listingId}/`;
+function assertOwnedPaths(paths: string[], userId: string, adId: string) {
+  const prefix = `${userId}/${adId}/`;
   for (const path of paths) {
     if (!path.startsWith(prefix)) {
       throw new AppError('Chemin d’image invalide.', 'INVALID_IMAGE_PATH');
@@ -77,7 +80,7 @@ function assertOwnedPaths(paths: string[], userId: string, listingId: string) {
   }
 }
 
-export async function createListingAction(
+export async function createAdAction(
   _prevState: ActionResult<{ href: string }> | null,
   formData: FormData,
 ): Promise<ActionResult<{ href: string }>> {
@@ -85,7 +88,7 @@ export async function createListingAction(
     const user = await requireUser();
 
     const rate = checkRateLimit(
-      `createListing:${user.id}`,
+      `createAd:${user.id}`,
       RATE_LIMITS.createListing.limit,
       RATE_LIMITS.createListing.windowMs,
     );
@@ -96,7 +99,7 @@ export async function createListingAction(
       };
     }
 
-    const meta = createListingSchema.safeParse({
+    const meta = createAdSchema.safeParse({
       id: formData.get('listingId'),
       imagePaths: formData.getAll('imagePaths').map(String).filter(Boolean),
       publish: formData.get('publish') !== 'false',
@@ -105,7 +108,7 @@ export async function createListingAction(
       return { success: false, error: 'Requête invalide.', fieldErrors: toFieldErrors(meta.error) };
     }
 
-    const parsed = listingFormSchema.safeParse(readListingForm(formData));
+    const parsed = listingFormSchema.safeParse(readAdForm(formData));
     if (!parsed.success) {
       return {
         success: false,
@@ -119,8 +122,8 @@ export async function createListingAction(
     const values = parsed.data;
     const supabase = await createClient();
 
-    const { data: listing, error } = await supabase
-      .from('listings')
+    const { data: ad, error } = await supabase
+      .from('ads')
       .insert({
         id: meta.data.id,
         seller_id: user.id,
@@ -141,25 +144,27 @@ export async function createListingAction(
       .select('slug, reference')
       .single();
 
-    if (error || !listing) {
+    if (error || !ad) {
       logger.error('Création d’annonce impossible', error, { userId: user.id });
+      // P0001 = quota atteint : le message du trigger est sûr à afficher.
+      if (error?.code === 'P0001') {
+        return { success: false, error: error.message };
+      }
       return fail(error, 'Impossible de publier l’annonce. Veuillez réessayer.');
     }
 
     if (meta.data.imagePaths.length > 0) {
-      const { error: imagesError } = await supabase.from('listing_images').insert(
+      const { error: imagesError } = await supabase.from('ad_images').insert(
         meta.data.imagePaths.map((storagePath, index) => ({
-          listing_id: meta.data.id,
+          ad_id: meta.data.id,
           storage_path: storagePath,
           position: index,
         })),
       );
 
       if (imagesError) {
-        // L'annonce existe déjà : on la conserve et on signale l'incident.
-        logger.error('Enregistrement des photos impossible', imagesError, {
-          listingId: meta.data.id,
-        });
+        // L'annonce existe : on la conserve et on journalise l'incident.
+        logger.error('Enregistrement des photos impossible', imagesError, { adId: meta.data.id });
       }
     }
 
@@ -167,14 +172,14 @@ export async function createListingAction(
     revalidatePath('/compte/annonces');
     revalidatePath('/');
 
-    return ok({ href: buildListingHref(listing.slug, listing.reference) });
+    return ok({ href: buildListingHref(ad.slug, ad.reference) });
   } catch (error) {
-    logger.error('createListingAction', error);
+    logger.error('createAdAction', error);
     return fail(error);
   }
 }
 
-export async function updateListingAction(
+export async function updateAdAction(
   _prevState: ActionResult<{ href: string }> | null,
   formData: FormData,
 ): Promise<ActionResult<{ href: string }>> {
@@ -182,7 +187,7 @@ export async function updateListingAction(
     const user = await requireUser();
 
     const rate = checkRateLimit(
-      `updateListing:${user.id}`,
+      `updateAd:${user.id}`,
       RATE_LIMITS.updateListing.limit,
       RATE_LIMITS.updateListing.windowMs,
     );
@@ -190,10 +195,10 @@ export async function updateListingAction(
       return { success: false, error: 'Trop de modifications. Réessayez dans un instant.' };
     }
 
-    const listingId = z.string().uuid().safeParse(formData.get('listingId'));
-    if (!listingId.success) return { success: false, error: 'Annonce introuvable.' };
+    const adId = z.string().uuid().safeParse(formData.get('listingId'));
+    if (!adId.success) return { success: false, error: 'Annonce introuvable.' };
 
-    const parsed = listingFormSchema.safeParse(readListingForm(formData));
+    const parsed = listingFormSchema.safeParse(readAdForm(formData));
     if (!parsed.success) {
       return {
         success: false,
@@ -208,14 +213,14 @@ export async function updateListingAction(
       .safeParse(formData.getAll('imagePaths').map(String).filter(Boolean));
     if (!newPaths.success) return { success: false, error: 'Photos invalides.' };
 
-    assertOwnedPaths(newPaths.data, user.id, listingId.data);
+    assertOwnedPaths(newPaths.data, user.id, adId.data);
 
     const values = parsed.data;
     const supabase = await createClient();
 
     // La RLS restreint déjà l'UPDATE au propriétaire : pas de contrôle redondant.
-    const { data: listing, error } = await supabase
-      .from('listings')
+    const { data: ad, error } = await supabase
+      .from('ads')
       .update({
         category_id: values.categoryId,
         title: values.title,
@@ -230,53 +235,53 @@ export async function updateListingAction(
         contact_whatsapp: values.contactWhatsapp,
         allow_messages: values.allowMessages,
       })
-      .eq('id', listingId.data)
+      .eq('id', adId.data)
       .select('slug, reference')
       .single();
 
-    if (error || !listing) {
-      logger.error('Mise à jour d’annonce impossible', error, { listingId: listingId.data });
+    if (error || !ad) {
+      logger.error('Mise à jour d’annonce impossible', error, { adId: adId.data });
       return fail(error, 'Impossible de modifier l’annonce.');
     }
 
-    // Synchronisation des photos : on remplace l'ensemble par la nouvelle liste.
-    await supabase.from('listing_images').delete().eq('listing_id', listingId.data);
+    // Synchronisation des photos : la liste envoyée fait foi.
+    await supabase.from('ad_images').delete().eq('ad_id', adId.data);
     if (newPaths.data.length > 0) {
-      await supabase.from('listing_images').insert(
+      await supabase.from('ad_images').insert(
         newPaths.data.map((storagePath, index) => ({
-          listing_id: listingId.data,
+          ad_id: adId.data,
           storage_path: storagePath,
           position: index,
         })),
       );
     }
 
-    const href = buildListingHref(listing.slug, listing.reference);
+    const href = buildListingHref(ad.slug, ad.reference);
     revalidatePath(href);
     revalidatePath('/compte/annonces');
     revalidatePath('/annonces');
 
     return ok({ href });
   } catch (error) {
-    logger.error('updateListingAction', error);
+    logger.error('updateAdAction', error);
     return fail(error);
   }
 }
 
 /** Change le statut d'une annonce (vendue, remise en ligne, archivée). */
-export async function setListingStatusAction(
-  listingId: string,
+export async function setAdStatusAction(
+  adId: string,
   status: 'published' | 'sold' | 'archived' | 'draft',
 ): Promise<ActionResult<null>> {
   try {
     await requireUser();
 
-    const parsedId = z.string().uuid().safeParse(listingId);
+    const parsedId = z.string().uuid().safeParse(adId);
     if (!parsedId.success) return { success: false, error: 'Annonce introuvable.' };
 
     const supabase = await createClient();
     const { error } = await supabase
-      .from('listings')
+      .from('ads')
       .update({
         status,
         // Une remise en ligne repart pour un cycle complet de publication.
@@ -291,7 +296,8 @@ export async function setListingStatusAction(
       .eq('id', parsedId.data);
 
     if (error) {
-      logger.error('Changement de statut impossible', error, { listingId });
+      logger.error('Changement de statut impossible', error, { adId });
+      if (error.code === 'P0001') return { success: false, error: error.message };
       return fail(error, 'Impossible de modifier le statut de l’annonce.');
     }
 
@@ -303,24 +309,25 @@ export async function setListingStatusAction(
   }
 }
 
-export async function deleteListingAction(listingId: string): Promise<ActionResult<null>> {
+export async function deleteAdAction(adId: string): Promise<ActionResult<null>> {
   try {
     const user = await requireUser();
 
-    const parsedId = z.string().uuid().safeParse(listingId);
+    const parsedId = z.string().uuid().safeParse(adId);
     if (!parsedId.success) return { success: false, error: 'Annonce introuvable.' };
 
     const supabase = await createClient();
 
-    // Récupération des chemins avant suppression, pour nettoyer le Storage.
+    // Chemins récupérés avant suppression, pour nettoyer le Storage.
+    // Un trigger côté base fait déjà ce ménage : ceci en accélère l'effet.
     const { data: images } = await supabase
-      .from('listing_images')
+      .from('ad_images')
       .select('storage_path')
-      .eq('listing_id', parsedId.data);
+      .eq('ad_id', parsedId.data);
 
-    const { error } = await supabase.from('listings').delete().eq('id', parsedId.data);
+    const { error } = await supabase.from('ads').delete().eq('id', parsedId.data);
     if (error) {
-      logger.error('Suppression d’annonce impossible', error, { listingId });
+      logger.error('Suppression d’annonce impossible', error, { adId });
       return fail(error, 'Impossible de supprimer l’annonce.');
     }
 
@@ -329,9 +336,9 @@ export async function deleteListingAction(listingId: string): Promise<ActionResu
       .filter((path) => path.startsWith(`${user.id}/`));
 
     if (paths.length > 0) {
-      const { error: storageError } = await supabase.storage.from('listing-images').remove(paths);
+      const { error: storageError } = await supabase.storage.from(AD_IMAGES_BUCKET).remove(paths);
       if (storageError) {
-        logger.warn('Nettoyage Storage incomplet', { listingId, count: paths.length });
+        logger.warn('Nettoyage Storage incomplet', { adId, count: paths.length });
       }
     }
 
@@ -344,10 +351,35 @@ export async function deleteListingAction(listingId: string): Promise<ActionResu
 }
 
 /** Incrémente le compteur de vues (appelée depuis la page de détail). */
-export async function incrementViewsAction(listingId: string): Promise<void> {
-  const parsedId = z.string().uuid().safeParse(listingId);
+export async function incrementViewsAction(adId: string): Promise<void> {
+  const parsedId = z.string().uuid().safeParse(adId);
   if (!parsedId.success) return;
 
   const supabase = await createClient();
-  await supabase.rpc('increment_listing_views', { p_listing_id: parsedId.data });
+  await supabase.rpc('increment_ad_views', { p_ad_id: parsedId.data });
+}
+
+/** Ajoute ou retire un favori (bascule atomique côté PostgreSQL). */
+export async function toggleFavoriteAction(
+  adId: string,
+): Promise<ActionResult<{ isFavorite: boolean }>> {
+  try {
+    await requireUser();
+
+    const parsedId = z.string().uuid().safeParse(adId);
+    if (!parsedId.success) return { success: false, error: 'Annonce introuvable.' };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('toggle_favorite', { p_ad_id: parsedId.data });
+
+    if (error) {
+      logger.error('Bascule de favori impossible', error, { adId });
+      return fail(error, 'Impossible de mettre à jour vos favoris.');
+    }
+
+    revalidatePath('/compte/favoris');
+    return ok({ isFavorite: Boolean(data) });
+  } catch (error) {
+    return fail(error);
+  }
 }

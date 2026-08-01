@@ -1,55 +1,44 @@
-import { Eye, Heart, MessageSquare, Plus, ListOrdered } from 'lucide-react';
+import { Eye, Heart, ListOrdered, MessageSquare, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Badge } from '@/components/ui/Badge';
 import { ButtonLink } from '@/components/ui/Button';
-import { createClient, getCurrentUser } from '@/lib/supabase/server';
-import { getFavoriteListingIds, getListingsBySeller } from '@/services/listings.service';
-import { countUnreadMessages } from '@/services/messages.service';
-import { getMyProfile } from '@/services/profiles.service';
+import { getCurrentUser } from '@/lib/supabase/server';
+import { getAdQuota, getFavoriteAdIds, getMyAds } from '@/services/ads.service';
+import { getActiveSubscription } from '@/services/billing.service';
+import { countUnreadMessages } from '@/services/conversations.service';
+import { getMyProfile } from '@/services/users.service';
+import { AD_STATUS_LABELS } from '@/utils/constants';
+import { formatPrice } from '@/utils/format';
 
 export const metadata: Metadata = {
   title: 'Mon compte',
   robots: { index: false, follow: false },
 };
 
-/** Statistiques du vendeur (vues cumulées, annonces en ligne). */
-async function getSellerStats(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('listings')
-    .select('status, views_count')
-    .eq('seller_id', userId);
-
-  const rows = data ?? [];
-  return {
-    total: rows.length,
-    published: rows.filter((row) => row.status === 'published').length,
-    views: rows.reduce((sum, row) => sum + row.views_count, 0),
-  };
-}
-
 export default async function AccountDashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/connexion?next=/compte');
 
-  const [profile, stats, favoriteIds, unread, recentListings] = await Promise.all([
+  const [profile, ads, favoriteIds, unread, quota, subscription] = await Promise.all([
     getMyProfile(),
-    getSellerStats(user.id),
-    getFavoriteListingIds(user.id),
+    getMyAds(user.id),
+    getFavoriteAdIds(user.id),
     countUnreadMessages(user.id),
-    getListingsBySeller(user.id, { includeUnpublished: true, limit: 4 }),
+    getAdQuota(user.id),
+    getActiveSubscription(user.id),
   ]);
 
+  // Les compteurs proviennent des colonnes dénormalisées : aucune agrégation
+  // supplémentaire côté base.
+  const published = ads.filter((ad) => ad.status === 'published').length;
+  const totalViews = ads.reduce((sum, ad) => sum + ad.views_count, 0);
+
   const cards = [
-    {
-      label: 'Annonces en ligne',
-      value: stats.published,
-      icon: ListOrdered,
-      href: '/compte/annonces',
-    },
-    { label: 'Vues cumulées', value: stats.views, icon: Eye, href: '/compte/annonces' },
+    { label: 'Annonces en ligne', value: published, icon: ListOrdered, href: '/compte/annonces' },
+    { label: 'Vues cumulées', value: totalViews, icon: Eye, href: '/compte/annonces' },
     { label: 'Favoris', value: favoriteIds.size, icon: Heart, href: '/compte/favoris' },
     { label: 'Messages non lus', value: unread, icon: MessageSquare, href: '/messages' },
   ];
@@ -85,9 +74,41 @@ export default async function AccountDashboardPage() {
         ))}
       </div>
 
-      <section aria-labelledby="recent-listings-title">
+      {/* --------------------------- Offre en cours --------------------------- */}
+      <section
+        aria-labelledby="plan-title"
+        className="rounded-xl border border-neutral-200 bg-white p-5"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="plan-title" className="font-bold text-brand-900">
+              Votre offre
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              {subscription?.plan
+                ? `${subscription.plan.name} — ${formatPrice(subscription.plan.price)} / ${
+                    subscription.plan.billing_interval === 'yearly' ? 'an' : 'mois'
+                  }`
+                : 'Offre gratuite'}
+            </p>
+          </div>
+          <Badge tone={subscription ? 'gold' : 'neutral'}>
+            {published} / {quota} annonces en ligne
+          </Badge>
+        </div>
+
+        {published >= quota ? (
+          <p className="mt-3 text-sm text-amber-700">
+            Vous avez atteint le quota de votre offre. Passez à une offre supérieure pour publier
+            davantage d’annonces simultanément.
+          </p>
+        ) : null}
+      </section>
+
+      {/* ------------------------ Dernières annonces ------------------------- */}
+      <section aria-labelledby="recent-ads-title">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id="recent-listings-title" className="text-lg font-bold text-brand-900">
+          <h2 id="recent-ads-title" className="text-lg font-bold text-brand-900">
             Vos dernières annonces
           </h2>
           <Link
@@ -98,17 +119,25 @@ export default async function AccountDashboardPage() {
           </Link>
         </div>
 
-        {recentListings.length > 0 ? (
+        {ads.length > 0 ? (
           <ul className="space-y-3">
-            {recentListings.map((listing) => (
-              <li key={listing.id} className="rounded-xl border border-neutral-200 bg-white p-4">
-                <Link
-                  href={`/compte/annonces/${listing.id}/modifier`}
-                  className="font-semibold text-brand-900 hover:text-brand-700"
-                >
-                  {listing.title}
-                </Link>
-                <p className="mt-1 text-sm text-neutral-500">{listing.city}</p>
+            {ads.slice(0, 4).map((ad) => (
+              <li key={ad.id} className="rounded-xl border border-neutral-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Link
+                    href={`/compte/annonces/${ad.id}/modifier`}
+                    className="font-semibold text-brand-900 hover:text-brand-700"
+                  >
+                    {ad.title}
+                  </Link>
+                  <Badge tone={ad.status === 'published' ? 'success' : 'neutral'}>
+                    {AD_STATUS_LABELS[ad.status]}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {ad.views_count} vue{ad.views_count > 1 ? 's' : ''} · {ad.favorites_count} favori
+                  {ad.favorites_count > 1 ? 's' : ''}
+                </p>
               </li>
             ))}
           </ul>

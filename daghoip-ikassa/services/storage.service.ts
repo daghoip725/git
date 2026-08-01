@@ -1,27 +1,68 @@
 /**
- * Accès au Supabase Storage pour les photos d'annonces.
+ * Accès au Supabase Storage.
  *
- * Les fichiers sont envoyés **directement depuis le navigateur** vers Supabase :
- * cela évite de faire transiter plusieurs mégaoctets par le serveur Next.js et
- * conserve la RLS Storage comme unique point d'autorisation.
+ * Quatre buckets (voir `supabase/migrations/…_storage.sql`) :
+ *   ad-images/           public   <user_id>/<ad_id>/<uuid>.<ext>
+ *   avatars/             public   <user_id>/<uuid>.<ext>
+ *   message-attachments/ privé    <user_id>/<conversation_id>/<uuid>.<ext>
+ *   verification-docs/   privé    <user_id>/<uuid>.<ext>
  *
- * Convention de chemin : `<user_id>/<listing_id>/<uuid>.<ext>`
- * — le premier segment est vérifié par la politique Storage
- *   (voir `supabase/schema.sql`, section 12).
+ * Les fichiers sont envoyés **directement depuis le navigateur** : cela évite
+ * de faire transiter plusieurs mégaoctets par le serveur Next.js et laisse la
+ * RLS Storage comme unique point d'autorisation.
+ *
+ * Module isomorphe : les helpers d'URL sont utilisables côté serveur, les
+ * fonctions d'envoi uniquement depuis un composant client.
  */
 import { createClient } from '@/lib/supabase/client';
 import { publicEnv } from '@/lib/env';
-import { ACCEPTED_IMAGE_TYPES, LISTINGS_BUCKET, LISTING_LIMITS } from '@/utils/constants';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  AVATARS_BUCKET,
+  AD_IMAGES_BUCKET,
+  LISTING_LIMITS,
+} from '@/utils/constants';
 
-/** URL publique d'un objet du bucket des annonces. */
-export function getPublicImageUrl(storagePath: string | null | undefined): string | null {
-  if (!storagePath) return null;
+/* -------------------------------------------------------------------------- */
+/*  URLs publiques                                                            */
+/* -------------------------------------------------------------------------- */
+
+function buildPublicUrl(bucket: string, storagePath: string): string {
   const base = publicEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, '');
-  return `${base}/storage/v1/object/public/${LISTINGS_BUCKET}/${storagePath
-    .split('/')
-    .map(encodeURIComponent)
-    .join('/')}`;
+  const encoded = storagePath.split('/').map(encodeURIComponent).join('/');
+  return `${base}/storage/v1/object/public/${bucket}/${encoded}`;
 }
+
+/** URL publique d'une photo d'annonce. */
+export function getAdImageUrl(storagePath: string | null | undefined): string | null {
+  return storagePath ? buildPublicUrl(AD_IMAGES_BUCKET, storagePath) : null;
+}
+
+/** URL publique d'un avatar. */
+export function getAvatarUrl(storagePath: string | null | undefined): string | null {
+  return storagePath ? buildPublicUrl(AVATARS_BUCKET, storagePath) : null;
+}
+
+/**
+ * URL signée d'un objet d'un bucket privé (pièce jointe, justificatif).
+ * À appeler côté serveur : la RLS Storage vérifie l'accès de l'appelant.
+ */
+export async function createSignedUrl(
+  bucket: string,
+  storagePath: string,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(storagePath, expiresInSeconds);
+
+  return error ? null : (data?.signedUrl ?? null);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Validation                                                                */
+/* -------------------------------------------------------------------------- */
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -30,17 +71,23 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   'image/avif': 'avif',
 };
 
-/** Vérifie type et poids côté client avant tout appel réseau. */
-export function validateImageFile(file: File): string | null {
+/** Vérifie type et poids côté client, avant tout appel réseau. */
+export function validateImageFile(
+  file: File,
+  maxBytes = LISTING_LIMITS.maxImageBytes,
+): string | null {
   if (!(ACCEPTED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
     return `« ${file.name} » : format non supporté (JPEG, PNG, WebP ou AVIF).`;
   }
-  if (file.size > LISTING_LIMITS.maxImageBytes) {
-    const maxMb = Math.round(LISTING_LIMITS.maxImageBytes / 1024 / 1024);
-    return `« ${file.name} » : fichier trop lourd (maximum ${maxMb} Mo).`;
+  if (file.size > maxBytes) {
+    return `« ${file.name} » : fichier trop lourd (maximum ${Math.round(maxBytes / 1024 / 1024)} Mo).`;
   }
   return null;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Envoi (client uniquement)                                                 */
+/* -------------------------------------------------------------------------- */
 
 export interface UploadedImage {
   storagePath: string;
@@ -48,14 +95,16 @@ export interface UploadedImage {
 }
 
 /**
- * Envoie une liste de fichiers dans le bucket des annonces.
+ * Envoie des photos d'annonce dans `ad-images`.
+ * En cas d'échec partiel, les fichiers déjà envoyés sont supprimés : pas
+ * d'objet orphelin facturé.
  *
  * @throws Error si un fichier est invalide ou si l'envoi échoue.
  */
-export async function uploadListingImages(
+export async function uploadAdImages(
   files: File[],
   userId: string,
-  listingId: string,
+  adId: string,
 ): Promise<UploadedImage[]> {
   if (files.length === 0) return [];
   if (files.length > LISTING_LIMITS.maxImages) {
@@ -68,37 +117,62 @@ export async function uploadListingImages(
   for (const file of files) {
     const validationError = validateImageFile(file);
     if (validationError) {
-      await removeListingImages(uploaded.map((image) => image.storagePath));
+      await removeAdImages(uploaded.map((image) => image.storagePath));
       throw new Error(validationError);
     }
 
     const extension = EXTENSION_BY_MIME[file.type] ?? 'jpg';
-    const storagePath = `${userId}/${listingId}/${crypto.randomUUID()}.${extension}`;
+    const storagePath = `${userId}/${adId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error } = await supabase.storage.from(LISTINGS_BUCKET).upload(storagePath, file, {
+    const { error } = await supabase.storage.from(AD_IMAGES_BUCKET).upload(storagePath, file, {
       cacheControl: '31536000',
       contentType: file.type,
       upsert: false,
     });
 
     if (error) {
-      // Nettoyage : on ne laisse pas d'objets orphelins derrière un échec partiel.
-      await removeListingImages(uploaded.map((image) => image.storagePath));
+      await removeAdImages(uploaded.map((image) => image.storagePath));
       throw new Error(`Échec de l’envoi de « ${file.name} ». Veuillez réessayer.`);
     }
 
-    uploaded.push({ storagePath, publicUrl: getPublicImageUrl(storagePath)! });
+    uploaded.push({ storagePath, publicUrl: getAdImageUrl(storagePath)! });
   }
 
   return uploaded;
 }
 
-/** Supprime des objets du bucket (best effort, ne lève pas). */
-export async function removeListingImages(storagePaths: string[]): Promise<void> {
+/** Supprime des photos d'annonce (best effort, ne lève pas). */
+export async function removeAdImages(storagePaths: string[]): Promise<void> {
   if (storagePaths.length === 0) return;
   const supabase = createClient();
-  await supabase.storage.from(LISTINGS_BUCKET).remove(storagePaths);
+  await supabase.storage.from(AD_IMAGES_BUCKET).remove(storagePaths);
 }
+
+/**
+ * Envoie un avatar et renvoie son chemin Storage.
+ * L'ancien avatar doit être supprimé par l'appelant après mise à jour du profil.
+ */
+export async function uploadAvatar(file: File, userId: string): Promise<string> {
+  const validationError = validateImageFile(file, 2 * 1024 * 1024);
+  if (validationError) throw new Error(validationError);
+
+  const supabase = createClient();
+  const extension = EXTENSION_BY_MIME[file.type] ?? 'jpg';
+  const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage.from(AVATARS_BUCKET).upload(storagePath, file, {
+    cacheControl: '31536000',
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (error) throw new Error('Échec de l’envoi de l’avatar. Veuillez réessayer.');
+  return storagePath;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Utilitaires                                                               */
+/* -------------------------------------------------------------------------- */
 
 /** Image telle que manipulée par le sélecteur de photos du formulaire. */
 export interface UploaderImage {
@@ -108,11 +182,11 @@ export interface UploaderImage {
 
 /**
  * Convertit des chemins Storage en images prêtes pour `ImageUploader`.
- * Isomorphe : utilisable depuis un Server Component (page de modification).
+ * Isomorphe : utilisable depuis un Server Component.
  */
 export function toUploaderImages(storagePaths: string[]): UploaderImage[] {
   return storagePaths.flatMap((storagePath) => {
-    const url = getPublicImageUrl(storagePath);
+    const url = getAdImageUrl(storagePath);
     return url ? [{ storagePath, url }] : [];
   });
 }

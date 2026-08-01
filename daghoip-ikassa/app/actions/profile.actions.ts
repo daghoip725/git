@@ -48,7 +48,7 @@ export async function updateProfileAction(
     const supabase = await createClient();
 
     const { error } = await supabase
-      .from('profiles')
+      .from('users')
       .update({
         full_name: values.fullName,
         phone: values.phone,

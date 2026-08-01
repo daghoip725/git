@@ -5,7 +5,7 @@ import { ListingForm } from '@/components/listings/ListingForm';
 import { Alert } from '@/components/ui/Alert';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
-import { getMyProfile } from '@/services/profiles.service';
+import { getMyProfile } from '@/services/users.service';
 
 export const metadata: Metadata = {
   title: 'Déposer une annonce',

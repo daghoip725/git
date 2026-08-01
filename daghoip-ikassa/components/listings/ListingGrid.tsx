@@ -1,9 +1,9 @@
 import { ListingCard } from '@/components/listings/ListingCard';
-import type { ListingCard as ListingCardData } from '@/services/listings.service';
+import type { AdCardData } from '@/types';
 import { cn } from '@/utils/cn';
 
 export interface ListingGridProps {
-  listings: ListingCardData[];
+  listings: AdCardData[];
   favoriteIds?: Set<string>;
   isAuthenticated?: boolean;
   /** Nombre de cartes chargées en priorité (au-dessus de la ligne de flottaison). */

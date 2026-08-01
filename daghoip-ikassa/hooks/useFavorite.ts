@@ -8,7 +8,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useState, useTransition } from 'react';
 
-import { toggleFavoriteAction } from '@/app/actions/favorites.actions';
+import { toggleFavoriteAction } from '@/app/actions/ads.actions';
 
 export interface UseFavoriteResult {
   isFavorite: boolean;

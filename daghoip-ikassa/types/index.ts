@@ -1,44 +1,93 @@
 /**
- * Types applicatifs partagés entre les couches `services`, `components` et `app`.
- * Les types purement « base de données » vivent dans `types/database.ts`.
+ * Types applicatifs partagés entre `services`, `components` et `app`.
+ * Les types strictement « base de données » vivent dans `types/database.ts`.
+ *
+ * Correspondance de vocabulaire : la base parle d'`ads` (annonces) et d'`users`
+ * (comptes) ; l'interface, en français, parle d'« annonces » et de « profils ».
  */
 import type {
-  ListingCondition,
-  ListingStatus,
+  AdCondition,
+  AdStatus,
+  NotificationType,
+  PaymentProvider,
+  PaymentStatus,
   PriceType,
+  ReportReason,
+  ReviewStatus,
+  SubscriptionStatus,
   Tables,
   UserRole,
+  Views,
 } from '@/types/database';
 
-export type Profile = Tables<'profiles'>;
+/* -------------------------------------------------------------------------- */
+/*  Entités                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type UserProfile = Tables<'users'>;
 export type Category = Tables<'categories'>;
-export type Listing = Tables<'listings'>;
-export type ListingImage = Tables<'listing_images'>;
+export type Ad = Tables<'ads'>;
+export type AdImage = Tables<'ad_images'>;
+export type Conversation = Tables<'conversations'>;
 export type Message = Tables<'messages'>;
+export type Notification = Tables<'notifications'>;
+export type Review = Tables<'reviews'>;
+export type Report = Tables<'reports'>;
+export type SubscriptionPlan = Tables<'subscription_plans'>;
+export type Subscription = Tables<'subscriptions'>;
+export type Payment = Tables<'payments'>;
 
-export type { ListingCondition, ListingStatus, PriceType, UserRole };
+export type AdListRow = Views<'ads_list_view'>;
+export type ConversationRow = Views<'conversations_view'>;
+export type PlatformStats = Views<'platform_stats'>;
 
-/** Vendeur tel qu'exposé publiquement sur une annonce (données non sensibles). */
+export type {
+  AdCondition,
+  AdStatus,
+  NotificationType,
+  PaymentProvider,
+  PaymentStatus,
+  PriceType,
+  ReportReason,
+  ReviewStatus,
+  SubscriptionStatus,
+  UserRole,
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Vues métier                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Vendeur tel qu'exposé publiquement.
+ * Ne contient que des colonnes réellement accordées en lecture publique :
+ * ni `phone`, ni `whatsapp`, ni `district`.
+ */
 export interface PublicSeller {
   id: string;
   full_name: string;
-  avatar_url: string | null;
+  avatar_path: string | null;
   city: string | null;
   is_professional: boolean;
   is_verified: boolean;
+  business_name: string | null;
+  rating_average: number;
+  rating_count: number;
+  ads_count: number;
   created_at: string;
 }
 
 /** Annonce enrichie de ses relations, telle que renvoyée par le service. */
-export interface ListingWithRelations extends Listing {
+export interface AdWithRelations extends Ad {
   category: Pick<Category, 'id' | 'name' | 'slug' | 'icon'> | null;
-  images: ListingImage[];
+  images: AdImage[];
   seller: PublicSeller | null;
 }
 
-/** Version allégée utilisée dans les grilles et carrousels. */
-export interface ListingCardData {
+/** Donnée minimale d'une carte d'annonce (grilles, carrousels). */
+export interface AdCardData {
   id: string;
+  reference: string;
   title: string;
   slug: string;
   price: number | null;
@@ -47,30 +96,69 @@ export interface ListingCardData {
   is_featured: boolean;
   published_at: string | null;
   created_at: string;
-  category: Pick<Category, 'name' | 'slug'> | null;
+  categoryName: string | null;
+  categorySlug: string | null;
   coverImageUrl: string | null;
 }
 
-/** Critères de recherche acceptés par `/annonces`. */
-export interface ListingFilters {
+/** Ligne du tableau de bord vendeur (tous statuts confondus). */
+export interface SellerAdRow {
+  id: string;
+  reference: string;
+  title: string;
+  slug: string;
+  price: number | null;
+  price_type: PriceType;
+  status: AdStatus;
+  views_count: number;
+  favorites_count: number;
+  messages_count: number;
+  created_at: string;
+  coverImageUrl: string | null;
+}
+
+/** Conversation prête à afficher. */
+export interface ConversationSummary {
+  id: string;
+  adId: string;
+  adTitle: string;
+  adSlug: string;
+  adReference: string;
+  adImageUrl: string | null;
+  correspondentId: string;
+  correspondentName: string;
+  correspondentAvatarUrl: string | null;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  /** `true` si l'utilisateur courant est le vendeur de l'annonce. */
+  isSeller: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Recherche                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type AdSort = 'recent' | 'relevance' | 'price_asc' | 'price_desc' | 'popular';
+
+/** Critères acceptés par `/annonces`. */
+export interface AdFilters {
   query?: string;
   categorySlug?: string;
   city?: string;
   province?: string;
   minPrice?: number;
   maxPrice?: number;
-  condition?: ListingCondition;
+  condition?: AdCondition;
   priceType?: PriceType;
   featuredOnly?: boolean;
   sellerId?: string;
-  sort?: ListingSort;
+  sort?: AdSort;
   page?: number;
   perPage?: number;
 }
 
-export type ListingSort = 'recent' | 'price_asc' | 'price_desc' | 'popular';
-
-/** Enveloppe de pagination renvoyée par les services de listing. */
+/** Enveloppe de pagination renvoyée par les services de listage. */
 export interface Paginated<T> {
   items: T[];
   total: number;
@@ -79,19 +167,19 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Divers                                                                    */
+/* -------------------------------------------------------------------------- */
+
 /**
  * Résultat normalisé d'une Server Action.
- * `fieldErrors` reprend la forme aplatie de Zod pour un affichage direct.
+ * `fieldErrors` reprend la forme aplatie de Zod, pour un affichage direct.
  */
 export type ActionResult<T = void> =
   | { success: true; data: T }
-  | {
-      success: false;
-      error: string;
-      fieldErrors?: Record<string, string[]>;
-    };
+  | { success: false; error: string; fieldErrors?: Record<string, string[]> };
 
-/** Catégorie augmentée du nombre d'annonces publiées. */
+/** Catégorie augmentée de son nombre d'annonces (compteur dénormalisé). */
 export interface CategoryWithCount extends Category {
   listingsCount: number;
 }

@@ -7,8 +7,8 @@ import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ButtonLink } from '@/components/ui/Button';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories, getCategoryBySlug } from '@/services/categories.service';
-import { getFavoriteListingIds, searchListings } from '@/services/listings.service';
-import type { ListingFilters as Filters } from '@/types';
+import { getFavoriteAdIds, searchAds } from '@/services/ads.service';
+import type { AdFilters as Filters } from '@/types';
 import { listingFiltersSchema } from '@/utils/validation';
 
 interface PageProps {
@@ -79,9 +79,9 @@ export default async function ListingsPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
   const [result, categories, favoriteIds] = await Promise.all([
-    searchListings(filters),
+    searchAds(filters),
     getCategories(),
-    user ? getFavoriteListingIds(user.id) : Promise.resolve(new Set<string>()),
+    user ? getFavoriteAdIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
 
   const category = filters.categorySlug ? await getCategoryBySlug(filters.categorySlug) : null;
