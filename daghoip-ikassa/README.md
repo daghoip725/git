@@ -114,7 +114,8 @@ daghoip-ikassa/
 │   ├── actions/                # Server Actions ('use server') — écritures
 │   ├── annonces/               # Recherche, détail, dépôt d'annonce
 │   ├── auth/callback/          # Retour du flux d'authentification Supabase
-│   ├── compte/                 # Espace privé (tableau de bord, profil…)
+│   ├── compte/                 # Espace privé (tableau de bord, profil, vérification…)
+│   ├── admin/                  # Modération : signalements, vérifications, rôles, audit
 │   ├── (legal)/                # Pages légales, gabarit partagé
 │   ├── layout.tsx              # Gabarit racine, métadonnées, en-tête/pied
 │   ├── sitemap.ts robots.ts manifest.ts
@@ -126,6 +127,7 @@ daghoip-ikassa/
 │   ├── categories/ home/ auth/ account/ common/
 ├── lib/                        # Infrastructure
 │   ├── supabase/               # Clients navigateur / serveur / admin / middleware
+│   ├── auth/                   # Gardes de rôle (roles.ts serveur, roles.client.ts isomorphe)
 │   ├── env.ts errors.ts logger.ts rate-limit.ts
 ├── hooks/                      # Hooks client (useUser, useFavorite, filtres…)
 ├── services/                   # Accès aux données (lecture) — Server Components
@@ -194,14 +196,36 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`),
 qui rejoue notamment des tentatives d’auto-promotion administrateur, de
-falsification de compteurs et de lecture du téléphone d’autrui.
+falsification de compteurs, de lecture du téléphone d’autrui, d’auto-attribution
+du badge vérifié et d’écriture dans le journal d’audit.
 
 ### 3. Validation serveur (Zod)
 
 Chaque Server Action revalide intégralement ses entrées avec les schémas de
 `utils/validation.ts`. Le formulaire client ne sert qu’au confort d’usage.
 
-### 4. Application
+### 4. Authentification
+
+Quatre méthodes de connexion : e-mail + mot de passe, Google, Facebook, et code
+SMS. Toutes convergent vers une session Supabase, et le trigger
+`handle_new_user` crée le profil quel que soit le fournisseur.
+
+- **Rôles** : `user` < `moderator` < `admin`. `role` et `status` sont hors du
+  `GRANT UPDATE` — seules les RPC `admin_*`, qui revérifient `is_admin()` /
+  `is_staff()`, peuvent les écrire. Un administrateur ne peut ni se rétrograder
+  lui-même ni retirer le dernier administrateur.
+- **Badge vérifié** : posé uniquement par `review_verification()` après contrôle
+  des pièces par un modérateur. `is_verified` n'est pas modifiable par
+  l'utilisateur : le badge ne peut pas être auto-attribué.
+- **Journal d'audit** : `auth_audit_log` est en lecture seule pour tous ; seules
+  les fonctions `SECURITY DEFINER` y écrivent.
+- **Numéros en E.164** : `+241` suivi du numéro national **sans** le zéro
+  d'acheminement, sinon les passerelles SMS rejettent l'envoi. Même logique en
+  SQL (`to_e164_gabon`) et en TypeScript (`utils/phone.ts`).
+- **Avatars OAuth non repris** : les URL Google/Facebook sont bloquées par la CSP
+  et divulgueraient la navigation des utilisateurs au fournisseur.
+
+### 5. Application
 
 - **Rate limiting** sur le dépôt d’annonce, l’envoi de message, le signalement
   et l’authentification (`lib/rate-limit.ts`).

@@ -1,7 +1,8 @@
-import { BadgeCheck, Briefcase, CalendarDays } from 'lucide-react';
+import { Briefcase, CalendarDays, Star } from 'lucide-react';
 import Link from 'next/link';
 
 import { Avatar } from '@/components/common/Avatar';
+import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { getAvatarUrl } from '@/services/storage.service';
 import { Badge } from '@/components/ui/Badge';
 import type { PublicSeller } from '@/types';
@@ -25,12 +26,7 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-bold text-brand-900">
             <span className="truncate">{seller.full_name}</span>
-            {seller.is_verified ? (
-              <BadgeCheck
-                className="size-4.5 shrink-0 text-brand-600"
-                aria-label="Compte vérifié"
-              />
-            ) : null}
+            {seller.is_verified ? <VerifiedBadge /> : null}
           </p>
 
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-neutral-500">
@@ -42,7 +38,13 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
             {seller.is_professional ? (
               <Badge tone="gold">
                 <Briefcase className="size-3" aria-hidden="true" />
-                Professionnel
+                {seller.business_name ?? 'Professionnel'}
+              </Badge>
+            ) : null}
+            {seller.rating_count > 0 ? (
+              <Badge tone="neutral">
+                <Star className="size-3 fill-current text-gold-500" aria-hidden="true" />
+                {seller.rating_average.toFixed(1)} ({seller.rating_count})
               </Badge>
             ) : null}
             <Badge tone="neutral">

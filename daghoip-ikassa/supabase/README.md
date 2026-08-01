@@ -129,7 +129,18 @@ definer` réservé à trois cas légitimes, avec `search_path` figé :
 
 ## Authentification
 
-Configurée dans `config.toml`, section `[auth]` :
+Quatre chemins d'entrée aboutissent tous à une session Supabase, et le trigger
+`handle_new_user` crée le profil `public.users` correspondant quel que soit le
+fournisseur.
+
+| Méthode               | État             | Prérequis                 |
+| --------------------- | ---------------- | ------------------------- |
+| E-mail + mot de passe | Opérationnel     | Aucun                     |
+| Google                | Câblé, à activer | Identifiants OAuth        |
+| Facebook              | Câblé, à activer | Identifiants OAuth        |
+| Téléphone (OTP SMS)   | Câblé, à activer | Fournisseur SMS (Twilio…) |
+
+### Réglages (`config.toml`, section `[auth]`)
 
 - confirmation d'e-mail **obligatoire** ;
 - changement d'adresse à double confirmation (ancienne + nouvelle) ;
@@ -137,17 +148,98 @@ Configurée dans `config.toml`, section `[auth]` :
 - vérification contre la base HaveIBeenPwned ;
 - rotation des jetons de rafraîchissement, JWT valide 1 heure ;
 - liste blanche stricte des URL de redirection (anti-redirection ouverte) ;
-- limitation de débit sur l'envoi d'e-mails, les connexions et les OTP ;
+- limitation de débit sur e-mails, connexions et OTP ;
 - e-mails aux couleurs de la marque (`templates/`).
 
-Google et Facebook sont pré-câblés mais **désactivés** : renseignez les
-identifiants dans l'environnement puis passez `enabled = true`.
+### Format des numéros — E.164
 
-Le SMS est désactivé : la couverture au Gabon suppose un contrat avec un
-agrégateur local. Le numéro reste collecté pour le contact entre utilisateurs.
+Le zéro national d'acheminement **n'existe pas** en E.164 : une passerelle SMS
+rejette `+2410612345 6`. `public.to_e164_gabon()` normalise donc :
 
-À l'inscription, le trigger `on_auth_user_created` crée automatiquement la ligne
-`public.users` correspondante.
+```
+saisie « 06 12 34 56 »    →  +2416123456
+saisie « 074 12 34 56 »   →  +24174123456
+saisie « 00241 6123456 »  →  +2416123456
+```
+
+`utils/phone.ts` applique exactement la même logique côté client, pour que les
+deux couches normalisent à l'identique. Le plan gabonais compte 7 à 9 chiffres
+significatifs : la contrainte les accepte tous.
+
+Un index unique partiel garantit qu'un numéro n'est rattaché qu'à un seul
+compte. Si un numéro est déjà pris, l'inscription aboutit quand même — sans le
+téléphone — plutôt que d'échouer.
+
+### Fournisseurs externes
+
+Les identifiants OAuth se créent dans la Google Cloud Console et sur Meta for
+Developers, avec pour URL de redirection autorisée :
+
+```
+https://<votre-ref>.supabase.co/auth/v1/callback
+```
+
+Supabase relie automatiquement une identité OAuth à un compte e-mail existant
+lorsque l'adresse est identique et vérifiée par le fournisseur : un utilisateur
+ne se retrouve donc pas avec deux comptes.
+
+> L'avatar fourni par Google ou Facebook n'est **volontairement pas repris** :
+> c'est une URL sur un domaine tiers, que la CSP bloque et qui signalerait au
+> fournisseur chaque consultation de page. L'utilisateur téléverse son avatar
+> dans le bucket `avatars`.
+
+### Connexion par SMS
+
+Au Gabon le téléphone est le premier identifiant : le premier envoi de code crée
+le compte, les suivants connectent. Il n'y a donc pas d'écran d'inscription
+distinct pour cette méthode.
+
+Le SMS a un coût réel : trois limites se cumulent — par IP (envoi), par numéro
+(anti-« bombardement » d'un tiers) et sur la vérification (anti-devinage du code
+à 6 chiffres). Sans fournisseur SMS configuré, l'envoi échoue proprement et
+l'interface renvoie vers la connexion par e-mail.
+
+## Rôles et modération
+
+Trois rôles hiérarchisés : `user` < `moderator` < `admin`.
+
+| Action                         | Utilisateur | Modérateur | Administrateur |
+| ------------------------------ | :---------: | :--------: | :------------: |
+| Publier, échanger, évaluer     |     oui     |    oui     |      oui       |
+| Traiter les signalements       |             |    oui     |      oui       |
+| Instruire les vérifications    |             |    oui     |      oui       |
+| Suspendre un compte ordinaire  |             |    oui     |      oui       |
+| Agir sur un membre de l'équipe |             |            |      oui       |
+| Changer un rôle                |             |            |      oui       |
+
+`role` et `status` sont **hors du `GRANT UPDATE`** : les RPC `admin_set_user_role`
+et `admin_set_user_status` sont le seul chemin d'écriture, et elles revérifient
+`is_admin()` / `is_staff()`. Deux garde-fous empêchent le verrouillage : un
+administrateur ne modifie pas son propre rôle, et le dernier administrateur ne
+peut pas être rétrogradé.
+
+Toute action sensible est consignée dans `auth_audit_log`, table en lecture seule
+pour tous : seules les fonctions `SECURITY DEFINER` y écrivent.
+
+### Créer le premier administrateur
+
+Aucun compte n'est administrateur au départ. Depuis le SQL Editor :
+
+```sql
+update public.users set role = 'admin' where id = '<uuid-utilisateur>';
+```
+
+## Badge vendeur vérifié
+
+1. Le vendeur dépose ses pièces (CNI, RCCM) dans le bucket **privé**
+   `verification-docs` et remplit `/compte/verification`.
+2. Un modérateur les consulte via une **URL signée valable 5 minutes** — il
+   n'existe pas d'URL publique pour ce bucket.
+3. L'approbation pose `users.is_verified`, reprend le nom commercial, notifie le
+   vendeur et journalise la décision.
+
+`is_verified` est exclu du `GRANT UPDATE` : le badge ne peut pas être
+auto-attribué. Seule `review_verification()` le positionne.
 
 ## Storage
 

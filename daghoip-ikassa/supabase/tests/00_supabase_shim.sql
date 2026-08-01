@@ -28,13 +28,23 @@ grant usage on schema extensions to anon, authenticated, service_role;
 grant usage on schema storage    to anon, authenticated, service_role;
 grant usage on schema auth       to anon, authenticated, service_role;
 
--- auth.users (sous-ensemble des colonnes réelles)
+-- auth.users — sous-ensemble des colonnes réelles de Supabase utilisées par
+-- les triggers applicatifs (handle_new_user, handle_user_updated).
 create table if not exists auth.users (
   id                  uuid primary key default gen_random_uuid(),
   email               text unique,
+  -- Supabase stocke le téléphone SANS le « + » (ex. « 2416123456 »).
+  phone               text unique,
   encrypted_password  text,
+  email_confirmed_at  timestamptz,
+  phone_confirmed_at  timestamptz,
+  last_sign_in_at     timestamptz,
+  banned_until        timestamptz,
+  deleted_at          timestamptz,
   raw_user_meta_data  jsonb default '{}'::jsonb,
-  created_at          timestamptz default now()
+  raw_app_meta_data   jsonb default '{}'::jsonb,
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
 );
 
 -- auth.uid() lit le claim `sub` du JWT porté par la requête.

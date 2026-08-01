@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 
+import { AuthMethodTabs } from '@/components/auth/AuthMethodTabs';
+import { AuthDivider, OAuthButtons } from '@/components/auth/OAuthButtons';
+import { PhoneAuthForm } from '@/components/auth/PhoneAuthForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
 import { Logo } from '@/components/common/Logo';
 
@@ -21,8 +24,17 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <SignUpForm />
+      <div className="space-y-5 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <OAuthButtons />
+
+        <AuthDivider />
+
+        <AuthMethodTabs
+          emailPanel={<SignUpForm />}
+          // Par SMS, il n'y a pas d'écran d'inscription distinct : le premier
+          // envoi de code crée le compte.
+          phonePanel={<PhoneAuthForm />}
+        />
       </div>
     </div>
   );

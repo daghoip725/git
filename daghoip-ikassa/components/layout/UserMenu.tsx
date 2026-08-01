@@ -3,7 +3,15 @@
 /**
  * Menu du compte utilisateur (desktop). Fermeture au clic extérieur et à Échap.
  */
-import { ChevronDown, Heart, LayoutDashboard, LogOut, MessageSquare, Settings } from 'lucide-react';
+import {
+  ChevronDown,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  Settings,
+  ShieldCheck,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
@@ -14,6 +22,8 @@ export interface UserMenuProps {
   fullName: string;
   avatarUrl: string | null;
   unreadCount?: number;
+  /** Affiche le raccourci vers l'administration (modérateurs et administrateurs). */
+  isStaff?: boolean;
 }
 
 const LINKS = [
@@ -24,7 +34,7 @@ const LINKS = [
   { href: '/compte/profil', label: 'Mon profil', icon: Settings },
 ];
 
-export function UserMenu({ fullName, avatarUrl, unreadCount = 0 }: UserMenuProps) {
+export function UserMenu({ fullName, avatarUrl, unreadCount = 0, isStaff = false }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +103,18 @@ export function UserMenu({ fullName, avatarUrl, unreadCount = 0 }: UserMenuProps
               ) : null}
             </Link>
           ))}
+
+          {isStaff ? (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 border-t border-neutral-200 px-4 py-2.5 text-sm font-semibold text-brand-800 transition-colors hover:bg-brand-50"
+            >
+              <ShieldCheck className="size-4 text-brand-600" aria-hidden="true" />
+              Administration
+            </Link>
+          ) : null}
 
           <form action={signOutAction} className="border-t border-neutral-200 pt-1.5">
             <button

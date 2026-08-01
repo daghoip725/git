@@ -11,6 +11,7 @@ import { getCurrentUser } from '@/lib/supabase/server';
 import { countUnreadMessages } from '@/services/conversations.service';
 import { getAvatarUrl } from '@/services/storage.service';
 import { getPublicUser } from '@/services/users.service';
+import { isModerator } from '@/lib/auth/roles';
 import { MAIN_NAV } from '@/utils/constants';
 
 /**
@@ -19,9 +20,9 @@ import { MAIN_NAV } from '@/utils/constants';
  */
 export async function Header() {
   const user = await getCurrentUser();
-  const [profile, unreadCount] = user
-    ? await Promise.all([getPublicUser(user.id), countUnreadMessages(user.id)])
-    : [null, 0];
+  const [profile, unreadCount, staff] = user
+    ? await Promise.all([getPublicUser(user.id), countUnreadMessages(user.id), isModerator()])
+    : [null, 0, false];
 
   return (
     <header className="sticky top-0 z-40 bg-brand-700 shadow-md">
@@ -62,6 +63,7 @@ export async function Header() {
                 fullName={profile.full_name}
                 avatarUrl={getAvatarUrl(profile.avatar_path)}
                 unreadCount={unreadCount}
+                isStaff={staff}
               />
             ) : (
               <div className="hidden items-center gap-2 md:flex">

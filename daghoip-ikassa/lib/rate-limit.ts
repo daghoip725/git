@@ -68,4 +68,17 @@ export const RATE_LIMITS = {
   sendMessage: { limit: 30, windowMs: 60 * 60 * 1000 },
   report: { limit: 10, windowMs: 24 * 60 * 60 * 1000 },
   auth: { limit: 10, windowMs: 15 * 60 * 1000 },
+
+  // --- Codes SMS -------------------------------------------------------------
+  // Un SMS a un coût réel : ces limites protègent autant le budget que
+  // l'utilisateur dont on pourrait « bombarder » le numéro.
+  /** Envois par IP. */
+  otpSend: { limit: 5, windowMs: 15 * 60 * 1000 },
+  /** Envois pour un même numéro, toutes IP confondues. */
+  otpPerPhone: { limit: 3, windowMs: 15 * 60 * 1000 },
+  /** Tentatives de saisie du code, par IP : freine le devinage à 6 chiffres. */
+  otpVerify: { limit: 10, windowMs: 15 * 60 * 1000 },
+
+  /** Demandes de vérification vendeur. */
+  verification: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
 } as const;

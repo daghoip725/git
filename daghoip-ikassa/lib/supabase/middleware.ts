@@ -12,7 +12,7 @@ import { publicEnv } from '@/lib/env';
 import type { Database } from '@/types/database';
 
 /** Préfixes de routes nécessitant une session authentifiée. */
-const PROTECTED_PREFIXES = ['/compte', '/annonces/nouvelle', '/messages'];
+const PROTECTED_PREFIXES = ['/compte', '/annonces/nouvelle', '/messages', '/admin'];
 
 /** Routes réservées aux visiteurs non connectés. */
 const GUEST_ONLY_PREFIXES = ['/connexion', '/inscription', '/mot-de-passe-oublie'];
@@ -55,6 +55,20 @@ export async function updateSession(request: NextRequest) {
     redirectUrl.search = '';
     redirectUrl.searchParams.set('next', `${pathname}${search}`);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // L'espace d'administration exige en plus un rôle. Le contrôle fin est fait
+  // par `requireRole()` dans le layout — et surtout par les RPC PostgreSQL, qui
+  // revérifient `is_staff()` / `is_admin()`. Ici on évite simplement d'engager
+  // le rendu d'une page inutile.
+  if (user && pathname.startsWith('/admin')) {
+    const { data: role } = await supabase.rpc('current_user_role');
+    if (role !== 'moderator' && role !== 'admin') {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/compte';
+      redirectUrl.search = '';
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   if (user && GUEST_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {

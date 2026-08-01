@@ -6,8 +6,10 @@
  * (comptes) ; l'interface, en français, parle d'« annonces » et de « profils ».
  */
 import type {
+  AccountStatus,
   AdCondition,
   AdStatus,
+  AuditAction,
   NotificationType,
   PaymentProvider,
   PaymentStatus,
@@ -17,6 +19,7 @@ import type {
   SubscriptionStatus,
   Tables,
   UserRole,
+  VerificationStatus,
   Views,
 } from '@/types/database';
 
@@ -34,6 +37,8 @@ export type Notification = Tables<'notifications'>;
 export type Review = Tables<'reviews'>;
 export type Report = Tables<'reports'>;
 export type SubscriptionPlan = Tables<'subscription_plans'>;
+export type VerificationRequest = Tables<'verification_requests'>;
+export type AuditLogEntry = Tables<'auth_audit_log'>;
 export type Subscription = Tables<'subscriptions'>;
 export type Payment = Tables<'payments'>;
 
@@ -42,8 +47,10 @@ export type ConversationRow = Views<'conversations_view'>;
 export type PlatformStats = Views<'platform_stats'>;
 
 export type {
+  AccountStatus,
   AdCondition,
   AdStatus,
+  AuditAction,
   NotificationType,
   PaymentProvider,
   PaymentStatus,
@@ -52,6 +59,7 @@ export type {
   ReviewStatus,
   SubscriptionStatus,
   UserRole,
+  VerificationStatus,
 };
 
 /* -------------------------------------------------------------------------- */

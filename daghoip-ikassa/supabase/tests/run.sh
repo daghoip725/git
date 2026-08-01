@@ -53,10 +53,25 @@ done
 echo "==> Chargement des données de référence"
 psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/dev/null
 
-echo "==> Suite de tests"
-psql -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$SCRIPT_DIR/01_schema_tests.sql" 2>&1 \
-  | grep -E "OK  |ECHEC|ERROR|^---|TOUS LES" \
-  | sed 's/^psql.*NOTICE: *//'
+# Chaque suite part d'une base vierge : les tests d'authentification créent
+# leurs propres comptes et supposent qu'aucun administrateur n'existe encore.
+for suite in "$SCRIPT_DIR"/0[1-9]_*.sql; do
+  echo
+  echo "==> Suite : $(basename "$suite")"
+
+  psql -q -c "drop database if exists $DBNAME;" -c "create database $DBNAME;" >/dev/null
+  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 \
+    -c "create extension if not exists pgcrypto;" \
+    -f "$SCRIPT_DIR/00_supabase_shim.sql" >/dev/null
+  for migration in "$PROJECT_DIR"/supabase/migrations/*.sql; do
+    psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+  done
+  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/dev/null
+
+  psql -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$suite" 2>&1 \
+    | grep -E "OK  |ECHEC|ERROR|^---|TOUS|TESTS" \
+    | sed 's/^psql.*NOTICE: *//'
+done
 
 echo
 echo "==> Terminé"

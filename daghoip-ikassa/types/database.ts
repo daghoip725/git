@@ -40,6 +40,17 @@ export type NotificationType =
 
 export type ReviewStatus = 'published' | 'pending' | 'hidden';
 
+export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export type AuditAction =
+  | 'role_changed'
+  | 'status_changed'
+  | 'verification_requested'
+  | 'verification_approved'
+  | 'verification_rejected'
+  | 'ad_moderated'
+  | 'report_resolved';
+
 export type ReportTargetType = 'ad' | 'user' | 'message' | 'review';
 
 export type ReportReason =
@@ -99,6 +110,12 @@ export interface Database {
           rating_average: number;
           rating_count: number;
           ads_count: number;
+          /** Confirmé par OTP SMS. Positionné par trigger, non modifiable. */
+          phone_verified: boolean;
+          /** Confirmé par lien e-mail ou par le fournisseur OAuth. */
+          email_verified: boolean;
+          /** 'email' | 'phone' | 'google' | 'facebook' */
+          auth_provider: string | null;
           last_seen_at: string | null;
           created_at: string;
           updated_at: string;
@@ -432,6 +449,58 @@ export interface Database {
         Relationships: [];
       };
 
+      verification_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          full_legal_name: string;
+          business_name: string | null;
+          business_id_number: string | null;
+          contact_phone: string;
+          id_document_path: string;
+          business_document_path: string | null;
+          status: VerificationStatus;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        /** Créée via la RPC `request_verification()`. */
+        Insert: {
+          user_id: string;
+          full_legal_name: string;
+          business_name?: string | null;
+          business_id_number?: string | null;
+          contact_phone: string;
+          id_document_path: string;
+          business_document_path?: string | null;
+        };
+        /** Le demandeur annule ; le staff instruit via `review_verification()`. */
+        Update: {
+          status?: VerificationStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+        };
+        Relationships: [];
+      };
+
+      auth_audit_log: {
+        Row: {
+          id: string;
+          actor_id: string | null;
+          action: AuditAction;
+          target_user_id: string | null;
+          details: Json;
+          created_at: string;
+        };
+        /** Journal immuable : aucune écriture client. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
       payments: {
         Row: {
           id: string;
@@ -583,6 +652,36 @@ export interface Database {
       };
       is_staff: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      current_user_role: { Args: Record<PropertyKey, never>; Returns: UserRole };
+      to_e164_gabon: { Args: { p_input: string }; Returns: string | null };
+      request_verification: {
+        Args: {
+          p_full_legal_name: string;
+          p_contact_phone: string;
+          p_id_document_path: string;
+          p_business_name?: string | null;
+          p_business_id_number?: string | null;
+          p_business_document_path?: string | null;
+        };
+        Returns: string;
+      };
+      review_verification: {
+        Args: { p_request_id: string; p_approve: boolean; p_reason?: string | null };
+        Returns: undefined;
+      };
+      admin_set_user_role: { Args: { p_user_id: string; p_role: UserRole }; Returns: undefined };
+      admin_set_user_status: {
+        Args: { p_user_id: string; p_status: AccountStatus; p_reason?: string | null };
+        Returns: undefined;
+      };
+      admin_revoke_verification: {
+        Args: { p_user_id: string; p_reason?: string | null };
+        Returns: undefined;
+      };
+      admin_moderate_ad: {
+        Args: { p_ad_id: string; p_action: string; p_reason?: string | null };
+        Returns: undefined;
+      };
     };
 
     Enums: {
@@ -593,6 +692,8 @@ export interface Database {
       price_type: PriceType;
       notification_type: NotificationType;
       review_status: ReviewStatus;
+      verification_status: VerificationStatus;
+      audit_action: AuditAction;
       report_target_type: ReportTargetType;
       report_reason: ReportReason;
       report_status: ReportStatus;

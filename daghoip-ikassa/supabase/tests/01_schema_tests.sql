@@ -21,7 +21,7 @@ end $$;
 -- ---------------------------------------------------------------------------
 insert into auth.users (id, email, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', 'vendeur@test.ga',
-     '{"full_name":"Marie Ndong","phone":"+241061234567","city":"Libreville"}'::jsonb),
+     '{"full_name":"Marie Ndong","phone":"06 12 34 56","city":"Libreville"}'::jsonb),
   ('22222222-2222-2222-2222-222222222222', 'acheteur@test.ga',
      '{"full_name":"Paul Obame","city":"Port-Gentil"}'::jsonb),
   ('33333333-3333-3333-3333-333333333333', 'intrus@test.ga',
@@ -32,9 +32,11 @@ do $$ begin perform pg_temp.check(
   (select count(*) from public.users) = 3
 ); end $$;
 
+-- Le téléphone saisi au format local est stocké en E.164 par le trigger :
+-- « 06 12 34 56 » → « +2416123456 » (zéro national retiré).
 do $$ begin perform pg_temp.check(
-  'métadonnées propagées (nom + téléphone)',
-  (select full_name = 'Marie Ndong' and phone = '+241061234567'
+  'métadonnées propagées (nom + téléphone normalisé en E.164)',
+  (select full_name = 'Marie Ndong' and phone = '+2416123456'
      from public.users where id = '11111111-1111-1111-1111-111111111111')
 ); end $$;
 
@@ -50,7 +52,7 @@ insert into public.ads (seller_id, category_id, title, description, price, city,
 select '11111111-1111-1111-1111-111111111111', id,
        'Toyota RAV4 2018 très bon état',
        'Véhicule bien entretenu, climatisation, première main. Visible à Libreville.',
-       12500000, 'Libreville', '+241061234567'
+       12500000, 'Libreville', '+2416123456'
   from public.categories where slug = 'vehicules';
 
 do $$ begin perform pg_temp.check(
@@ -199,7 +201,7 @@ begin
   select (public.get_my_profile()).phone into v_phone;
   reset role;
   perform pg_temp.check('get_my_profile() rend son téléphone au propriétaire',
-                        v_phone = '+241061234567');
+                        v_phone = '+2416123456');
 end $$;
 
 -- 2i. Écriture directe d'un paiement (fraude évidente)
@@ -251,7 +253,7 @@ end $$;
 insert into public.ads (seller_id, category_id, title, description, price, city, contact_phone, status)
 select '11111111-1111-1111-1111-111111111111', id, 'Brouillon non publié',
        'Description du brouillon, suffisamment longue pour la contrainte.',
-       50000, 'Libreville', '+241061234567', 'draft'
+       50000, 'Libreville', '+2416123456', 'draft'
   from public.categories where slug = 'divers';
 
 do $$
@@ -499,14 +501,14 @@ begin
     values ('11111111-1111-1111-1111-111111111111', v_cat,
             'Annonce de test numéro ' || i,
             'Description suffisamment longue pour satisfaire la contrainte de longueur.',
-            10000, 'Libreville', '+241061234567');
+            10000, 'Libreville', '+2416123456');
   end loop;
 
   begin
     insert into public.ads (seller_id, category_id, title, description, price, city, contact_phone)
     values ('11111111-1111-1111-1111-111111111111', v_cat, 'Annonce au-delà du quota',
             'Description suffisamment longue pour satisfaire la contrainte de longueur.',
-            10000, 'Libreville', '+241061234567');
+            10000, 'Libreville', '+2416123456');
   exception when raise_exception then
     v_blocked := true;
   end;
@@ -536,7 +538,7 @@ begin
   select id into v_sub from public.subscriptions limit 1;
   insert into public.payments (user_id, purpose, subscription_id, provider, payer_phone, amount, status)
   values ('11111111-1111-1111-1111-111111111111', 'subscription', v_sub,
-          'airtel_money', '+241061234567', 15000, 'pending')
+          'airtel_money', '+2416123456', 15000, 'pending')
   returning id, reference into v_pay, v_ref;
 
   perform pg_temp.check('référence de paiement générée (DI-PAY-…)', v_ref like 'DI-PAY-%');

@@ -127,13 +127,34 @@ min_length = 8
 # Impose au moins une minuscule, une majuscule et un chiffre.
 required_characters = "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
 
-# --- Téléphone --------------------------------------------------------------
+# --- Téléphone (connexion par SMS) ------------------------------------------
 [auth.sms]
-# Désactivé par défaut : la couverture SMS au Gabon suppose un contrat avec un
-# agrégateur local. Le numéro reste collecté dans `public.users` pour le
-# contact entre utilisateurs, sans servir à l'authentification.
-enable_signup = false
-enable_confirmations = false
+# La connexion par SMS crée le compte au premier envoi : au Gabon le téléphone
+# est le premier identifiant, il n'y a donc pas d'écran d'inscription distinct.
+enable_signup = true
+enable_confirmations = true
+# Un même numéro ne peut être rattaché qu'à un seul compte (index unique
+# `users_phone_unique_idx` côté PostgreSQL).
+max_frequency = "60s"
+otp_length = 6
+otp_exp = 600
+
+[auth.sms.template]
+# Reste court : au-delà de 160 caractères, l'opérateur facture deux SMS.
+message = "Daghoip Ikassa : votre code de connexion est {{ .Code }}. Il expire dans 10 minutes. Ne le communiquez a personne."
+
+# --- Fournisseur SMS ---------------------------------------------------------
+# ⚠️ REQUIS pour la connexion par téléphone. Sans ces identifiants, l'envoi
+# d'OTP échoue et l'application bascule proprement sur la connexion par e-mail.
+#
+# Twilio couvre le Gabon (+241). Alternatives : Vonage, MessageBird, ou un
+# agrégateur local via [auth.sms.twilio_verify] / un webhook personnalisé.
+# Renseignez les variables dans l'environnement, puis passez `enabled = true`.
+[auth.sms.twilio]
+enabled = false
+account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
 # --- Limitation de débit ----------------------------------------------------
 [auth.rate_limit]
@@ -155,17 +176,26 @@ anonymous_users = 30
 enable_password_verification = true
 
 # --- Fournisseurs externes ---------------------------------------------------
-# Google est le plus répandu au Gabon après l'e-mail. Renseignez les
-# identifiants dans l'environnement, puis passez `enabled = true`.
+# Google est le plus répandu au Gabon après l'e-mail.
+#
+# ⚠️ Ces fournisseurs sont ACTIVÉS ici mais restent inopérants tant que les
+# identifiants OAuth ne sont pas renseignés dans l'environnement. Créez-les
+# dans la Google Cloud Console et sur Meta for Developers, en déclarant comme
+# URL de redirection autorisée :
+#     https://<votre-ref>.supabase.co/auth/v1/callback
+#
+# Supabase relie automatiquement une identité OAuth à un compte e-mail existant
+# lorsque l'adresse est identique et vérifiée par le fournisseur : un même
+# utilisateur ne se retrouve donc pas avec deux comptes.
 [auth.external.google]
-enabled = false
+enabled = true
 client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
 redirect_uri = "env(NEXT_PUBLIC_SITE_URL)/auth/callback"
 skip_nonce_check = false
 
 [auth.external.facebook]
-enabled = false
+enabled = true
 client_id = "env(SUPABASE_AUTH_FACEBOOK_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_FACEBOOK_SECRET)"
 redirect_uri = "env(NEXT_PUBLIC_SITE_URL)/auth/callback"

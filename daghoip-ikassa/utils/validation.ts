@@ -99,6 +99,13 @@ export const profileSchema = z.object({
   province: z.string().trim().max(80).nullable(),
   bio: z.string().trim().max(500, 'La bio ne peut pas dépasser 500 caractères.').nullable(),
   isProfessional: z.boolean().default(false),
+  /** Chemin dans le bucket `avatars` : `<user_id>/<uuid>.<ext>`. */
+  avatarPath: z
+    .string()
+    .trim()
+    .max(500)
+    .regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|avif)$/i, 'Avatar invalide.')
+    .nullable(),
 });
 
 /** Détecte les coordonnées glissées dans un texte libre (anti-contournement). */
