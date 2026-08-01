@@ -111,6 +111,17 @@ export const profileSchema = z.object({
 /** Détecte les coordonnées glissées dans un texte libre (anti-contournement). */
 const CONTACT_IN_TEXT = /(\+?241[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2})/;
 
+/** Durées de publication proposées, en jours. La base borne à 7–90. */
+export const PUBLICATION_DURATIONS = [30, 60, 90] as const;
+
+/**
+ * Coordonnée géographique optionnelle.
+ * Les deux valeurs vont de pair : une latitude sans longitude n'a aucun sens,
+ * et le trigger côté base écarte de toute façon une coordonnée orpheline.
+ */
+const coordinateSchema = (min: number, max: number, label: string) =>
+  z.number().min(min, `${label} hors limites.`).max(max, `${label} hors limites.`).nullable();
+
 export const listingSchema = z.object({
   title: trimmed(LISTING_LIMITS.titleMin, LISTING_LIMITS.titleMax, 'Le titre'),
   description: trimmed(
@@ -139,6 +150,28 @@ export const listingSchema = z.object({
   contactPhone: gabonPhoneSchema.nullable(),
   contactWhatsapp: gabonPhoneSchema.nullable(),
   allowMessages: z.boolean().default(true),
+
+  /** Position approximative, arrondie côté base à ~110 m. */
+  latitude: coordinateSchema(-90, 90, 'La latitude'),
+  longitude: coordinateSchema(-180, 180, 'La longitude'),
+
+  /** Durée de publication souhaitée. */
+  durationDays: z
+    .number()
+    .int()
+    .refine((value) => (PUBLICATION_DURATIONS as readonly number[]).includes(value), {
+      message: 'Durée de publication invalide.',
+    })
+    .default(60),
+
+  /** Code de l'offre de mise en avant, ou `null` pour une annonce ordinaire. */
+  featurePlanCode: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_]+$/, 'Offre invalide.')
+    .max(40)
+    .nullable()
+    .default(null),
 });
 
 /**
@@ -157,6 +190,10 @@ export const listingFormSchema = listingSchema
   .refine((data) => !CONTACT_IN_TEXT.test(data.title), {
     message: 'Le titre ne doit pas contenir de numéro de téléphone.',
     path: ['title'],
+  })
+  .refine((data) => (data.latitude === null) === (data.longitude === null), {
+    message: 'Position incomplète : réessayez la localisation.',
+    path: ['latitude'],
   });
 
 export type ListingFormInput = z.input<typeof listingFormSchema>;

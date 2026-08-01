@@ -166,6 +166,25 @@ est lisible et modifiable sans casser le lien, la référence à 8 caractères
 (`?q=&categorie=&ville=&prix_min=…`) : la page reste un Server Component, la
 recherche est partageable et indexable.
 
+**Dépôt d’annonce.** Le formulaire (`components/listings/ListingForm.tsx`)
+couvre titre, description, prix, catégorie, ville, quartier, photos multiples,
+téléphone, WhatsApp, position GPS, état, durée de publication et mise en avant.
+Trois principes :
+
+- **Un seul schéma de validation.** `utils/validation.ts` sert à la fois au
+  retour immédiat dans le navigateur (`hooks/useLiveValidation.ts`) et à la
+  revalidation dans la Server Action. Un champ n’affiche son erreur qu’une fois
+  quitté, et un indicateur « Validation automatique » résume ce qu’il reste à
+  corriger.
+- **Rien de sensible n’est décidé par le client.** La durée de publication est
+  rebornée à 7–90 jours en base, la position GPS y est arrondie à ~110 m, le
+  tarif d’une mise en avant est relu dans `ad_feature_plans` — le formulaire
+  n’envoie qu’un code d’offre. Un contenu manifestement interdit bascule
+  l’annonce en `pending_review` plutôt que d’être refusé automatiquement.
+- **La saisie survit à la connexion.** `hooks/useDraft.ts` enregistre un
+  brouillon dans `localStorage` (jamais envoyé au serveur, photos exclues) et
+  propose de le reprendre au retour.
+
 ---
 
 ## Modèle de sécurité
@@ -194,10 +213,11 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
 - `payments` et `notifications` — aucun droit d’écriture client : seuls
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
-Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`),
-qui rejoue notamment des tentatives d’auto-promotion administrateur, de
-falsification de compteurs, de lecture du téléphone d’autrui, d’auto-attribution
-du badge vérifié et d’écriture dans le journal d’audit.
+Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
+134 assertions), qui rejoue notamment des tentatives d’auto-promotion
+administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
+d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit et de
+mise en avant d’une annonce sans paiement.
 
 ### 3. Validation serveur (Zod)
 

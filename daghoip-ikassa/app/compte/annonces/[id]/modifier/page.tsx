@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { ListingForm } from '@/components/listings/ListingForm';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
+import { getAdFeaturePlans } from '@/services/feature-plans.service';
 import { getOwnedAdById } from '@/services/ads.service';
 import { toUploaderImages } from '@/services/storage.service';
 
@@ -30,7 +31,7 @@ export default async function EditListingPage({ params }: PageProps) {
   const listing = await getOwnedAdById(parsedId.data, user.id);
   if (!listing) notFound();
 
-  const categories = await getCategories();
+  const [categories, featurePlans] = await Promise.all([getCategories(), getAdFeaturePlans()]);
 
   return (
     <div className="max-w-3xl">
@@ -56,8 +57,12 @@ export default async function EditListingPage({ params }: PageProps) {
           contactPhone: listing.contact_phone,
           contactWhatsapp: listing.contact_whatsapp,
           allowMessages: listing.allow_messages,
+          latitude: listing.latitude,
+          longitude: listing.longitude,
           images: toUploaderImages(listing.images.map((image) => image.storage_path)),
         }}
+        featurePlans={featurePlans}
+        isFeatured={listing.is_featured}
       />
     </div>
   );

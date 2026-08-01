@@ -13,7 +13,9 @@ supabase/
 │   ├── …000200_functions_triggers.sql        # 30 fonctions, 18 triggers, RPC
 │   ├── …000300_rls_policies.sql              # RLS + privilèges de colonnes
 │   ├── …000400_storage.sql                   # 4 buckets + politiques + nettoyage
-│   └── …000500_performance.sql               # Vues, autovacuum, stats, pg_cron
+│   ├── …000500_performance.sql               # Vues, autovacuum, stats, pg_cron
+│   ├── …000600_auth_roles_verification.sql   # E.164, vérification vendeur, rôles, audit
+│   └── …000700_ad_form_features.sql          # Expiration, GPS, revue auto, mise en avant
 ├── seed.sql                       # Offres d'abonnement + 32 catégories
 ├── templates/                     # E-mails d'authentification (charte graphique)
 └── tests/                         # Suite de tests fonctionnels et de sécurité
@@ -39,7 +41,9 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 3. `migrations/20260801000300_rls_policies.sql`
 4. `migrations/20260801000400_storage.sql`
 5. `migrations/20260801000500_performance.sql`
-6. `seed.sql`
+6. `migrations/20260801000600_auth_roles_verification.sql`
+7. `migrations/20260801000700_ad_form_features.sql`
+8. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -49,8 +53,9 @@ Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
 ## Modèle de données
 
-Onze entités métier, plus deux tables de support (`ad_images`,
-`subscription_plans`).
+Onze entités métier, plus cinq tables de support (`ad_images`,
+`subscription_plans`, `ad_feature_plans`, `verification_requests`,
+`auth_audit_log`) — seize au total.
 
 ```
 auth.users (Supabase)
@@ -93,7 +98,7 @@ applicatifs.
 
 ### 1. RLS — quelles lignes
 
-RLS activée sur **les 13 tables**, 38 politiques. L'application n'utilise que la
+RLS activée sur **les 16 tables**, 45 politiques. L'application n'utilise que la
 clé anonyme : même une requête forgée depuis la console du navigateur ne peut
 pas dépasser ce que les politiques autorisent.
 
@@ -287,13 +292,34 @@ supprimé — y compris pour les suppressions faites hors de l'application.
 | `purge_old_notifications` | hebdomadaire           |
 | `refresh_platform_stats`  | toutes les 15 minutes  |
 
+## Dépôt d'annonce — règles appliquées en base
+
+Le formulaire propose ; la base dispose. Quatre traitements du trigger
+`ads_before_write()` et de la RPC `request_ad_feature()` ne sont **jamais**
+contournables depuis le client :
+
+| Règle                     | Comportement                                                                                                                                                                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Expiration**            | Une durée hors des bornes est ramenée dans l'intervalle 7–90 jours. La date n'est rebornée que si elle change réellement : modifier son annonce ne la reconduit donc pas.                                                                           |
+| **Position GPS**          | Latitude et longitude sont arrondies à 3 décimales (~110 m) : le quartier, jamais le domicile. Une coordonnée orpheline est écartée.                                                                                                                |
+| **Validation du contenu** | `needs_manual_review()` reconnaît une liste étroite de contenus interdits (ivoire, pangolin, armes, faux papiers, stupéfiants). L'annonce passe en `pending_review` — elle n'est **jamais** refusée automatiquement, et le staff échappe au filtre. |
+| **Mise en avant**         | Le formulaire n'envoie qu'un **code d'offre** ; le montant est relu dans `ad_feature_plans`. La mise en avant ne s'applique qu'à la confirmation du paiement, jamais avant.                                                                         |
+
+Les écritures sans `auth.uid()` (`service_role`, maintenance planifiée)
+échappent au bornage de l'expiration : c'est ce qui permet au back-office de
+corriger une date et à `expire_ads()` d'être testable.
+
 ## Tests
 
-La suite couvre 45 assertions : cycle de vie des annonces, recherche, favoris,
-messagerie, avis, quotas, paiements, signalements, maintenance, cascades — et
-une batterie de tentatives d'attaque (auto-promotion administrateur,
-falsification de compteurs, lecture du téléphone d'autrui, injection de
-notification, création de paiement, insertion dans le fil d'un tiers).
+La suite couvre 134 assertions réparties en trois fichiers : schéma et sécurité
+générale (`01`), authentification, rôles et vérification vendeur (`02`),
+formulaire d'annonce (`03`). Elle vérifie le cycle de vie des annonces, la
+recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
+signalements, la maintenance, les cascades — et une batterie de tentatives
+d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
+téléphone d'autrui, injection de notification, création de paiement, insertion
+dans le fil d'un tiers, mise en avant de l'annonce d'autrui, auto-mise en avant
+sans paiement).
 
 ```bash
 ./supabase/tests/run.sh

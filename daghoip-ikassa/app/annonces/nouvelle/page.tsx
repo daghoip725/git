@@ -5,6 +5,7 @@ import { ListingForm } from '@/components/listings/ListingForm';
 import { Alert } from '@/components/ui/Alert';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
+import { getAdFeaturePlans } from '@/services/feature-plans.service';
 import { getMyProfile } from '@/services/users.service';
 
 export const metadata: Metadata = {
@@ -19,7 +20,11 @@ export default async function NewListingPage() {
   // Filet de sécurité : le middleware protège déjà cette route.
   if (!user) redirect('/connexion?next=/annonces/nouvelle');
 
-  const [categories, profile] = await Promise.all([getCategories(), getMyProfile()]);
+  const [categories, profile, featurePlans] = await Promise.all([
+    getCategories(),
+    getMyProfile(),
+    getAdFeaturePlans(),
+  ]);
 
   return (
     <div className="container-app max-w-3xl py-6 sm:py-10">
@@ -43,6 +48,7 @@ export default async function NewListingPage() {
         mode="create"
         defaultPhone={profile?.phone ?? null}
         defaultWhatsapp={profile?.whatsapp ?? null}
+        featurePlans={featurePlans}
       />
     </div>
   );

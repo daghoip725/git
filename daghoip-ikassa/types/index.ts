@@ -37,6 +37,7 @@ export type Notification = Tables<'notifications'>;
 export type Review = Tables<'reviews'>;
 export type Report = Tables<'reports'>;
 export type SubscriptionPlan = Tables<'subscription_plans'>;
+export type AdFeaturePlan = Tables<'ad_feature_plans'>;
 export type VerificationRequest = Tables<'verification_requests'>;
 export type AuditLogEntry = Tables<'auth_audit_log'>;
 export type Subscription = Tables<'subscriptions'>;
@@ -186,6 +187,20 @@ export interface Paginated<T> {
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string; fieldErrors?: Record<string, string[]> };
+
+/**
+ * Résultat d'un dépôt ou d'une modification d'annonce.
+ *
+ * `status` est **relu en base** après écriture : le filtre de contenu peut
+ * avoir basculé une annonce publiée vers `pending_review` sans que le
+ * formulaire l'ait demandé.
+ */
+export interface AdActionData {
+  href: string;
+  status: 'draft' | 'published' | 'pending_review';
+  /** Une demande de mise en avant attend la confirmation du paiement. */
+  featurePending: boolean;
+}
 
 /** Catégorie augmentée de son nombre d'annonces (compteur dénormalisé). */
 export interface CategoryWithCount extends Category {

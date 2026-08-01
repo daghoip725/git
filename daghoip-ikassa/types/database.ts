@@ -222,6 +222,8 @@ export interface Database {
           contact_whatsapp?: string | null;
           allow_messages?: boolean;
           status?: AdStatus;
+          /** Durée de publication souhaitée ; bornée à 7–90 jours par trigger. */
+          expires_at?: string | null;
         };
         /** Colonnes réellement accordées en UPDATE au rôle `authenticated`. */
         Update: {
@@ -400,6 +402,25 @@ export interface Database {
           resolved_at?: string | null;
           resolution_note?: string | null;
         };
+        Relationships: [];
+      };
+
+      ad_feature_plans: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          duration_days: number;
+          price: number;
+          currency: string;
+          is_active: boolean;
+          position: number;
+          created_at: string;
+        };
+        /** Catalogue tarifaire : réservé aux administrateurs (RLS). */
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
 
@@ -681,6 +702,21 @@ export interface Database {
       admin_moderate_ad: {
         Args: { p_ad_id: string; p_action: string; p_reason?: string | null };
         Returns: undefined;
+      };
+      /** Signale un contenu à faire relire par un modérateur (jamais un refus). */
+      needs_manual_review: {
+        Args: { p_title: string; p_description: string };
+        Returns: boolean;
+      };
+      /** Crée le paiement en attente d'une mise en avant. Retourne son identifiant. */
+      request_ad_feature: {
+        Args: {
+          p_ad_id: string;
+          p_plan_code: string;
+          p_provider?: PaymentProvider;
+          p_payer_phone?: string | null;
+        };
+        Returns: string;
       };
     };
 

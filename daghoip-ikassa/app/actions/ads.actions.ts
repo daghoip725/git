@@ -21,7 +21,7 @@ import { AppError, fail, ok } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { RATE_LIMITS, checkRateLimit } from '@/lib/rate-limit';
 import { createClient, requireUser } from '@/lib/supabase/server';
-import type { ActionResult } from '@/types';
+import type { ActionResult, AdActionData } from '@/types';
 import { AD_IMAGES_BUCKET, LISTING_LIMITS, findProvinceForCity } from '@/utils/constants';
 import { buildListingHref } from '@/utils/slug';
 import { listingFormSchema, toFieldErrors } from '@/utils/validation';
@@ -42,32 +42,71 @@ const createAdSchema = z.object({
   publish: z.boolean().default(true),
 });
 
+/** Lit un champ texte, `null` s'il est absent ou vide. */
+function nullableString(formData: FormData, key: string): string | null {
+  const value = formData.get(key);
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+}
+
+/** Lit un nombre, `null` si le champ est vide ou illisible. */
+function nullableNumber(formData: FormData, key: string): number | null {
+  const raw = nullableString(formData, key);
+  if (raw === null) return null;
+  const value = Number(raw.replace(/\s/g, ''));
+  return Number.isFinite(value) ? value : null;
+}
+
 /** Reconstruit les valeurs du formulaire depuis un FormData. */
 function readAdForm(formData: FormData) {
-  const rawPrice = formData.get('price');
-  const price =
-    typeof rawPrice === 'string' && rawPrice.trim() !== ''
-      ? Number(rawPrice.replace(/\s/g, ''))
-      : null;
-
-  const nullableString = (key: string) => {
-    const value = formData.get(key);
-    return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
-  };
+  const durationDays = nullableNumber(formData, 'durationDays');
 
   return {
     title: formData.get('title'),
     description: formData.get('description'),
     categoryId: formData.get('categoryId'),
     priceType: formData.get('priceType'),
-    price: Number.isFinite(price) ? price : null,
-    condition: nullableString('condition'),
+    price: nullableNumber(formData, 'price'),
+    condition: nullableString(formData, 'condition'),
     city: formData.get('city'),
-    district: nullableString('district'),
+    district: nullableString(formData, 'district'),
     contactPhone: formData.get('contactPhone') ?? '',
     contactWhatsapp: formData.get('contactWhatsapp') ?? '',
     allowMessages: formData.get('allowMessages') === 'on',
+    latitude: nullableNumber(formData, 'latitude'),
+    longitude: nullableNumber(formData, 'longitude'),
+    // Absent en modification = « ne pas toucher à l'expiration existante ».
+    ...(durationDays === null ? {} : { durationDays }),
+    featurePlanCode: nullableString(formData, 'featurePlanCode'),
   };
+}
+
+/** Date d'expiration demandée. La base la borne ensuite à 7–90 jours. */
+function expiryFromDuration(days: number): string {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Demande la mise en avant d'une annonce.
+ *
+ * Le formulaire n'envoie qu'un **code d'offre** : le tarif est relu en base par
+ * `request_ad_feature()`. Un échec ici ne remet jamais en cause l'annonce
+ * elle-même, déjà enregistrée — on se contente de le signaler.
+ */
+async function requestFeature(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  adId: string,
+  planCode: string,
+): Promise<boolean> {
+  const { error } = await supabase.rpc('request_ad_feature', {
+    p_ad_id: adId,
+    p_plan_code: planCode,
+  });
+
+  if (error) {
+    logger.warn('Demande de mise en avant refusée', { adId, planCode, code: error.code });
+    return false;
+  }
+  return true;
 }
 
 /** Vérifie que chaque chemin d'image appartient à l'utilisateur et à l'annonce. */
@@ -81,9 +120,9 @@ function assertOwnedPaths(paths: string[], userId: string, adId: string) {
 }
 
 export async function createAdAction(
-  _prevState: ActionResult<{ href: string }> | null,
+  _prevState: ActionResult<AdActionData> | null,
   formData: FormData,
-): Promise<ActionResult<{ href: string }>> {
+): Promise<ActionResult<AdActionData>> {
   try {
     const user = await requireUser();
 
@@ -139,9 +178,14 @@ export async function createAdAction(
         contact_phone: values.contactPhone,
         contact_whatsapp: values.contactWhatsapp,
         allow_messages: values.allowMessages,
+        latitude: values.latitude,
+        longitude: values.longitude,
         status: meta.data.publish ? 'published' : 'draft',
+        expires_at: expiryFromDuration(values.durationDays),
       })
-      .select('slug, reference')
+      // `status` est relu : le filtre de contenu a pu basculer l'annonce
+      // en `pending_review` sans que le client en sache rien.
+      .select('slug, reference, status')
       .single();
 
     if (error || !ad) {
@@ -168,11 +212,25 @@ export async function createAdAction(
       }
     }
 
+    const featurePending =
+      values.featurePlanCode !== null
+        ? await requestFeature(supabase, meta.data.id, values.featurePlanCode)
+        : false;
+
     revalidatePath('/annonces');
     revalidatePath('/compte/annonces');
     revalidatePath('/');
 
-    return ok({ href: buildListingHref(ad.slug, ad.reference) });
+    return ok({
+      href: buildListingHref(ad.slug, ad.reference),
+      status:
+        ad.status === 'pending_review'
+          ? 'pending_review'
+          : meta.data.publish
+            ? 'published'
+            : 'draft',
+      featurePending,
+    });
   } catch (error) {
     logger.error('createAdAction', error);
     return fail(error);
@@ -180,9 +238,9 @@ export async function createAdAction(
 }
 
 export async function updateAdAction(
-  _prevState: ActionResult<{ href: string }> | null,
+  _prevState: ActionResult<AdActionData> | null,
   formData: FormData,
-): Promise<ActionResult<{ href: string }>> {
+): Promise<ActionResult<AdActionData>> {
   try {
     const user = await requireUser();
 
@@ -234,9 +292,16 @@ export async function updateAdAction(
         contact_phone: values.contactPhone,
         contact_whatsapp: values.contactWhatsapp,
         allow_messages: values.allowMessages,
+        latitude: values.latitude,
+        longitude: values.longitude,
+        // Sans durée explicite, l'expiration en cours n'est pas touchée : une
+        // simple correction de faute ne doit pas prolonger la publication.
+        ...(formData.get('durationDays')
+          ? { expires_at: expiryFromDuration(values.durationDays) }
+          : {}),
       })
       .eq('id', adId.data)
-      .select('slug, reference')
+      .select('slug, reference, status')
       .single();
 
     if (error || !ad) {
@@ -256,12 +321,26 @@ export async function updateAdAction(
       );
     }
 
+    const featurePending =
+      values.featurePlanCode !== null
+        ? await requestFeature(supabase, adId.data, values.featurePlanCode)
+        : false;
+
     const href = buildListingHref(ad.slug, ad.reference);
     revalidatePath(href);
     revalidatePath('/compte/annonces');
     revalidatePath('/annonces');
 
-    return ok({ href });
+    return ok({
+      href,
+      status:
+        ad.status === 'pending_review'
+          ? 'pending_review'
+          : ad.status === 'draft'
+            ? 'draft'
+            : 'published',
+      featurePending,
+    });
   } catch (error) {
     logger.error('updateAdAction', error);
     return fail(error);
