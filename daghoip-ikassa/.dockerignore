@@ -1,0 +1,28 @@
+# Dépendances et artefacts de build
+node_modules
+.next
+out
+build
+dist
+
+# Environnement (les secrets ne doivent jamais entrer dans une image)
+.env
+.env.*
+!.env.example
+
+# Contrôle de version et outillage
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Divers
+npm-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+coverage
+README.md
+Dockerfile
+docker-compose.yml
+.dockerignore

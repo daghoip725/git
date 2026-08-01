@@ -1,0 +1,54 @@
+##############################################################################
+#  Daghoip Ikassa — orchestration Docker
+#
+#  Démarrage :
+#      cp .env.example .env && $EDITOR .env
+#      docker compose up --build
+#
+#  Les variables NEXT_PUBLIC_* sont passées au build (inlinées dans le bundle
+#  client) ET au runtime (utilisées côté serveur). La clé service_role, elle,
+#  n'est fournie qu'au runtime : elle ne doit jamais atterrir dans une couche
+#  d'image.
+##############################################################################
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Renseignez NEXT_PUBLIC_SUPABASE_URL dans .env}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?Renseignez NEXT_PUBLIC_SUPABASE_ANON_KEY dans .env}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    image: daghoip-ikassa:latest
+    container_name: daghoip-ikassa-web
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # Durcissement : système de fichiers en lecture seule, pas d'élévation
+    # de privilèges. Next.js n'écrit qu'en /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1g

@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+
+/*
+ * Design system « Daghoip Ikassa »
+ * ---------------------------------
+ * Palette officielle de la marque :
+ *  - Vert principal   #095032  (fonds, en-têtes, boutons primaires)
+ *  - Vert secondaire  #216548  (états hover, dégradés, accents)
+ *  - Doré premium     #C89F4A  (mises en avant, badges premium, CTA secondaires)
+ *  - Blanc            #FCFCFC  (fond des surfaces)
+ */
+@theme {
+  --color-brand-50: #e9f2ed;
+  --color-brand-100: #c9e0d5;
+  --color-brand-200: #97c4b0;
+  --color-brand-300: #63a68a;
+  --color-brand-400: #3d8567;
+  --color-brand-500: #216548;
+  --color-brand-600: #16593d;
+  --color-brand-700: #095032;
+  --color-brand-800: #073d27;
+  --color-brand-900: #04291a;
+
+  --color-gold-50: #fbf6ea;
+  --color-gold-100: #f4e8c9;
+  --color-gold-200: #e9d29b;
+  --color-gold-300: #dcbb6e;
+  --color-gold-400: #d2ab58;
+  --color-gold-500: #c89f4a;
+  --color-gold-600: #a9833a;
+  --color-gold-700: #86672d;
+  --color-gold-800: #634b20;
+  --color-gold-900: #3f3014;
+
+  --color-ivory: #fcfcfc;
+
+  --color-surface: #fcfcfc;
+  --color-surface-muted: #f4f6f5;
+
+  /*
+   * Pile système : aucun appel réseau au build ni au runtime, ce qui garantit
+   * un build Docker reproductible hors ligne et un premier rendu immédiat sur
+   * les connexions mobiles.
+   */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --radius-card: 0.875rem;
+
+  --shadow-card: 0 1px 2px rgb(9 80 50 / 0.06), 0 8px 24px -12px rgb(9 80 50 / 0.18);
+  --shadow-card-hover: 0 2px 4px rgb(9 80 50 / 0.08), 0 16px 32px -16px rgb(9 80 50 / 0.28);
+}
+
+@layer base {
+  * {
+    @apply border-neutral-200;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface text-neutral-800 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Anneau de focus accessible, cohérent avec la charte. */
+  :focus-visible {
+    @apply rounded-sm outline-2 outline-offset-2 outline-brand-700;
+  }
+
+  /* Neutralise les flèches des inputs numériques (prix). */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Conteneur central responsive utilisé par le header, le footer et les pages. */
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Effet « squelette » pendant le chargement des données. */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-neutral-200/70;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Tronque un texte sur N lignes (titres et descriptions des annonces). */
+  .line-clamp-2-safe {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
