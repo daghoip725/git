@@ -15,6 +15,12 @@ export interface ListingCardProps {
   isAuthenticated?: boolean;
   /** Charge l'image en priorité (à réserver aux premières cartes visibles). */
   priority?: boolean;
+  /**
+   * `sponsored` distingue visuellement les emplacements payants.
+   * La mention est une obligation d'information : une annonce mise en avant
+   * contre paiement doit être identifiable comme telle.
+   */
+  variant?: 'default' | 'sponsored';
   className?: string;
 }
 
@@ -27,16 +33,20 @@ export function ListingCard({
   isFavorite = false,
   isAuthenticated = false,
   priority = false,
+  variant = 'default',
   className,
 }: ListingCardProps) {
+  const isSponsored = variant === 'sponsored';
   const href = buildListingHref(listing.slug, listing.reference);
   const price = formatListingPrice(listing.price, listing.price_type);
 
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-xl border border-neutral-200 bg-white',
-        'shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]',
+        'group relative overflow-hidden rounded-xl border bg-white transition-all',
+        isSponsored
+          ? 'border-gold-300 shadow-[var(--shadow-gold)] hover:-translate-y-0.5'
+          : 'border-neutral-200 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)]',
         className,
       )}
     >
@@ -63,9 +73,9 @@ export function ListingCard({
             </div>
           )}
 
-          {listing.is_featured ? (
+          {isSponsored || listing.is_featured ? (
             <span className="absolute top-2 left-2 rounded-full bg-gold-500 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-brand-900 uppercase">
-              À la une
+              {isSponsored ? 'Sponsorisé' : 'À la une'}
             </span>
           ) : null}
         </div>

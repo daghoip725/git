@@ -201,6 +201,29 @@ export async function getRecentAds(limit = 12): Promise<AdCardData[]> {
   return (data ?? []).map(fromListView);
 }
 
+/**
+ * Annonces les plus consultées.
+ *
+ * Le tri s'appuie sur `views_count`, servi par l'index partiel `ads_popular_idx`
+ * (limité aux annonces publiées) : aucun tri en mémoire.
+ */
+export async function getPopularAds(limit = 8): Promise<AdCardData[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('ads_list_view')
+    .select(LIST_COLUMNS)
+    .eq('status', 'published')
+    .order('views_count', { ascending: false })
+    .limit(limit)
+    .returns<ListViewRow[]>();
+
+  if (error) {
+    logger.error('Chargement des annonces populaires impossible', error);
+    return [];
+  }
+  return (data ?? []).map(fromListView);
+}
+
 /** Annonces du même univers, hors annonce courante. */
 export async function getRelatedAds(
   ad: Pick<AdWithRelations, 'id' | 'category_id'>,

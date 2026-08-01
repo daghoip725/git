@@ -7,8 +7,12 @@ export type ButtonVariant = 'primary' | 'secondary' | 'gold' | 'outline' | 'ghos
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors ' +
-  'disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2';
+  // `whitespace-nowrap` : sans lui, un libellé long placé dans un conteneur
+  // flex contraint (l'en-tête) se replie sur plusieurs lignes et déborde de la
+  // hauteur fixe du bouton.
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold ' +
+  'transition-colors disabled:pointer-events-none disabled:opacity-60 ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand-700 text-white hover:bg-brand-800 focus-visible:outline-brand-700',

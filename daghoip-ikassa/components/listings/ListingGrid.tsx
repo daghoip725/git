@@ -8,6 +8,14 @@ export interface ListingGridProps {
   isAuthenticated?: boolean;
   /** Nombre de cartes chargées en priorité (au-dessus de la ligne de flottaison). */
   priorityCount?: number;
+  /** Transmis à chaque carte : `sponsored` signale un emplacement payant. */
+  variant?: 'default' | 'sponsored';
+  /**
+   * Sur mobile, présente les cartes en bandeau défilable plutôt qu'en grille.
+   * Utile pour les rubriques secondaires de la page d'accueil, qui ne doivent
+   * pas repousser le reste du contenu hors de l'écran.
+   */
+  scrollOnMobile?: boolean;
   className?: string;
 }
 
@@ -17,10 +25,19 @@ export function ListingGrid({
   favoriteIds,
   isAuthenticated = false,
   priorityCount = 4,
+  variant = 'default',
+  scrollOnMobile = false,
   className,
 }: ListingGridProps) {
   return (
-    <div className={cn('grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4', className)}>
+    <div
+      className={cn(
+        scrollOnMobile
+          ? 'scroll-row lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0'
+          : 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4',
+        className,
+      )}
+    >
       {listings.map((listing, index) => (
         <ListingCard
           key={listing.id}
@@ -28,6 +45,7 @@ export function ListingGrid({
           isFavorite={favoriteIds?.has(listing.id) ?? false}
           isAuthenticated={isAuthenticated}
           priority={index < priorityCount}
+          variant={variant}
         />
       ))}
     </div>
