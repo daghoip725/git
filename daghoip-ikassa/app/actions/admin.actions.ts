@@ -267,3 +267,46 @@ export async function moderateAdAction(
     return fail(error);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Paiements                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Confirme à la main un règlement hors ligne (virement, espèces, dépôt).
+ *
+ * Ces règlements n'émettent aucun rappel d'opérateur : sans cette confirmation,
+ * la plateforme ne pourrait encaisser qu'après avoir signé un contrat Mobile
+ * Money. `admin_confirm_payment()` revérifie `is_admin()` — un modérateur est
+ * refusé — et trace l'auteur dans `payment_events`.
+ */
+export async function confirmPaymentAction(
+  paymentId: string,
+  note?: string,
+): Promise<ActionResult<{ invoiceNumber: string }>> {
+  try {
+    await requireUser();
+
+    const parsed = z
+      .object({ paymentId: uuidSchema, note: z.string().max(300).optional() })
+      .safeParse({ paymentId, note: note?.trim() || undefined });
+    if (!parsed.success) return { success: false, error: 'Requête invalide.' };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('admin_confirm_payment', {
+      p_payment_id: parsed.data.paymentId,
+      p_note: parsed.data.note ?? null,
+    });
+
+    if (error) {
+      logger.warn('Confirmation de paiement refusée', { code: error.code });
+      return { success: false, error: toAdminError(error) };
+    }
+
+    revalidatePath('/admin/paiements');
+    revalidatePath('/compte/paiements');
+    return ok({ invoiceNumber: data ?? '' });
+  } catch (error) {
+    return fail(error);
+  }
+}

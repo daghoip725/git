@@ -16,11 +16,12 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 3. [Variables d’environnement](#variables-denvironnement)
 4. [Structure du projet](#structure-du-projet)
 5. [Architecture](#architecture)
-6. [Modèle de sécurité](#modèle-de-sécurité)
-7. [Identité visuelle](#identité-visuelle)
-8. [Docker](#docker)
-9. [Scripts](#scripts)
-10. [Exploitation](#exploitation)
+6. [Paiements](#paiements)
+7. [Modèle de sécurité](#modèle-de-sécurité)
+8. [Identité visuelle](#identité-visuelle)
+9. [Docker](#docker)
+10. [Scripts](#scripts)
+11. [Exploitation](#exploitation)
 
 ---
 
@@ -94,7 +95,9 @@ update public.users set role = 'moderator' where id = '<uuid-utilisateur>';
 | `NEXT_PUBLIC_SUPABASE_URL`      | client + serveur | ✅          | URL du projet Supabase                                            |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + serveur | ✅          | Clé publique ; l’autorisation réelle est assurée par la RLS       |
 | `NEXT_PUBLIC_SITE_URL`          | client + serveur | ✅ (prod)   | URL canonique, sans slash final (SEO, sitemap, redirections auth) |
-| `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌          | Secret ; contourne la RLS. Réservé aux tâches d’administration    |
+| `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌ (✅ pour encaisser) | Secret ; contourne la RLS. Requis pour appliquer les rappels d’opérateur |
+| `AIRTEL_MONEY_*`                | **serveur seul** | ❌          | `BASE_URL`, `CLIENT_ID`, `CLIENT_SECRET`, `CALLBACK_SECRET` — sans elles, Airtel Money n’est pas proposé |
+| `MOOV_MONEY_*`                  | **serveur seul** | ❌          | Idem pour Moov Money                                              |
 | `NEXT_PUBLIC_MAP_TILE_URL`      | client + serveur | ❌          | Gabarit de tuiles de la carte (défaut : OpenStreetMap)            |
 | `NEXT_PUBLIC_MAP_ATTRIBUTION`   | client + serveur | ❌          | Mention légale affichée sous la carte                             |
 
@@ -117,6 +120,8 @@ daghoip-ikassa/
 │   ├── annonces/               # Recherche, détail, dépôt d'annonce
 │   ├── vendeurs/[id]/          # Profil public : annonces, avis, note moyenne
 │   ├── auth/callback/          # Retour du flux d'authentification Supabase
+│   ├── premium/                # Offres d'abonnement et souscription
+│   ├── api/paiements/          # Rappels signés des opérateurs Mobile Money
 │   ├── compte/                 # Espace privé (tableau de bord, profil, vérification…)
 │   ├── admin/                  # Tableau de bord : statistiques, annonces, catégories,
 │   │                           #   signalements, paiements, abonnements, paramètres, audit
@@ -130,11 +135,13 @@ daghoip-ikassa/
 │   ├── listings/               # Carte, grille, filtres, formulaire, galerie
 │   ├── messages/               # Fil temps réel, composeur, émojis, blocage
 │   ├── profile/                # Étoiles, avis, formulaire d'évaluation
+│   ├── payments/               # Offres, tunnel de paiement, historique, facture
 │   ├── charts/                 # Graphiques SVG maison : tendance, classement, vignette
 │   ├── categories/ home/ auth/ account/ common/
 ├── lib/                        # Infrastructure
 │   ├── supabase/               # Clients navigateur / serveur / admin / middleware
 │   ├── auth/                   # Gardes de rôle (roles.ts serveur, roles.client.ts isomorphe)
+│   ├── payments/               # Abstraction opérateurs (Airtel, Moov, hors ligne)
 │   ├── env.ts errors.ts logger.ts rate-limit.ts
 ├── hooks/                      # Hooks client (useUser, useFavorite, filtres…)
 ├── services/                   # Accès aux données (lecture) — Server Components
@@ -291,6 +298,60 @@ Trois principes :
 
 ---
 
+## Paiements
+
+**Le montant ne vient jamais du navigateur.** Le client n’envoie qu’un *code
+d’offre* ; `request_subscription()` et `request_ad_feature()` relisent le tarif
+dans `subscription_plans` / `ad_feature_plans`, les seules tables qui font foi.
+Falsifier le prix affiché ne change rien au paiement créé.
+
+**Seul le serveur constate un encaissement.** `apply_payment_callback()` — la
+seule fonction capable de faire passer un paiement à `succeeded` — n’est
+accordée qu’à `service_role`. Un compte authentifié qui l’appelle est refusé par
+PostgreSQL, pas par une garde applicative.
+
+### Le parcours
+
+1. le payeur choisit une offre et un moyen de paiement (`/premium`, ou
+   « Mettre en avant » depuis ses annonces) ;
+2. un paiement `pending` est créé en base, avec sa référence `DI-PAY-…` ;
+3. l’adaptateur de l’opérateur engage la demande — le téléphone du payeur sonne ;
+4. l’opérateur rappelle `/api/paiements/<operateur>/callback` ; la signature du
+   corps brut est vérifiée, le rappel est **consigné avant d’être appliqué** ;
+5. le passage à `succeeded` attribue le numéro de facture, active l’abonnement
+   ou la mise en avant, et notifie le payeur.
+
+Le rappel est idempotent : les opérateurs rejouent leurs envois, et un rejeu ne
+crédite pas deux fois. Un statut final ne revient jamais en arrière.
+
+### Brancher Airtel Money ou Moov Money
+
+L’abstraction tient dans `lib/payments/types.ts` : ajouter un opérateur consiste
+à écrire un module qui implémente `PaymentProviderAdapter` et à l’inscrire dans
+`lib/payments/registry.ts`. Aucune page, aucune action et aucun objet SQL n’a à
+changer.
+
+> ⚠️ Les adaptateurs Airtel et Moov sont **complets dans leur forme mais non
+> éprouvés contre les API réelles** : ils ont été écrits d’après la forme
+> publique de ces passerelles, sans contrat marchand ni accès bac à sable. La
+> marche à suivre avant mise en service est détaillée dans
+> [`supabase/README.md`](supabase/README.md#brancher-un-opérateur-mobile-money).
+
+Tant que les variables `AIRTEL_MONEY_*` / `MOOV_MONEY_*` sont vides, l’opérateur
+n’est **pas proposé** au payeur et sa route de rappel répond 404. La plateforme
+reste utilisable : le règlement se fait par virement ou en espèces, confirmé
+depuis `/admin/paiements` par un administrateur — opération tracée avec son
+identité dans `payment_events`.
+
+### Factures
+
+Numérotation par exercice et sans trou (`DI-FAC-2026-000042`), attribuée à la
+confirmation du paiement seulement. La facture est consultable et imprimable
+depuis `/compte/factures/<id>` ; `get_invoice()` est `security invoker`, donc
+c’est la RLS de `payments` qui décide qui la voit.
+
+---
+
 ## Modèle de sécurité
 
 La défense repose sur **quatre couches indépendantes** :
@@ -318,11 +379,12 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-246 assertions), qui rejoue notamment des tentatives d’auto-promotion
+298 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
-en avant d’une annonce sans paiement et de contournement d’un blocage par
-insertion directe.
+en avant d’une annonce sans paiement, de contournement d’un blocage par
+insertion directe, d’auto-déclaration de paiement par le payeur et de
+confirmation d’un règlement par un modérateur.
 
 ### 3. Validation serveur (Zod)
 
@@ -352,8 +414,9 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
 
 ### 5. Application
 
-- **Rate limiting** sur le dépôt d’annonce, l’envoi de message, le signalement
-  et l’authentification (`lib/rate-limit.ts`).
+- **Rate limiting** sur le dépôt d’annonce, l’envoi de message, le signalement,
+  l’authentification, l’ouverture d’un paiement et les rappels d’opérateur
+  (`lib/rate-limit.ts`).
 - **En-têtes de sécurité** : CSP restrictive (`connect-src` limité à Supabase,
   `frame-ancestors 'none'`, `object-src 'none'`), HSTS, `X-Frame-Options`,
   `X-Content-Type-Options`, `Permissions-Policy` — voir `next.config.ts`.

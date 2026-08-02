@@ -49,6 +49,7 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 8. `migrations/20260801000800_search_filters.sql`
 9. `migrations/20260801000900_messaging.sql`
 10. `migrations/20260801001000_admin_stats.sql`
+11. `migrations/20260801001100_payments.sql`
 11. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
@@ -132,7 +133,7 @@ C'est la couche qui rend certaines attaques structurellement impossibles :
 ### Convention SECURITY DEFINER
 
 `security invoker` (défaut) partout où la RLS doit s'appliquer. `security
-definer` réservé à quatre cas légitimes, avec `search_path` figé :
+definer` réservé à cinq cas légitimes, avec `search_path` figé :
 
 1. lecture du rôle (`current_user_role`) — sinon récursion de politique ;
 2. écriture destinée à **autrui** (`create_notification`) ;
@@ -142,7 +143,14 @@ definer` réservé à quatre cas légitimes, avec `search_path` figé :
    traverser une table dont la RLS est nominative, ce qu'aucun modérateur ne
    peut ni ne doit pouvoir faire ligne à ligne. Ces trois fonctions vérifient
    `is_staff()` **en première ligne** et ne renvoient que des nombres : jamais
-   une ligne, jamais un extrait, jamais un identifiant.
+   une ligne, jamais un extrait, jamais un identifiant ;
+5. **encaissement** (`request_subscription`, `apply_payment_callback`,
+   `admin_confirm_payment`, `next_invoice_number`) — le tarif doit être relu
+   dans une table que le client ne doit pas pouvoir écrire, et le passage à
+   `succeeded` doit rester hors de portée du navigateur. Chacune vérifie son
+   appelant en première ligne : session pour l'ouverture, `service_role` pour le
+   rappel d'opérateur (privilège d'exécution), `is_admin()` pour la confirmation
+   manuelle.
 
 ## Authentification
 
@@ -375,10 +383,10 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 246 assertions réparties en six fichiers : schéma et sécurité
+La suite couvre 298 assertions réparties en sept fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
-statistiques d'administration (`06`). Elle vérifie le cycle de vie des annonces, la
+statistiques d'administration (`06`), paiements et facturation (`07`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -388,7 +396,10 @@ dans le fil d'un tiers, mise en avant de l'annonce d'autrui, auto-mise en avant
 sans paiement, contournement d'un blocage par insertion directe, pièce jointe
 déposée au nom d'autrui, lecture des conversations d'un tiers, lecture des
 statistiques par un compte ordinaire, injection dans le paramètre de
-dimension).
+dimension, tentative du payeur de se déclarer payé, appel direct de
+`apply_payment_callback` depuis un compte authentifié, rappel à signature
+invalide, rejeu d'un rappel déjà appliqué, retour en arrière depuis un statut
+final, confirmation manuelle par un modérateur ou par le payeur lui-même).
 
 ```bash
 ./supabase/tests/run.sh
@@ -410,22 +421,55 @@ Editor :
 update public.users set role = 'moderator' where id = '<uuid>';
 ```
 
-### Enregistrer un paiement Mobile Money
+### Encaisser un paiement
 
-À faire côté serveur avec la clé `service_role`, à réception du callback
-opérateur. Le passage à `succeeded` déclenche automatiquement l'activation de
-l'abonnement ou la mise en avant de l'annonce, plus la notification.
+Le parcours normal ne passe **pas** par le SQL Editor : l'application ouvre le
+paiement (`request_subscription()` / `request_ad_feature()`, qui relisent le
+tarif au catalogue) et la route `/api/paiements/<operateur>/callback` applique le
+rappel signé de l'opérateur via `apply_payment_callback()`, avec la clé
+`service_role`. Cette fonction est idempotente : un rappel rejoué ne crédite pas
+deux fois, et un statut final ne revient jamais en arrière.
+
+Pour un règlement **hors ligne** (virement, espèces, dépôt Mobile Money fait à la
+main), la confirmation se fait depuis `/admin/paiements` par un administrateur.
+Elle attribue le numéro de facture, active la prestation et laisse une trace
+nominative dans `payment_events`.
+
+En dernier recours, depuis le SQL Editor :
 
 ```sql
-insert into public.payments (user_id, purpose, subscription_id, provider,
-                             provider_reference, payer_phone, amount, status)
-values ('<user>', 'subscription', '<sub>', 'airtel_money',
-        '<txn-operateur>', '+241061234567', 15000, 'pending');
-
-update public.payments
-   set status = 'succeeded', paid_at = now()
- where provider = 'airtel_money' and provider_reference = '<txn-operateur>';
+select * from public.apply_payment_callback(
+  'DI-PAY-XXXXXXXX',      -- référence du paiement
+  'airtel_money',
+  '<txn-operateur>',
+  'succeeded'
+);
 ```
+
+### Facturation
+
+Les numéros sont attribués par exercice et **sans trou**
+(`DI-FAC-2026-000042`), au moment où le paiement aboutit — jamais avant. Le
+compteur `invoice_counters` est verrouillé le temps de la transaction : une
+séquence PostgreSQL laisserait des trous au moindre `rollback`, ce qu'une
+numérotation de factures ne tolère pas.
+
+### Brancher un opérateur Mobile Money
+
+Les adaptateurs Airtel Money et Moov Money (`lib/payments/providers/`) sont
+complets dans leur forme mais **n'ont pas été éprouvés contre les API réelles** :
+ils ont été écrits d'après la forme publique de ces passerelles, sans contrat
+marchand ni accès bac à sable. Avant toute mise en service :
+
+1. confronter chemins et noms de champs à la documentation contractuelle ;
+2. vérifier le schéma de signature des rappels (HMAC-SHA256 du corps brut ici,
+   mais certains contrats utilisent RSA ou une liste blanche d'IP) ;
+3. confirmer le format du numéro attendu ;
+4. rejouer un encaissement complet en bac à sable, rappel compris.
+
+Tant que les variables `AIRTEL_MONEY_*` / `MOOV_MONEY_*` ne sont pas renseignées,
+l'opérateur n'apparaît pas dans la liste des moyens de paiement et sa route de
+rappel répond 404 : aucun payeur ne peut tomber sur une intégration non validée.
 
 ### Régénérer les types TypeScript
 

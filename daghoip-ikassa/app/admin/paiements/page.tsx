@@ -1,9 +1,11 @@
 import { Banknote } from 'lucide-react';
 import Link from 'next/link';
 
+import { ConfirmPaymentButton } from '@/components/admin/ConfirmPaymentButton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { requireRole } from '@/lib/auth/roles';
+import { getCurrentUser } from '@/lib/supabase/server';
 import { getAdminPayments } from '@/services/admin.service';
 import type { PaymentStatus } from '@/types';
 import { formatDateTime, formatPrice } from '@/utils/format';
@@ -41,6 +43,12 @@ const PURPOSE_LABELS: Record<string, string> = {
 export default async function AdminPaymentsPage({ searchParams }: PageProps) {
   await requireRole('moderator');
 
+  // Seul un administrateur peut confirmer un règlement hors ligne : créditer un
+  // abonnement n'est pas de la modération. La base refuse de toute façon, ce
+  // test évite seulement d'afficher un bouton qui échouerait.
+  const viewer = await getCurrentUser();
+  const canConfirm = viewer?.role === 'admin';
+
   const params = await searchParams;
   const raw = Array.isArray(params.statut) ? params.statut[0] : params.statut;
   const status = raw && raw in STATUS_LABELS ? (raw as PaymentStatus) : undefined;
@@ -55,9 +63,10 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
       <div>
         <h2 className="text-lg font-bold text-brand-900">Paiements</h2>
         <p className="mt-1 text-sm text-neutral-600">
-          Consultation seule. Aucun rôle applicatif ne peut créer ni modifier un paiement : la table
-          n’accorde aucun droit d’écriture au client, seul le callback de l’opérateur — signé et
-          rejoué sans effet — les inscrit.
+          La table n’accorde aucun droit d’écriture au client : seul le rappel signé de l’opérateur
+          — rejouable sans effet — fait aboutir un paiement. Les règlements hors ligne (virement,
+          espèces), qui n’émettent aucun rappel, sont confirmés ici par un administrateur, et la
+          confirmation est tracée avec son identité.
         </p>
       </div>
 
@@ -121,6 +130,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                 <th scope="col" className="px-4 py-2.5 font-semibold">
                   Date
                 </th>
+                <th scope="col" className="px-4 py-2.5 font-semibold">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +167,18 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-4 py-2.5 text-xs text-neutral-500">
                     {formatDateTime(payment.paid_at ?? payment.created_at)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {canConfirm && (payment.status === 'pending' || payment.status === 'processing') ? (
+                      <ConfirmPaymentButton
+                        paymentId={payment.id}
+                        reference={payment.reference}
+                      />
+                    ) : payment.invoice_number ? (
+                      <span className="font-mono text-xs text-neutral-400">
+                        {payment.invoice_number}
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               ))}

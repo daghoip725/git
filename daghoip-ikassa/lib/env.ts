@@ -53,9 +53,31 @@ if (!parsedPublic.success) {
 
 export const publicEnv = parsedPublic.data;
 
+/**
+ * Identifiants Mobile Money.
+ *
+ * Tous facultatifs : un opérateur dont les identifiants manquent est simplement
+ * absent de la liste des moyens de paiement (`isConfigured()` répond `false`).
+ * L'application démarre donc sans contrat opérateur — on encaisse alors par
+ * virement ou en espèces, avec confirmation manuelle par un administrateur.
+ *
+ * ⚠️ Ces valeurs sont des secrets : aucune ne porte le préfixe `NEXT_PUBLIC_`,
+ * elles ne quittent donc jamais le serveur.
+ */
 const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+  AIRTEL_MONEY_BASE_URL: z.string().url().optional(),
+  AIRTEL_MONEY_CLIENT_ID: z.string().min(1).optional(),
+  AIRTEL_MONEY_CLIENT_SECRET: z.string().min(1).optional(),
+  /** Secret partagé servant à authentifier les rappels (HMAC-SHA256). */
+  AIRTEL_MONEY_CALLBACK_SECRET: z.string().min(16).optional(),
+
+  MOOV_MONEY_BASE_URL: z.string().url().optional(),
+  MOOV_MONEY_CLIENT_ID: z.string().min(1).optional(),
+  MOOV_MONEY_CLIENT_SECRET: z.string().min(1).optional(),
+  MOOV_MONEY_CALLBACK_SECRET: z.string().min(16).optional(),
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;

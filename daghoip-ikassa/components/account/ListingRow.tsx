@@ -4,7 +4,7 @@
  * Ligne d'annonce du tableau de bord vendeur, avec ses actions
  * (modifier, marquer vendue, remettre en ligne, supprimer).
  */
-import { Eye, ImageOff, Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Eye, ImageOff, Loader2, Megaphone, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -109,6 +109,16 @@ export function ListingRow({ listing }: ListingRowProps) {
               <Pencil className="size-3.5" aria-hidden="true" />
               Modifier
             </Link>
+
+            {listing.status === 'published' ? (
+              <Link
+                href={`/compte/annonces/${listing.id}/mise-en-avant`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gold-400 px-3 text-xs font-semibold text-gold-700 transition-colors hover:bg-gold-50"
+              >
+                <Megaphone className="size-3.5" aria-hidden="true" />
+                Mettre en avant
+              </Link>
+            ) : null}
 
             {listing.status === 'published' ? (
               <button

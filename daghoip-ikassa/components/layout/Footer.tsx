@@ -13,6 +13,7 @@ const COLUMNS = [
       { href: '/annonces', label: 'Toutes les annonces' },
       { href: '/categories', label: 'Toutes les catégories' },
       { href: '/annonces/nouvelle', label: 'Déposer une annonce' },
+      { href: '/premium', label: 'Offres Premium' },
     ],
   },
   {

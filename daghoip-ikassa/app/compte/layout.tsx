@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  CreditCard,
   Heart,
   KeyRound,
   LayoutDashboard,
@@ -19,6 +20,7 @@ const NAV = [
   { href: '/compte/favoris', label: 'Mes favoris', icon: Heart },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/compte/profil', label: 'Mon profil', icon: User },
+  { href: '/compte/paiements', label: 'Paiements', icon: CreditCard },
   { href: '/compte/verification', label: 'Vérification', icon: BadgeCheck },
   { href: '/compte/blocages', label: 'Comptes bloqués', icon: ShieldBan },
   { href: '/compte/mot-de-passe', label: 'Mot de passe', icon: KeyRound },

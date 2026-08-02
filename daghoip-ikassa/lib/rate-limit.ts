@@ -81,4 +81,17 @@ export const RATE_LIMITS = {
 
   /** Demandes de vérification vendeur. */
   verification: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
+
+  /**
+   * Ouverture d'un paiement. Chaque demande envoie une notification sur le
+   * téléphone du payeur : la limite protège autant l'utilisateur du harcèlement
+   * que la plateforme d'un quota opérateur épuisé.
+   */
+  startPayment: { limit: 10, windowMs: 60 * 60 * 1000 },
+
+  /**
+   * Rappels d'opérateur, par adresse IP. Généreux — un opérateur légitime
+   * réémet ses rappels — mais borné : la route est publique par nature.
+   */
+  paymentCallback: { limit: 120, windowMs: 60 * 1000 },
 } as const;

@@ -574,10 +574,37 @@ export interface Database {
           failure_reason: string | null;
           metadata: Json;
           paid_at: string | null;
+          /** Numéro de facture, attribué à la confirmation seulement. */
+          invoice_number: string | null;
+          invoiced_at: string | null;
           created_at: string;
           updated_at: string;
         };
         /** Aucune écriture côté client : réservé au rôle service_role. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
+       * Journal des rappels reçus des opérateurs Mobile Money.
+       *
+       * Lecture réservée au personnel (RLS). Écriture réservée à
+       * `apply_payment_callback()`, qui consigne **avant** d'appliquer — y
+       * compris les rappels à signature invalide.
+       */
+      payment_events: {
+        Row: {
+          id: string;
+          payment_id: string | null;
+          provider: PaymentProvider;
+          event_type: string;
+          provider_reference: string | null;
+          signature_valid: boolean;
+          applied: boolean;
+          payload: Json;
+          received_at: string;
+        };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -839,6 +866,75 @@ export interface Database {
           p_payer_phone?: string | null;
         };
         Returns: string;
+      };
+
+      /**
+       * Ouvre un paiement d'abonnement. Le tarif est relu en base : le client
+       * n'envoie qu'un code d'offre, jamais un montant.
+       */
+      request_subscription: {
+        Args: {
+          p_plan_code: string;
+          p_provider?: PaymentProvider;
+          p_payer_phone?: string | null;
+        };
+        Returns: string;
+      };
+
+      /**
+       * Confirme à la main un règlement hors ligne (virement, espèces).
+       * Administrateur uniquement ; tracé dans `payment_events`. Retourne le
+       * numéro de facture attribué.
+       */
+      admin_confirm_payment: {
+        Args: { p_payment_id: string; p_note?: string | null };
+        Returns: string;
+      };
+
+      /** Annule un paiement encore en attente. Réservé à son payeur. */
+      cancel_payment: {
+        Args: { p_payment_id: string };
+        Returns: undefined;
+      };
+
+      /**
+       * Applique un rappel d'opérateur. **Réservée à `service_role`** : le
+       * navigateur ne doit jamais pouvoir déclarer qu'un paiement a abouti.
+       * Idempotente ; `payment_id` nul signale une référence inconnue.
+       */
+      apply_payment_callback: {
+        Args: {
+          p_reference: string;
+          p_provider: PaymentProvider;
+          p_provider_reference: string | null;
+          p_status: PaymentStatus;
+          p_payload?: Json;
+          p_failure_reason?: string | null;
+          p_signature_valid?: boolean;
+        };
+        Returns: {
+          payment_id: string | null;
+          applied: boolean;
+          resulting_status: PaymentStatus | null;
+        }[];
+      };
+
+      /** Facture d'un paiement abouti. La RLS de `payments` décide qui la voit. */
+      get_invoice: {
+        Args: { p_payment_id: string };
+        Returns: {
+          invoice_number: string | null;
+          invoiced_at: string | null;
+          reference: string;
+          amount: number;
+          currency: string;
+          purpose: PaymentPurpose;
+          provider: PaymentProvider;
+          paid_at: string | null;
+          payer_name: string | null;
+          payer_city: string | null;
+          designation: string;
+        }[];
       };
     };
 
