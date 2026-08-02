@@ -17,11 +17,12 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 4. [Structure du projet](#structure-du-projet)
 5. [Architecture](#architecture)
 6. [Paiements](#paiements)
-7. [Modèle de sécurité](#modèle-de-sécurité)
-8. [Identité visuelle](#identité-visuelle)
-9. [Docker](#docker)
-10. [Scripts](#scripts)
-11. [Exploitation](#exploitation)
+7. [Aides intelligentes](#aides-intelligentes)
+8. [Modèle de sécurité](#modèle-de-sécurité)
+9. [Identité visuelle](#identité-visuelle)
+10. [Docker](#docker)
+11. [Scripts](#scripts)
+12. [Exploitation](#exploitation)
 
 ---
 
@@ -98,6 +99,8 @@ update public.users set role = 'moderator' where id = '<uuid-utilisateur>';
 | `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌ (✅ pour encaisser) | Secret ; contourne la RLS. Requis pour appliquer les rappels d’opérateur |
 | `AIRTEL_MONEY_*`                | **serveur seul** | ❌          | `BASE_URL`, `CLIENT_ID`, `CLIENT_SECRET`, `CALLBACK_SECRET` — sans elles, Airtel Money n’est pas proposé |
 | `MOOV_MONEY_*`                  | **serveur seul** | ❌          | Idem pour Moov Money                                              |
+| `ANTHROPIC_API_KEY`             | **serveur seul** | ❌          | Active « Rédiger pour moi » et la correction orthographique       |
+| `AI_MODEL`                      | **serveur seul** | ❌          | Surcharge du modèle (défaut : le modèle rapide)                   |
 | `NEXT_PUBLIC_MAP_TILE_URL`      | client + serveur | ❌          | Gabarit de tuiles de la carte (défaut : OpenStreetMap)            |
 | `NEXT_PUBLIC_MAP_ATTRIBUTION`   | client + serveur | ❌          | Mention légale affichée sous la carte                             |
 
@@ -142,6 +145,7 @@ daghoip-ikassa/
 │   ├── supabase/               # Clients navigateur / serveur / admin / middleware
 │   ├── auth/                   # Gardes de rôle (roles.ts serveur, roles.client.ts isomorphe)
 │   ├── payments/               # Abstraction opérateurs (Airtel, Moov, hors ligne)
+│   ├── ai/                     # Assistant de rédaction + mise en forme locale
 │   ├── env.ts errors.ts logger.ts rate-limit.ts
 ├── hooks/                      # Hooks client (useUser, useFavorite, filtres…)
 ├── services/                   # Accès aux données (lecture) — Server Components
@@ -352,6 +356,55 @@ c’est la RLS de `payments` qui décide qui la voit.
 
 ---
 
+## Aides intelligentes
+
+Six fonctionnalités, deux natures très différentes — et la distinction est le
+cœur de la conception.
+
+**Quatre sont calculées, pas générées.** Suggestion de prix, détection de
+doublons, signaux de fraude et recommandations vivent en base
+([`supabase/migrations/20260801001200_ai_features.sql`](supabase/migrations/20260801001200_ai_features.sql)).
+Ce sont des questions statistiques et relationnelles : un modèle de langage y
+serait plus lent, plus cher, non déterministe et impossible à auditer. La
+médiane d’un prix se calcule, elle ne s’invente pas. Ces quatre fonctions
+marchent sans aucune clé et sans aucun appel réseau.
+
+**Deux demandent un modèle.** Rédiger une description et corriger l’orthographe
+supposent une compréhension de la langue qu’aucune règle SQL n’apporte. Elles
+vivent dans `lib/ai/` et sont **facultatives** : sans `ANTHROPIC_API_KEY`, les
+boutons correspondants ne sont pas affichés et le dépôt d’annonce reste
+entièrement utilisable.
+
+Entre les deux, `lib/ai/tidy.ts` traite localement ce qui relève de la mise en
+forme — capitales criées, ponctuation répétée, espacement français, séparateurs
+de milliers. C’est gratuit, instantané, et cela couvre en pratique l’essentiel
+de ce qui rend une annonce pénible à lire.
+
+### Ce qu’elles ne font pas
+
+Aucune ne décide à la place de quelqu’un :
+
+- le **score de fraude** ordonne une file de lecture pour la modération
+  (`/admin/fraude`). Il ne masque, ne refuse et ne signale aucune annonce. Un
+  score de règles se trompe — un vendeur pressé peut brader, un commerçant peut
+  mentionner son WhatsApp par habitude — et faire porter la décision à la
+  machine ferait payer ces erreurs à des gens réels, sans recours ;
+- la **détection de doublons** prévient, elle ne fusionne pas ;
+- la **suggestion de prix** affiche ce que demandent les autres vendeurs, avec
+  le nombre d’annonces sur lequel elle repose, et ne préremplit jamais le champ ;
+- les **suggestions de rédaction** s’affichent à côté du texte du vendeur, avec
+  « Remplacer » et « Garder mon texte ». Rien n’est écrit sans son geste.
+
+### Injection d’invite
+
+Le titre et les notes d’une annonce sont du contenu non fiable. Les consignes
+sont placées dans le `system`, le contenu du vendeur est délimité et présenté
+comme une donnée à décrire, et la sortie est rebornée puis renettoyée avant
+d’être proposée. Le pire cas reste une suggestion inadaptée, que le vendeur voit
+avant de l’accepter.
+
+---
+
 ## Modèle de sécurité
 
 La défense repose sur **quatre couches indépendantes** :
@@ -379,12 +432,13 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-298 assertions), qui rejoue notamment des tentatives d’auto-promotion
+333 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
-insertion directe, d’auto-déclaration de paiement par le payeur et de
-confirmation d’un règlement par un modérateur.
+insertion directe, d’auto-déclaration de paiement par le payeur, de
+confirmation d’un règlement par un modérateur et de lecture des signaux de
+fraude par un compte ordinaire.
 
 ### 3. Validation serveur (Zod)
 

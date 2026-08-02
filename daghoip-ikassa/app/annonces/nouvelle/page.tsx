@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { ListingForm } from '@/components/listings/ListingForm';
 import { Alert } from '@/components/ui/Alert';
+import { assistantAvailable } from '@/lib/ai';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
 import { getAdFeaturePlans } from '@/services/feature-plans.service';
@@ -49,6 +50,7 @@ export default async function NewListingPage() {
         defaultPhone={profile?.phone ?? null}
         defaultWhatsapp={profile?.whatsapp ?? null}
         featurePlans={featurePlans}
+        assistantAvailable={assistantAvailable()}
       />
     </div>
   );

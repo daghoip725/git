@@ -78,6 +78,16 @@ const serverSchema = z.object({
   MOOV_MONEY_CLIENT_ID: z.string().min(1).optional(),
   MOOV_MONEY_CLIENT_SECRET: z.string().min(1).optional(),
   MOOV_MONEY_CALLBACK_SECRET: z.string().min(16).optional(),
+
+  /**
+   * Assistant de rédaction (facultatif). Sans clé, les boutons « Rédiger » et
+   * « Corriger les fautes » ne sont pas affichés — le dépôt d'annonce reste
+   * entièrement utilisable, et le nettoyage typographique, lui, fonctionne
+   * toujours puisqu'il est purement local.
+   */
+  ANTHROPIC_API_KEY: z.string().min(20).optional(),
+  /** Surcharge du modèle. Par défaut le modèle rapide, suffisant ici. */
+  AI_MODEL: z.string().min(3).optional(),
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
@@ -94,6 +104,19 @@ export function getServerEnv(): z.infer<typeof serverSchema> {
     cachedServerEnv = serverSchema.parse({
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
       NODE_ENV: process.env.NODE_ENV,
+
+      AIRTEL_MONEY_BASE_URL: process.env.AIRTEL_MONEY_BASE_URL || undefined,
+      AIRTEL_MONEY_CLIENT_ID: process.env.AIRTEL_MONEY_CLIENT_ID || undefined,
+      AIRTEL_MONEY_CLIENT_SECRET: process.env.AIRTEL_MONEY_CLIENT_SECRET || undefined,
+      AIRTEL_MONEY_CALLBACK_SECRET: process.env.AIRTEL_MONEY_CALLBACK_SECRET || undefined,
+
+      MOOV_MONEY_BASE_URL: process.env.MOOV_MONEY_BASE_URL || undefined,
+      MOOV_MONEY_CLIENT_ID: process.env.MOOV_MONEY_CLIENT_ID || undefined,
+      MOOV_MONEY_CLIENT_SECRET: process.env.MOOV_MONEY_CLIENT_SECRET || undefined,
+      MOOV_MONEY_CALLBACK_SECRET: process.env.MOOV_MONEY_CALLBACK_SECRET || undefined,
+
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+      AI_MODEL: process.env.AI_MODEL || undefined,
     });
   }
   return cachedServerEnv;

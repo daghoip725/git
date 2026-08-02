@@ -919,6 +919,95 @@ export interface Database {
         }[];
       };
 
+      /**
+       * Médiane et quartiles des annonces comparables. Renvoie zéro ligne sous
+       * cinq comparables : une médiane sur deux points n'informe pas.
+       */
+      suggest_price: {
+        Args: {
+          p_category_id: string;
+          p_city?: string | null;
+          p_condition?: AdCondition | null;
+        };
+        Returns: {
+          scope: 'city' | 'province' | 'national';
+          sample_size: number;
+          median: number;
+          p25: number;
+          p75: number;
+        }[];
+      };
+
+      /** Annonces ressemblantes dans la même catégorie. Suggère, ne fusionne rien. */
+      find_duplicate_ads: {
+        Args: { p_ad_id: string; p_threshold?: number; p_limit?: number };
+        Returns: {
+          id: string;
+          reference: string;
+          title: string;
+          slug: string;
+          price: number | null;
+          city: string;
+          status: AdStatus;
+          seller_id: string;
+          same_seller: boolean;
+          title_score: number;
+          created_at: string;
+        }[];
+      };
+
+      /** Signaux de fraude d'une annonce, avec poids et justification. Personnel seulement. */
+      ad_fraud_signals: {
+        Args: { p_ad_id: string };
+        Returns: { signal: string; weight: number; detail: string }[];
+      };
+
+      /** Score de fraude agrégé, borné à 100. Personnel seulement. */
+      ad_fraud_score: {
+        Args: { p_ad_id: string };
+        Returns: number;
+      };
+
+      /** File de modération : annonces récentes au-dessus du seuil. Personnel seulement. */
+      flagged_ads: {
+        Args: { p_min_score?: number; p_limit?: number };
+        Returns: {
+          id: string;
+          reference: string;
+          title: string;
+          slug: string;
+          price: number | null;
+          city: string;
+          status: AdStatus;
+          seller_id: string;
+          seller_name: string;
+          score: number;
+          created_at: string;
+        }[];
+      };
+
+      /** Recommandations par le contenu. Repli sur les annonces populaires. */
+      recommend_ads: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          reference: string;
+          title: string;
+          slug: string;
+          price: number | null;
+          price_type: PriceType;
+          city: string;
+          is_featured: boolean;
+          views_count: number;
+          published_at: string | null;
+          created_at: string;
+          category_name: string | null;
+          category_slug: string | null;
+          cover_image_path: string | null;
+          reason: 'populaire' | 'affinite';
+        }[];
+      };
+
       /** Facture d'un paiement abouti. La RLS de `payments` décide qui la voit. */
       get_invoice: {
         Args: { p_payment_id: string };

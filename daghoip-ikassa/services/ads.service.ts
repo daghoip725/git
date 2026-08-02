@@ -423,3 +423,46 @@ export async function getPlatformStats() {
   }
   return data;
 }
+
+/**
+ * Annonces recommandées pour l'utilisateur courant.
+ *
+ * Le calcul vit en base (`recommend_ads`) : croiser les favoris, les catégories
+ * et les gammes de prix en JavaScript demanderait de rapatrier des lignes que la
+ * RLS ne laisse de toute façon pas sortir.
+ *
+ * `reason` dit sur quoi repose la liste — `affinite` quand l'utilisateur a des
+ * favoris, `populaire` sinon. La page peut ainsi titrer honnêtement plutôt que
+ * d'annoncer « pour vous » à quelqu'un dont on ne sait rien.
+ */
+export async function getRecommendedAds(
+  limit = 8,
+): Promise<{ ads: AdCardData[]; reason: 'affinite' | 'populaire' }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('recommend_ads', { p_limit: limit });
+
+  if (error) {
+    logger.error('Chargement des recommandations impossible', error);
+    return { ads: [], reason: 'populaire' };
+  }
+
+  const rows = data ?? [];
+  return {
+    ads: rows.map((row) => ({
+      id: row.id,
+      reference: row.reference,
+      title: row.title,
+      slug: row.slug,
+      price: row.price,
+      price_type: row.price_type,
+      city: row.city,
+      is_featured: row.is_featured,
+      published_at: row.published_at,
+      created_at: row.created_at,
+      categoryName: row.category_name,
+      categorySlug: row.category_slug,
+      coverImageUrl: getAdImageUrl(row.cover_image_path),
+    })),
+    reason: rows[0]?.reason ?? 'populaire',
+  };
+}

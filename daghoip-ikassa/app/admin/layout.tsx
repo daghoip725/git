@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ScrollText,
   Settings,
+  ShieldAlert,
   Users,
 } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -45,6 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: '/admin', label: 'Vue d’ensemble', icon: LayoutDashboard, count: 0 },
     { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, count: 0 },
     { href: '/admin/signalements', label: 'Signalements', icon: Flag, count: openReports },
+    { href: '/admin/fraude', label: 'Anti-fraude', icon: ShieldAlert, count: 0 },
     {
       href: '/admin/verifications',
       label: 'Vérifications',

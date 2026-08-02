@@ -90,6 +90,14 @@ export const RATE_LIMITS = {
   startPayment: { limit: 10, windowMs: 60 * 60 * 1000 },
 
   /**
+   * Appels au modèle de langage. Chacun a un coût réel en jetons : la limite
+   * protège le budget autant que le service. Les aides calculées en base
+   * (prix, doublons, mise en forme) n'y sont pas soumises — elles ne coûtent
+   * qu'une requête SQL.
+   */
+  aiAssist: { limit: 20, windowMs: 60 * 60 * 1000 },
+
+  /**
    * Rappels d'opérateur, par adresse IP. Généreux — un opérateur légitime
    * réémet ses rappels — mais borné : la route est publique par nature.
    */

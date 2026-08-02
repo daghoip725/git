@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { ListingForm } from '@/components/listings/ListingForm';
+import { assistantAvailable } from '@/lib/ai';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
 import { getAdFeaturePlans } from '@/services/feature-plans.service';
@@ -63,6 +64,7 @@ export default async function EditListingPage({ params }: PageProps) {
         }}
         featurePlans={featurePlans}
         isFeatured={listing.is_featured}
+        assistantAvailable={assistantAvailable()}
       />
     </div>
   );

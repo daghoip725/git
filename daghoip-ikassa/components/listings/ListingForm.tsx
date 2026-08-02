@@ -25,6 +25,8 @@ import { useActionState, useEffect, useMemo, useState } from 'react';
 import { createAdAction, updateAdAction } from '@/app/actions/ads.actions';
 import { GeoLocationField } from '@/components/listings/GeoLocationField';
 import { ImageUploader } from '@/components/listings/ImageUploader';
+import { PriceHint } from '@/components/listings/PriceHint';
+import { WritingAssist } from '@/components/listings/WritingAssist';
 import { Alert } from '@/components/ui/Alert';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Checkbox, Input, Select, Textarea } from '@/components/ui/Field';
@@ -77,6 +79,11 @@ export interface ListingFormProps {
   featurePlans?: AdFeaturePlan[];
   /** En édition : l'annonce bénéficie déjà d'une mise en avant en cours. */
   isFeatured?: boolean;
+  /**
+   * `true` si un assistant de rédaction est configuré sur cette instance.
+   * Décidé côté serveur : la clé ne doit jamais atteindre le navigateur.
+   */
+  assistantAvailable?: boolean;
 }
 
 const PRICE_TYPE_OPTIONS = (Object.keys(PRICE_TYPE_LABELS) as PriceType[]).map((value) => ({
@@ -116,6 +123,7 @@ export function ListingForm({
   defaultWhatsapp,
   featurePlans = [],
   isFeatured = false,
+  assistantAvailable = false,
 }: ListingFormProps) {
   const router = useRouter();
 
@@ -338,6 +346,22 @@ export function ListingForm({
           <p className="mt-1 text-right text-xs text-neutral-400" aria-live="polite">
             {descriptionLength} / {LISTING_LIMITS.descriptionMax}
           </p>
+
+          <WritingAssist
+            assistantAvailable={assistantAvailable}
+            title={values.title ?? ''}
+            description={values.description ?? ''}
+            categoryName={
+              categories.find((category) => category.id === values.categoryId)?.name ?? null
+            }
+            city={values.city ?? ''}
+            condition={values.condition ? CONDITION_LABELS[values.condition] : null}
+            price={values.price ?? null}
+            onApply={(nextTitle, nextDescription) => {
+              setValue('description', nextDescription);
+              if (nextTitle) setValue('title', nextTitle);
+            }}
+          />
         </div>
 
         <Select
@@ -396,6 +420,14 @@ export function ListingForm({
             hint={needsPrice ? undefined : 'Non applicable pour cette modalité.'}
             error={fieldError('price')}
           />
+
+          {needsPrice && values.categoryId ? (
+            <PriceHint
+              categoryId={values.categoryId}
+              city={values.city ?? ''}
+              condition={values.condition ?? null}
+            />
+          ) : null}
         </div>
       </section>
 

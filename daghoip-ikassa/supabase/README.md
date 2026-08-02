@@ -50,6 +50,7 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 9. `migrations/20260801000900_messaging.sql`
 10. `migrations/20260801001000_admin_stats.sql`
 11. `migrations/20260801001100_payments.sql`
+12. `migrations/20260801001200_ai_features.sql`
 11. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
@@ -383,10 +384,11 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 298 assertions réparties en sept fichiers : schéma et sécurité
+La suite couvre 333 assertions réparties en huit fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
-statistiques d'administration (`06`), paiements et facturation (`07`). Elle vérifie le cycle de vie des annonces, la
+statistiques d'administration (`06`), paiements et facturation (`07`), aides
+intelligentes (`08`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -409,6 +411,47 @@ Le script démarre un PostgreSQL jetable, y rejoue toutes les migrations, puis l
 suite de tests. `tests/00_supabase_shim.sql` reproduit le strict minimum de
 l'environnement Supabase (rôles, `auth.uid()`, `storage.objects`) pour que tout
 tourne **hors ligne**, sans projet distant.
+
+## Aides intelligentes
+
+Quatre des six fonctionnalités demandées sont **calculées en base**, sans modèle
+de langage : ce sont des questions statistiques et relationnelles, et un modèle
+y serait plus lent, plus cher, non déterministe et impossible à auditer.
+
+| Fonction | Où | Principe |
+| --- | --- | --- |
+| `suggest_price` | SQL | Médiane et quartiles des comparables sur 365 jours. Trois périmètres (ville → province → national) ; celui retenu est renvoyé. Zéro ligne sous 5 comparables. |
+| `find_duplicate_ads` | SQL | Similarité trigramme sur le titre, même catégorie. Distingue le doublon du même vendeur du recopiage par un tiers. |
+| `ad_fraud_signals` / `flagged_ads` | SQL | Score de règles pondérées, avec justification par signal. Personnel seulement. |
+| `recommend_ads` | SQL | Recommandation par le contenu, déduite des favoris. Repli sur les annonces populaires. |
+| Rédaction, correction | `lib/ai/` | Modèle de langage, facultatif. |
+
+### Ce que ces fonctions ne font pas
+
+Aucune ne décide. Le score de fraude **ordonne une file de lecture** ; il ne
+masque, ne refuse et ne signale rien — même politique que `needs_manual_review`,
+et pour la même raison : un faux positif ne doit jamais pénaliser un vendeur
+honnête. La détection de doublons ne fusionne rien : deux Toyota Corolla 2010 à
+Libreville peuvent légitimement porter le même titre. La suggestion de prix ne
+préremplit pas le champ : proposer un prix, ce serait le fixer.
+
+### Poids des signaux de fraude
+
+Choisis pour qu'**aucun signal isolé n'atteigne le seuil de revue** (50) : c'est
+la conjonction qui alerte, pas l'indice unique.
+
+| Signal | Poids |
+| --- | --- |
+| `contenu_interdit` | 60 |
+| `prix_aberrant` (moins de 35 % de la médiane) | 35 |
+| `paiement_anticipe` | 30 |
+| `compte_neuf_prolifique` | 25 |
+| `contact_hors_plateforme` | 20 |
+| `republication_en_serie` | 15 |
+| `sans_photo` | 10 |
+
+Un vendeur nouveau n'est pas suspect ; un vendeur nouveau qui brade un article
+et renvoie vers WhatsApp en exigeant un acompte, si.
 
 ## Exploitation
 
