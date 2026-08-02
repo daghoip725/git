@@ -16,7 +16,8 @@ supabase/
 │   ├── …000500_performance.sql               # Vues, autovacuum, stats, pg_cron
 │   ├── …000600_auth_roles_verification.sql   # E.164, vérification vendeur, rôles, audit
 │   ├── …000700_ad_form_features.sql          # Expiration, GPS, revue auto, mise en avant
-│   └── …000800_search_filters.sql            # Quartier, ancienneté, rayon géographique
+│   ├── …000800_search_filters.sql            # Quartier, ancienneté, rayon géographique
+│   └── …000900_messaging.sql                 # Blocage, photos, recherche, temps réel
 ├── seed.sql                       # Offres d'abonnement + 32 catégories
 ├── templates/                     # E-mails d'authentification (charte graphique)
 └── tests/                         # Suite de tests fonctionnels et de sécurité
@@ -45,7 +46,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 6. `migrations/20260801000600_auth_roles_verification.sql`
 7. `migrations/20260801000700_ad_form_features.sql`
 8. `migrations/20260801000800_search_filters.sql`
-9. `seed.sql`
+9. `migrations/20260801000900_messaging.sql`
+10. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -55,9 +57,9 @@ Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
 ## Modèle de données
 
-Onze entités métier, plus cinq tables de support (`ad_images`,
+Onze entités métier, plus six tables de support (`ad_images`,
 `subscription_plans`, `ad_feature_plans`, `verification_requests`,
-`auth_audit_log`) — seize au total.
+`auth_audit_log`, `blocked_users`) — dix-sept au total.
 
 ```
 auth.users (Supabase)
@@ -100,7 +102,7 @@ applicatifs.
 
 ### 1. RLS — quelles lignes
 
-RLS activée sur **les 16 tables**, 45 politiques. L'application n'utilise que la
+RLS activée sur **les 17 tables**, 49 politiques. L'application n'utilise que la
 clé anonyme : même une requête forgée depuis la console du navigateur ne peut
 pas dépasser ce que les politiques autorisent.
 
@@ -334,17 +336,48 @@ il ne serait jamais utilisé. `list_districts()` recense les quartiers
 réellement présents et restitue l'orthographe la plus fréquente — il n'existe
 pas de référentiel des quartiers du Gabon, et en inventer un serait faux.
 
+## Messagerie
+
+Le modèle existant (fils, compteurs de non-lus dénormalisés, accusés de lecture,
+notifications par trigger) est complété par quatre mécanismes.
+
+**Blocage.** `blocked_users` est **unilatéral et discret** : la RLS ne laisse
+lire à chacun que ses propres blocages, et `is_blocked_between()` — SECURITY
+DEFINER par nécessité — ne répond que par oui ou non, jamais « qui a bloqué
+qui ». Le refus est appliqué par un **trigger** sur `messages`, pas seulement
+dans `send_message()` : la RLS autorise aussi l'insertion directe, et un blocage
+contournable en appelant l'API n'en serait pas un. Le message d'erreur est
+volontairement identique dans les deux sens.
+
+**Photos.** Un message peut ne porter qu'une pièce jointe ; la contrainte est
+passée de « au moins un caractère » à « du texte OU une pièce jointe ». Le même
+trigger vérifie que le chemin respecte `<expéditeur>/<conversation>/<fichier>` —
+en plus de la politique Storage, qui l'exige déjà.
+
+**Recherche.** `search_conversations()` interroge simultanément le contenu des
+messages (colonne `tsvector` **générée**, donc impossible à désynchroniser), le
+titre de l'annonce et le nom du correspondant : chercher « Toyota » doit
+retrouver le fil sur la Toyota même si le mot n'est dans aucun message.
+
+**Temps réel.** `messages`, `conversations` et `notifications` sont inscrites à
+la publication `supabase_realtime`. La RLS s'applique aussi à la diffusion : un
+abonné ne reçoit que les lignes qu'il aurait le droit de lire. `messages` passe
+en `replica identity full` pour que les événements UPDATE — les accusés de
+lecture — portent la ligne entière et non la seule clé.
+
 ## Tests
 
-La suite couvre 177 assertions réparties en quatre fichiers : schéma et sécurité
+La suite couvre 218 assertions réparties en cinq fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
-formulaire d'annonce (`03`), recherche et filtres (`04`). Elle vérifie le cycle de vie des annonces, la
+formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
-signalements, la maintenance, les cascades, les filtres et tris de recherche —
-et une batterie de tentatives d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
+signalements, la maintenance, les cascades, les filtres et tris de recherche, le
+blocage, les pièces jointes et l'archivage — et une batterie de tentatives
+d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
 téléphone d'autrui, injection de notification, création de paiement, insertion
 dans le fil d'un tiers, mise en avant de l'annonce d'autrui, auto-mise en avant
-sans paiement).
+sans paiement, contournement d'un blocage par insertion directe, pièce jointe
+déposée au nom d'autrui, lecture des conversations d'un tiers).
 
 ```bash
 ./supabase/tests/run.sh

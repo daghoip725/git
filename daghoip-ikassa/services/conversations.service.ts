@@ -37,25 +37,27 @@ function toSummary(row: ConversationRow, userId: string): ConversationSummary {
   };
 }
 
-/** Fils de l'utilisateur, le plus récemment actif en premier. */
+/**
+ * Fils de l'utilisateur, le plus récemment actif en premier.
+ *
+ * `archived` sélectionne la boîte de réception ou les archives — chaque partie
+ * archivant de son côté, le filtre dépend du rôle occupé dans le fil.
+ */
 export async function getConversations(
   userId: string,
-  options: { includeArchived?: boolean } = {},
+  options: { archived?: boolean } = {},
 ): Promise<ConversationSummary[]> {
   const supabase = await createClient();
+  const archived = options.archived ?? false;
 
-  let query = supabase
+  const query = supabase
     .from('conversations_view')
     .select('*')
-    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
-
-  if (!options.includeArchived) {
-    // Chaque partie archive de son côté : on filtre selon le rôle occupé.
-    query = query.or(
-      `and(buyer_id.eq.${userId},buyer_archived.eq.false),` +
-        `and(seller_id.eq.${userId},seller_archived.eq.false)`,
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    .or(
+      `and(buyer_id.eq.${userId},buyer_archived.eq.${archived}),` +
+        `and(seller_id.eq.${userId},seller_archived.eq.${archived})`,
     );
-  }
 
   const { data, error } = await query
     .order('last_message_at', { ascending: false, nullsFirst: false })
@@ -88,6 +90,65 @@ export async function getConversation(
     return null;
   }
   return data ? toSummary(data, userId) : null;
+}
+
+/**
+ * Le fil courant est-il archivé du point de vue de l'utilisateur ?
+ * L'information ne figure pas dans `ConversationSummary`, qui est orienté
+ * affichage de liste ; la page du fil en a besoin pour son bouton.
+ */
+export async function isConversationArchived(
+  conversationId: string,
+  userId: string,
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('conversations')
+    .select('seller_id, buyer_archived, seller_archived')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (!data) return false;
+  return data.seller_id === userId ? data.seller_archived : data.buyer_archived;
+}
+
+/** Un blocage court-il entre l'utilisateur et son correspondant ? */
+export async function isBlockedWith(otherUserId: string, userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('is_blocked_between', {
+    p_a: userId,
+    p_b: otherUserId,
+  });
+
+  if (error) {
+    logger.error('Vérification de blocage impossible', error, { otherUserId });
+    return false;
+  }
+  return Boolean(data);
+}
+
+/** L'utilisateur a-t-il lui-même bloqué ce compte ? (pour proposer « Débloquer ») */
+export async function hasBlocked(otherUserId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('blocked_users')
+    .select('blocked_id')
+    .eq('blocked_id', otherUserId)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
+/** Comptes bloqués par l'utilisateur courant. */
+export async function getBlockedUsers() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('list_blocked_users');
+
+  if (error) {
+    logger.error('Chargement des comptes bloqués impossible', error);
+    return [];
+  }
+  return data ?? [];
 }
 
 /** Messages d'un fil, du plus ancien au plus récent. */

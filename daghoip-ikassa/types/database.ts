@@ -405,6 +405,19 @@ export interface Database {
         Relationships: [];
       };
 
+      blocked_users: {
+        Row: {
+          blocker_id: string;
+          blocked_id: string;
+          reason: string | null;
+          created_at: string;
+        };
+        /** `blocker_id` est cloué à `auth.uid()` par la politique RLS. */
+        Insert: { blocker_id: string; blocked_id: string; reason?: string | null };
+        Update: { reason?: string | null };
+        Relationships: [];
+      };
+
       ad_feature_plans: {
         Row: {
           id: string;
@@ -682,7 +695,36 @@ export interface Database {
       toggle_favorite: { Args: { p_ad_id: string }; Returns: boolean };
       increment_ad_views: { Args: { p_ad_id: string }; Returns: undefined };
       get_or_create_conversation: { Args: { p_ad_id: string }; Returns: string };
-      send_message: { Args: { p_conversation_id: string; p_body: string }; Returns: string };
+      send_message: {
+        Args: {
+          p_conversation_id: string;
+          p_body: string;
+          /** `<sender_id>/<conversation_id>/<fichier>` — vérifié par trigger. */
+          p_attachment_path?: string | null;
+        };
+        Returns: string;
+      };
+      is_blocked_between: { Args: { p_a: string; p_b: string }; Returns: boolean };
+      block_user: { Args: { p_user_id: string; p_reason?: string | null }; Returns: undefined };
+      unblock_user: { Args: { p_user_id: string }; Returns: undefined };
+      list_blocked_users: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          user_id: string;
+          full_name: string;
+          avatar_path: string | null;
+          reason: string | null;
+          created_at: string;
+        }[];
+      };
+      /** Recherche dans les fils de l'appelant : messages, annonce, correspondant. */
+      search_conversations: {
+        Args: { p_query: string; p_limit?: number | null };
+        Returns: (Database['public']['Views']['conversations_view']['Row'] & {
+          match_excerpt: string | null;
+          match_type: 'message' | 'annonce' | 'correspondant';
+        })[];
+      };
       mark_conversation_read: { Args: { p_conversation_id: string }; Returns: number };
       mark_notifications_read: { Args: { p_ids?: string[] | null }; Returns: number };
       unread_notifications_count: { Args: Record<PropertyKey, never>; Returns: number };

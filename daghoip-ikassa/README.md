@@ -147,8 +147,16 @@ daghoip-ikassa/
 ## Architecture
 
 **Lecture / écriture séparées.** Les `services/` ne font que lire (appelés
-depuis des Server Components) ; toutes les écritures passent par des Server
-Actions dans `app/actions/`. Aucun composant client n’écrit directement en base.
+depuis des Server Components) ; les écritures passent par des Server Actions
+dans `app/actions/`, qui revalident tout avec Zod.
+
+Deux exceptions assumées, où le navigateur appelle directement une RPC
+PostgreSQL : **l’envoi d’un message** et **l’accusé de lecture**. Un
+aller-retour supplémentaire par le serveur Next.js n’y apporterait aucune
+garantie — la RLS et les triggers s’appliquent de la même façon — et ne ferait
+que retarder l’affichage de son propre message dans une messagerie temps réel.
+Le contrôle réel vit en base : le trigger d’insertion refuse un message vers un
+compte bloqué ou une pièce jointe qui n’appartient pas à son expéditeur.
 
 **Photos.** Les fichiers sont envoyés **du navigateur vers Supabase Storage**,
 sans transiter par le serveur Next.js. La Server Action ne reçoit que les
@@ -199,6 +207,17 @@ temporisé (300 ms) alors que les autres filtres s’appliquent immédiatement ;
 les requêtes devenues obsolètes sont annulées et un compteur de génération
 écarte les réponses arrivées dans le désordre ; l’URL est mise à jour par
 `history.replaceState`, donc sans navigation ni rendu serveur.
+
+**Messagerie temps réel.** `messages`, `conversations` et `notifications` sont
+diffusées par Supabase Realtime, RLS comprise : un abonné ne reçoit que les
+lignes qu’il pourrait lire. Le fil affiche les messages entrants et les accusés
+de lecture sans rechargement, et l’envoi est **optimiste** — le message apparaît
+immédiatement, puis la ligne réelle le remplace à son retour.
+
+Elle couvre les photos (bucket privé, URL signées), un sélecteur d’émojis
+maison, les accusés de lecture posés seulement quand la fenêtre est réellement
+visible, le blocage d’un correspondant, l’archivage et la recherche dans les
+conversations. Les comptes bloqués se gèrent depuis `/compte/blocages`.
 
 **État de la recherche.** Les filtres vivent dans l’URL
 (`?q=&categorie=&ville=&quartier=&prix_min=&depuis=&tri=…`) : la recherche
@@ -254,10 +273,11 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-177 assertions), qui rejoue notamment des tentatives d’auto-promotion
+218 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
-d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit et de
-mise en avant d’une annonce sans paiement.
+d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
+en avant d’une annonce sans paiement et de contournement d’un blocage par
+insertion directe.
 
 ### 3. Validation serveur (Zod)
 

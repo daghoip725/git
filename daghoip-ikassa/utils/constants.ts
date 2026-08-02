@@ -157,6 +157,16 @@ export const AVATARS_BUCKET = 'avatars';
 export const MESSAGE_ATTACHMENTS_BUCKET = 'message-attachments';
 export const VERIFICATION_DOCS_BUCKET = 'verification-docs';
 
+/**
+ * Limites de la messagerie. Le bucket `message-attachments` est configuré à
+ * 5 Mo côté Supabase : la borne côté client doit rester alignée, sinon l'envoi
+ * échoue après le transfert plutôt qu'avant.
+ */
+export const MESSAGE_LIMITS = {
+  bodyMax: 2000,
+  attachmentMaxBytes: 5 * 1024 * 1024,
+} as const;
+
 /** Nombre d'annonces par page sur la recherche. */
 export const DEFAULT_PAGE_SIZE = 24;
 export const MAX_PAGE_SIZE = 48;

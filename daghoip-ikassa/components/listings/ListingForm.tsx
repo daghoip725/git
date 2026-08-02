@@ -584,7 +584,7 @@ export function ListingForm({
       {/* La mention du brouillon garde sa propre ligne : le formulaire est
           contraint à `max-w-3xl`, où elle ne tiendrait jamais à côté des deux
           boutons sans déborder. */}
-      <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-neutral-200 bg-white/95 p-4 backdrop-blur sm:mx-0 sm:rounded-b-xl">
+      <div className="sticky bottom-16 -mx-4 flex flex-col gap-2 border-t border-neutral-200 bg-white/95 p-4 backdrop-blur sm:mx-0 sm:rounded-b-xl md:bottom-0">
         {mode === 'create' ? (
           <p className="flex items-center gap-1.5 text-xs text-neutral-500">
             <Clock className="size-3.5 shrink-0" aria-hidden="true" />

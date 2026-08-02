@@ -68,6 +68,11 @@ export async function startConversationAction(
       logger.error('Ouverture de conversation impossible', conversationError, {
         adId: parsed.data.adId,
       });
+      // P0001 : message écrit pour être lu (annonce close, blocage). Il est
+      // volontairement neutre côté base et peut être affiché tel quel.
+      if (conversationError?.code === 'P0001') {
+        return { success: false, error: conversationError.message };
+      }
       return fail(
         conversationError,
         'Impossible d’ouvrir la discussion. L’annonce n’accepte peut-être plus la messagerie.',
@@ -197,6 +202,74 @@ export async function setConversationArchivedAction(
     if (error) return fail(error, 'Impossible d’archiver la conversation.');
 
     revalidatePath('/messages');
+    return ok(null);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Blocage                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Bloque un correspondant.
+ *
+ * Le blocage est **unilatéral et discret** : la personne bloquée ne l'apprend
+ * pas, elle constate seulement que le fil n'accepte plus de messages. La RPC
+ * archive au passage la conversation correspondante.
+ */
+export async function blockUserAction(
+  userId: string,
+  reason?: string | null,
+): Promise<ActionResult<null>> {
+  try {
+    await requireUser();
+
+    const parsed = z
+      .object({
+        userId: z.string().uuid(),
+        reason: z.string().trim().max(300).nullable().optional(),
+      })
+      .safeParse({ userId, reason: reason ?? null });
+
+    if (!parsed.success) return { success: false, error: 'Compte introuvable.' };
+
+    const supabase = await createClient();
+    const { error } = await supabase.rpc('block_user', {
+      p_user_id: parsed.data.userId,
+      p_reason: parsed.data.reason ?? null,
+    });
+
+    if (error) {
+      logger.error('Blocage impossible', error, { userId });
+      if (error.code === 'P0001') return { success: false, error: error.message };
+      return fail(error, 'Impossible de bloquer ce compte.');
+    }
+
+    revalidatePath('/messages');
+    revalidatePath('/compte/blocages');
+    return ok(null);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/** Lève un blocage. Le fil redevient utilisable dans les deux sens. */
+export async function unblockUserAction(userId: string): Promise<ActionResult<null>> {
+  try {
+    await requireUser();
+
+    const parsedId = z.string().uuid().safeParse(userId);
+    if (!parsedId.success) return { success: false, error: 'Compte introuvable.' };
+
+    const supabase = await createClient();
+    const { error } = await supabase.rpc('unblock_user', { p_user_id: parsedId.data });
+
+    if (error) return fail(error, 'Impossible de débloquer ce compte.');
+
+    revalidatePath('/messages');
+    revalidatePath('/compte/blocages');
     return ok(null);
   } catch (error) {
     return fail(error);

@@ -21,6 +21,8 @@ import {
   AVATARS_BUCKET,
   AD_IMAGES_BUCKET,
   LISTING_LIMITS,
+  MESSAGE_ATTACHMENTS_BUCKET,
+  MESSAGE_LIMITS,
 } from '@/utils/constants';
 
 /* -------------------------------------------------------------------------- */
@@ -168,6 +170,52 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
 
   if (error) throw new Error('Échec de l’envoi de l’avatar. Veuillez réessayer.');
   return storagePath;
+}
+
+/**
+ * Envoie une photo dans un fil de discussion.
+ *
+ * Convention de chemin `<sender_id>/<conversation_id>/<uuid>.<ext>` : elle est
+ * exigée à la fois par la politique Storage et par le trigger d'insertion d'un
+ * message. Le bucket est **privé** — la lecture passera par une URL signée.
+ */
+export async function uploadMessageAttachment(
+  file: File,
+  userId: string,
+  conversationId: string,
+): Promise<string> {
+  const validationError = validateImageFile(file, MESSAGE_LIMITS.attachmentMaxBytes);
+  if (validationError) throw new Error(validationError);
+
+  const supabase = createClient();
+  const extension = EXTENSION_BY_MIME[file.type] ?? 'jpg';
+  const storagePath = `${userId}/${conversationId}/${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from(MESSAGE_ATTACHMENTS_BUCKET)
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+  if (error) throw new Error('Échec de l’envoi de la photo. Veuillez réessayer.');
+  return storagePath;
+}
+
+/**
+ * URL signée d'une pièce jointe, demandée **depuis le navigateur**.
+ *
+ * Les messages arrivant en temps réel n'ont pas transité par le serveur : ils
+ * ne peuvent donc pas apporter d'URL signée. Le client la demande lui-même, et
+ * la politique Storage vérifie qu'il participe bien à la conversation.
+ */
+export async function signMessageAttachment(
+  storagePath: string,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.storage
+    .from(MESSAGE_ATTACHMENTS_BUCKET)
+    .createSignedUrl(storagePath, expiresInSeconds);
+
+  return error ? null : (data?.signedUrl ?? null);
 }
 
 /* -------------------------------------------------------------------------- */

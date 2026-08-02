@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ListOrdered,
   MessageSquare,
+  ShieldBan,
   User,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ const NAV = [
   { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/compte/profil', label: 'Mon profil', icon: User },
   { href: '/compte/verification', label: 'Vérification', icon: BadgeCheck },
+  { href: '/compte/blocages', label: 'Comptes bloqués', icon: ShieldBan },
   { href: '/compte/mot-de-passe', label: 'Mot de passe', icon: KeyRound },
 ];
 

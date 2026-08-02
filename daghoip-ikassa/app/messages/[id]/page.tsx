@@ -5,13 +5,20 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { markConversationReadAction } from '@/app/actions/conversations.actions';
-import { MessageComposer } from '@/components/messages/MessageComposer';
 import { Avatar } from '@/components/common/Avatar';
+import { ConversationActions } from '@/components/messages/ConversationActions';
+import { MessageThread } from '@/components/messages/MessageThread';
+import { Alert } from '@/components/ui/Alert';
 import { getCurrentUser } from '@/lib/supabase/server';
-import { getConversation, getMessages } from '@/services/conversations.service';
-import { cn } from '@/utils/cn';
-import { formatDateTime } from '@/utils/format';
+import {
+  getConversation,
+  getMessages,
+  hasBlocked,
+  isBlockedWith,
+  isConversationArchived,
+} from '@/services/conversations.service';
+import { createSignedUrl } from '@/services/storage.service';
+import { MESSAGE_ATTACHMENTS_BUCKET } from '@/utils/constants';
 import { buildListingHref } from '@/utils/slug';
 
 export const metadata: Metadata = {
@@ -37,12 +44,38 @@ export default async function ConversationPage({ params }: PageProps) {
   const conversation = await getConversation(parsedId.data, user.id);
   if (!conversation) notFound();
 
-  const messages = await getMessages(parsedId.data);
+  const [messages, isArchived, isBlocked, iBlockedThem] = await Promise.all([
+    getMessages(parsedId.data),
+    isConversationArchived(parsedId.data, user.id),
+    isBlockedWith(conversation.correspondentId, user.id),
+    hasBlocked(conversation.correspondentId),
+  ]);
 
-  // Accusé de lecture à l'ouverture du fil.
-  if (conversation.unreadCount > 0) {
-    await markConversationReadAction(parsedId.data);
-  }
+  // Les pièces jointes vivent dans un bucket privé : le serveur signe celles
+  // qui sont déjà là, le navigateur signera lui-même celles qui arriveront.
+  const attachmentEntries = await Promise.all(
+    messages
+      .map((message) => message.attachment_path)
+      .filter((path): path is string => Boolean(path))
+      .map(
+        async (path) => [path, await createSignedUrl(MESSAGE_ATTACHMENTS_BUCKET, path)] as const,
+      ),
+  );
+
+  const initialAttachmentUrls = Object.fromEntries(
+    attachmentEntries.filter((entry): entry is [string, string] => entry[1] !== null),
+  );
+
+  /**
+   * Message affiché à la place du champ de saisie.
+   * Il est **volontairement identique** dans les deux sens : la personne
+   * bloquée ne doit pas pouvoir déduire qu'elle l'a été.
+   */
+  const disabledReason = isBlocked
+    ? iBlockedThem
+      ? 'Vous avez bloqué cette personne. Débloquez-la pour reprendre la discussion.'
+      : 'Cette conversation n’accepte plus de nouveaux messages.'
+    : null;
 
   return (
     <div className="container-app flex max-w-3xl flex-col py-6 sm:py-10">
@@ -55,77 +88,68 @@ export default async function ConversationPage({ params }: PageProps) {
       </Link>
 
       {/* ---------------------------- En-tête du fil ---------------------------- */}
-      <header className="flex gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-        <Link
-          href={buildListingHref(conversation.adSlug, conversation.adReference)}
-          className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100"
-        >
-          {conversation.adImageUrl ? (
-            <Image
-              src={conversation.adImageUrl}
-              alt=""
-              fill
-              sizes="64px"
-              className="object-cover"
-            />
-          ) : null}
-        </Link>
-
-        <div className="min-w-0 flex-1">
+      <header className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="flex gap-3">
           <Link
             href={buildListingHref(conversation.adSlug, conversation.adReference)}
-            className="line-clamp-2-safe font-semibold text-brand-900 hover:text-brand-700"
+            className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100"
           >
-            {conversation.adTitle}
+            {conversation.adImageUrl ? (
+              <Image
+                src={conversation.adImageUrl}
+                alt=""
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            ) : null}
           </Link>
-          <p className="mt-1 flex items-center gap-2 text-sm text-neutral-600">
-            <Avatar
-              name={conversation.correspondentName}
-              src={conversation.correspondentAvatarUrl}
-              size={22}
-            />
-            {conversation.correspondentName}
-          </p>
+
+          <div className="min-w-0 flex-1">
+            <Link
+              href={buildListingHref(conversation.adSlug, conversation.adReference)}
+              className="line-clamp-2-safe font-semibold text-brand-900 hover:text-brand-700"
+            >
+              {conversation.adTitle}
+            </Link>
+            <p className="mt-1 flex items-center gap-2 text-sm text-neutral-600">
+              <Avatar
+                name={conversation.correspondentName}
+                src={conversation.correspondentAvatarUrl}
+                size={22}
+              />
+              {conversation.correspondentName}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 border-t border-neutral-100 pt-3">
+          <ConversationActions
+            conversationId={conversation.id}
+            correspondentId={conversation.correspondentId}
+            correspondentName={conversation.correspondentName}
+            isArchived={isArchived}
+            isBlocked={iBlockedThem}
+          />
         </div>
       </header>
 
-      {/* ------------------------------ Messages ------------------------------ */}
-      <ol className="my-5 flex flex-col gap-3">
-        {messages.map((message) => {
-          const isMine = message.sender_id === user.id;
+      {isArchived ? (
+        <Alert tone="info" className="mt-3">
+          Cette conversation est archivée. Elle reviendra dans votre boîte de réception au prochain
+          message.
+        </Alert>
+      ) : null}
 
-          return (
-            <li
-              key={message.id}
-              className={cn(
-                'flex max-w-[85%] flex-col',
-                isMine ? 'items-end self-end' : 'self-start',
-              )}
-            >
-              <div
-                className={cn(
-                  'rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-                  isMine
-                    ? 'rounded-br-sm bg-brand-700 text-white'
-                    : 'rounded-bl-sm border border-neutral-200 bg-white text-neutral-800',
-                )}
-              >
-                {/* Rendu en texte brut : aucun HTML utilisateur n'est interprété. */}
-                <p className="whitespace-pre-line">{message.body}</p>
-              </div>
-              <time
-                dateTime={message.created_at}
-                className="mt-1 px-1 text-[11px] text-neutral-400"
-              >
-                {formatDateTime(message.created_at)}
-                {isMine && message.read_at ? ' · Lu' : ''}
-              </time>
-            </li>
-          );
-        })}
-      </ol>
-
-      <MessageComposer conversationId={conversation.id} />
+      <MessageThread
+        conversationId={conversation.id}
+        currentUserId={user.id}
+        initialMessages={messages}
+        initialAttachmentUrls={initialAttachmentUrls}
+        correspondentName={conversation.correspondentName}
+        disabledReason={disabledReason}
+        hasUnread={conversation.unreadCount > 0}
+      />
     </div>
   );
 }

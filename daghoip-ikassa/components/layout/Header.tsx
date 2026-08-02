@@ -6,6 +6,7 @@ import { Logo } from '@/components/common/Logo';
 import { CategoryNav } from '@/components/layout/CategoryNav';
 import { MobileMenu } from '@/components/layout/MobileMenu';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { SearchBar } from '@/components/layout/SearchBar';
 import { UserMenu } from '@/components/layout/UserMenu';
 import { ButtonLink } from '@/components/ui/Button';
@@ -13,6 +14,7 @@ import { isModerator } from '@/lib/auth/roles';
 import { getCurrentUser } from '@/lib/supabase/server';
 import { getCategories } from '@/services/categories.service';
 import { countUnreadMessages } from '@/services/conversations.service';
+import { countUnreadNotifications, getNotifications } from '@/services/notifications.service';
 import { getAvatarUrl } from '@/services/storage.service';
 import { getPublicUser } from '@/services/users.service';
 import { MAIN_NAV } from '@/utils/constants';
@@ -28,14 +30,16 @@ import { MAIN_NAV } from '@/utils/constants';
 export async function Header() {
   const user = await getCurrentUser();
 
-  const [profile, unreadCount, staff, categories] = user
+  const [profile, unreadCount, staff, categories, notifications, unreadNotifications] = user
     ? await Promise.all([
         getPublicUser(user.id),
         countUnreadMessages(user.id),
         isModerator(),
         getCategories(),
+        getNotifications(12),
+        countUnreadNotifications(),
       ])
-    : [null, 0, false, await getCategories()];
+    : [null, 0, false, await getCategories(), [], 0];
 
   return (
     <>
@@ -61,6 +65,14 @@ export async function Header() {
             </div>
 
             <div className="ml-auto flex items-center gap-2">
+              {user ? (
+                <NotificationBell
+                  userId={user.id}
+                  initialNotifications={notifications}
+                  initialUnreadCount={unreadNotifications}
+                />
+              ) : null}
+
               {user ? (
                 <Link
                   href="/compte/favoris"
