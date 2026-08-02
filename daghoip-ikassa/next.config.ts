@@ -14,9 +14,29 @@ const supabaseHostname = (() => {
 })();
 
 /**
+ * Hôte du fournisseur de tuiles cartographiques.
+ *
+ * La carte de repérage d'une annonce charge des images depuis un service tiers ;
+ * la CSP doit donc l'autoriser explicitement en `img-src`. L'hôte est **dérivé
+ * du gabarit de tuiles** plutôt qu'écrit en dur : changer de fournisseur via
+ * `NEXT_PUBLIC_MAP_TILE_URL` met la CSP à jour du même geste, sans laisser
+ * derrière soi une carte muette et une erreur de console incompréhensible.
+ */
+const mapTileHostname = (() => {
+  const template =
+    process.env.NEXT_PUBLIC_MAP_TILE_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  try {
+    const url = new URL(template);
+    return url.protocol === 'https:' ? url.hostname : undefined;
+  } catch {
+    return undefined;
+  }
+})();
+
+/**
  * En-têtes de sécurité appliqués à toutes les réponses.
- * La CSP autorise uniquement Supabase en `connect-src` et les images distantes
- * servies par le Storage Supabase.
+ * La CSP autorise uniquement Supabase en `connect-src`, et en `img-src` les
+ * images du Storage Supabase plus les tuiles cartographiques.
  */
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -38,7 +58,13 @@ const securityHeaders = [
       // `unsafe-inline` est requis par le runtime de Next.js (styles + hydratation).
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' blob: data: ${supabaseHostname ? `https://${supabaseHostname}` : ''}`.trim(),
+      [
+        "img-src 'self' blob: data:",
+        supabaseHostname ? `https://${supabaseHostname}` : '',
+        mapTileHostname ? `https://${mapTileHostname}` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
       "font-src 'self' data:",
       `connect-src 'self' ${supabaseHostname ? `https://${supabaseHostname} wss://${supabaseHostname}` : ''}`.trim(),
       "frame-ancestors 'none'",

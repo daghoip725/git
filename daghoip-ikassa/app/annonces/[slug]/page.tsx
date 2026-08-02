@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { incrementViewsAction } from '@/app/actions/ads.actions';
+import { CollapsibleText } from '@/components/common/CollapsibleText';
 import { ContactActions } from '@/components/listings/ContactActions';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ImageGallery } from '@/components/listings/ImageGallery';
 import { ListingGrid } from '@/components/listings/ListingGrid';
+import { ListingMap } from '@/components/listings/ListingMap';
+import { MessageSellerForm } from '@/components/listings/MessageSellerForm';
 import { ReportDialog } from '@/components/listings/ReportDialog';
 import { SellerCard } from '@/components/listings/SellerCard';
 import { ShareButton } from '@/components/listings/ShareButton';
@@ -85,8 +88,17 @@ export default async function ListingDetailPage({ params }: PageProps) {
     return url ? [{ url, alt: `${listing.title} — photo ${index + 1}` }] : [];
   });
 
-  const canonicalUrl = `${getSiteUrl()}${buildListingHref(listing.slug, listing.reference)}`;
+  const href = buildListingHref(listing.slug, listing.reference);
+  const canonicalUrl = `${getSiteUrl()}${href}`;
   const price = formatListingPrice(listing.price, listing.price_type);
+  const locationLabel = listing.district ? `${listing.district}, ${listing.city}` : listing.city;
+
+  // Les deux coordonnées vont toujours de pair (le trigger écarte une valeur
+  // orpheline) ; on les extrait ensemble pour que TypeScript le sache aussi.
+  const position =
+    listing.latitude !== null && listing.longitude !== null
+      ? { latitude: listing.latitude, longitude: listing.longitude }
+      : null;
 
   /** Données structurées Schema.org pour le référencement. */
   const jsonLd = {
@@ -106,6 +118,15 @@ export default async function ListingDetailPage({ params }: PageProps) {
           : 'https://schema.org/SoldOut',
       url: canonicalUrl,
       areaServed: { '@type': 'Country', name: 'Gabon' },
+      ...(position
+        ? {
+            availableAtOrFrom: {
+              '@type': 'Place',
+              address: { '@type': 'PostalAddress', addressLocality: listing.city },
+              geo: { '@type': 'GeoCoordinates', ...position },
+            },
+          }
+        : {}),
     },
   };
 
@@ -153,11 +174,17 @@ export default async function ListingDetailPage({ params }: PageProps) {
         </Alert>
       ) : null}
 
+      {/*
+        Trois blocs dans une grille explicite. Sur mobile ils se suivent dans
+        l'ordre du document — photos, prix, **contact**, puis description : le
+        bouton d'appel se trouve donc avant le pavé de texte, là où il sert.
+        À partir de `lg`, la colonne latérale occupe les deux rangées à droite.
+      */}
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem] lg:gap-8">
-        <div className="min-w-0">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <ImageGallery images={images} title={listing.title} />
 
-          <article className="mt-6">
+          <header className="mt-6">
             <h1 className="text-2xl leading-tight font-extrabold text-brand-900 sm:text-3xl">
               {listing.title}
             </h1>
@@ -167,8 +194,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
             <ul className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-neutral-600">
               <li className="flex items-center gap-1.5">
                 <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                {listing.city}
-                {listing.district ? `, ${listing.district}` : ''}
+                {locationLabel}
               </li>
               <li className="flex items-center gap-1.5">
                 <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
@@ -194,17 +220,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               {listing.is_featured ? <Badge tone="gold">À la une</Badge> : null}
             </div>
 
-            <section aria-labelledby="description-title" className="mt-8">
-              <h2 id="description-title" className="text-lg font-bold text-brand-900">
-                Description
-              </h2>
-              {/* Rendu en texte brut : aucun HTML utilisateur n'est interprété. */}
-              <p className="mt-2 leading-relaxed whitespace-pre-line text-neutral-700">
-                {listing.description}
-              </p>
-            </section>
-
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <FavoriteButton
                 listingId={listing.id}
                 initialIsFavorite={favoriteIds.has(listing.id)}
@@ -213,15 +229,11 @@ export default async function ListingDetailPage({ params }: PageProps) {
               />
               <ShareButton title={listing.title} url={canonicalUrl} />
             </div>
-
-            <div className="mt-4">
-              <ReportDialog listingId={listing.id} isAuthenticated={Boolean(user)} />
-            </div>
-          </article>
+          </header>
         </div>
 
         {/* ------------------------- Colonne latérale ------------------------- */}
-        <aside className="space-y-4 lg:sticky lg:top-32 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-32 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
           {isOwner ? (
             <Alert tone="info" title="Ceci est votre annonce">
               <Link
@@ -232,18 +244,34 @@ export default async function ListingDetailPage({ params }: PageProps) {
               </Link>
             </Alert>
           ) : (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4">
-              <h2 className="mb-3 font-bold text-brand-900">Contacter le vendeur</h2>
-              <ContactActions
-                phone={listing.contact_phone}
-                whatsapp={listing.contact_whatsapp}
-                listingTitle={listing.title}
-                listingUrl={canonicalUrl}
-              />
-              {!listing.contact_phone && !listing.contact_whatsapp ? (
-                <p className="text-sm text-neutral-600">
-                  Ce vendeur préfère être contacté via la messagerie du site.
-                </p>
+            <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+              <div>
+                <h2 className="mb-3 font-bold text-brand-900">Contacter le vendeur</h2>
+                <ContactActions
+                  phone={listing.contact_phone}
+                  whatsapp={listing.contact_whatsapp}
+                  listingTitle={listing.title}
+                  listingUrl={canonicalUrl}
+                />
+                {!listing.contact_phone && !listing.contact_whatsapp && !listing.allow_messages ? (
+                  <p className="text-sm text-neutral-600">
+                    Ce vendeur n’a laissé aucun moyen de contact pour le moment.
+                  </p>
+                ) : null}
+              </div>
+
+              {listing.allow_messages ? (
+                <div className="border-t border-neutral-200 pt-4">
+                  <h3 className="mb-2 text-sm font-semibold text-neutral-800">
+                    Ou écrivez-lui directement
+                  </h3>
+                  <MessageSellerForm
+                    listingId={listing.id}
+                    listingTitle={listing.title}
+                    isAuthenticated={Boolean(user)}
+                    returnTo={href}
+                  />
+                </div>
               ) : null}
             </div>
           )}
@@ -271,6 +299,46 @@ export default async function ListingDetailPage({ params }: PageProps) {
             {SITE.name}.
           </p>
         </aside>
+
+        {/* ----------------------- Description et carte ----------------------- */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <section aria-labelledby="description-title">
+            <h2 id="description-title" className="text-lg font-bold text-brand-900">
+              Description
+            </h2>
+            {/* Rendu en texte brut : aucun HTML utilisateur n'est interprété. */}
+            <CollapsibleText className="mt-2">{listing.description}</CollapsibleText>
+          </section>
+
+          <section aria-labelledby="location-title" className="mt-8">
+            <h2 id="location-title" className="text-lg font-bold text-brand-900">
+              Localisation
+            </h2>
+            <p className="mt-1 mb-3 flex items-center gap-1.5 text-sm text-neutral-600">
+              <MapPin className="size-4 shrink-0" aria-hidden="true" />
+              {locationLabel}
+            </p>
+
+            {position ? (
+              <ListingMap {...position} locationLabel={locationLabel} />
+            ) : (
+              <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">
+                Le vendeur n’a pas indiqué de position précise. Convenez du lieu de rendez-vous avec
+                lui — de préférence dans un endroit public et fréquenté.
+                <Link
+                  href={`/annonces?ville=${encodeURIComponent(listing.city)}`}
+                  className="mt-2 block font-semibold text-brand-700 underline underline-offset-2"
+                >
+                  Voir les annonces à {listing.city}
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <div className="mt-8">
+            <ReportDialog listingId={listing.id} isAuthenticated={Boolean(user)} />
+          </div>
+        </div>
       </div>
 
       {related.length > 0 ? (

@@ -224,27 +224,57 @@ export async function getPopularAds(limit = 8): Promise<AdCardData[]> {
   return (data ?? []).map(fromListView);
 }
 
-/** Annonces du même univers, hors annonce courante. */
+/**
+ * Annonces du même univers, hors annonce courante.
+ *
+ * Deux passes, dans cet ordre de pertinence :
+ *  1. même catégorie **et même ville** — c'est ce qu'un acheteur compare
+ *     vraiment, puisqu'il ne traversera pas le pays pour un canapé ;
+ *  2. même catégorie, toutes villes, pour compléter si la première ne suffit
+ *     pas. Dans une catégorie peu fournie à Koulamoutou, la première passe
+ *     renverrait sinon une section vide.
+ */
 export async function getRelatedAds(
-  ad: Pick<AdWithRelations, 'id' | 'category_id'>,
+  ad: Pick<AdWithRelations, 'id' | 'category_id' | 'city'>,
   limit = 6,
 ): Promise<AdCardData[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('ads_list_view')
-    .select(LIST_COLUMNS)
-    .eq('status', 'published')
-    .eq('category_id', ad.category_id)
-    .neq('id', ad.id)
-    .order('published_at', { ascending: false, nullsFirst: false })
-    .limit(limit)
-    .returns<ListViewRow[]>();
 
+  const query = (sameCity: boolean) => {
+    const builder = supabase
+      .from('ads_list_view')
+      .select(LIST_COLUMNS)
+      .eq('status', 'published')
+      .eq('category_id', ad.category_id)
+      .neq('id', ad.id);
+
+    return (sameCity ? builder.eq('city', ad.city) : builder)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(limit)
+      .returns<ListViewRow[]>();
+  };
+
+  const { data: local, error } = await query(true);
   if (error) {
     logger.error('Chargement des annonces similaires impossible', error);
     return [];
   }
-  return (data ?? []).map(fromListView);
+
+  const rows = local ?? [];
+  if (rows.length >= limit) return rows.map(fromListView);
+
+  const { data: elsewhere } = await query(false);
+  const seen = new Set(rows.map((row) => row.id));
+  const completed = [...rows];
+
+  for (const row of elsewhere ?? []) {
+    if (completed.length >= limit) break;
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    completed.push(row);
+  }
+
+  return completed.map(fromListView);
 }
 
 /* -------------------------------------------------------------------------- */

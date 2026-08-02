@@ -8,16 +8,39 @@
  */
 import { z } from 'zod';
 
+/**
+ * Fournisseur de tuiles de la carte de repérage.
+ *
+ * Par défaut OpenStreetMap, dont la politique d'usage tolère un trafic modéré
+ * et impose l'attribution. Pour un trafic soutenu, remplacez ces deux variables
+ * par celles d'un fournisseur payant — et **pensez à la CSP** : `next.config.ts`
+ * dérive l'hôte autorisé en `img-src` de `NEXT_PUBLIC_MAP_TILE_URL`.
+ */
+const DEFAULT_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const DEFAULT_TILE_ATTRIBUTION = '© contributeurs OpenStreetMap';
+
+/** Gabarit de tuile : HTTPS, et les trois marqueurs `{z}`, `{x}`, `{y}`. */
+const tileUrlSchema = z
+  .string()
+  .startsWith('https://', 'Le gabarit de tuiles doit être servi en HTTPS.')
+  .refine((value) => ['{z}', '{x}', '{y}'].every((token) => value.includes(token)), {
+    message: 'Le gabarit de tuiles doit contenir {z}, {x} et {y}.',
+  });
+
 const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL doit être une URL valide.'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20, 'NEXT_PUBLIC_SUPABASE_ANON_KEY manquante.'),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_MAP_TILE_URL: tileUrlSchema.default(DEFAULT_TILE_URL),
+  NEXT_PUBLIC_MAP_ATTRIBUTION: z.string().min(1).default(DEFAULT_TILE_ATTRIBUTION),
 });
 
 const parsedPublic = publicSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  NEXT_PUBLIC_MAP_TILE_URL: process.env.NEXT_PUBLIC_MAP_TILE_URL || undefined,
+  NEXT_PUBLIC_MAP_ATTRIBUTION: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || undefined,
 });
 
 if (!parsedPublic.success) {

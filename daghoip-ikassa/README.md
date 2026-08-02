@@ -95,6 +95,8 @@ update public.users set role = 'moderator' where id = '<uuid-utilisateur>';
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + serveur | ✅          | Clé publique ; l’autorisation réelle est assurée par la RLS       |
 | `NEXT_PUBLIC_SITE_URL`          | client + serveur | ✅ (prod)   | URL canonique, sans slash final (SEO, sitemap, redirections auth) |
 | `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌          | Secret ; contourne la RLS. Réservé aux tâches d’administration    |
+| `NEXT_PUBLIC_MAP_TILE_URL`      | client + serveur | ❌          | Gabarit de tuiles de la carte (défaut : OpenStreetMap)            |
+| `NEXT_PUBLIC_MAP_ATTRIBUTION`   | client + serveur | ❌          | Mention légale affichée sous la carte                             |
 
 Les variables publiques sont validées au démarrage par `lib/env.ts` : une clé
 absente ou malformée fait échouer le build avec un message explicite plutôt
@@ -161,6 +163,21 @@ trouve « téléphone ».
 **URLs.** Une annonce vit à l’adresse `/annonces/<slug>-<REFERENCE>` : le slug
 est lisible et modifiable sans casser le lien, la référence à 8 caractères
 (alphabet sans `I`, `O`, `0`, `1`) reste l’identifiant stable.
+
+**Page d’une annonce.** `/annonces/<slug>-<REF>` réunit la galerie photo (plein
+écran, balayage tactile, navigation au clavier), le prix, la description
+repliable, la carte de repérage, l’encart vendeur, les boutons d’appel,
+WhatsApp, messagerie interne, favoris, partage et signalement, puis les annonces
+similaires. Sur mobile, l’ordre du document place le bloc de contact **avant**
+la description : le bouton d’appel ne se mérite pas au terme d’un long
+défilement. À partir de `lg`, ce bloc devient une colonne latérale collante.
+
+**Carte de repérage.** Pas de bibliothèque cartographique : `utils/map.ts`
+projette la position en tuiles Web Mercator et `ListingMap` en dispose une
+grille — quelques centaines d’octets là où Leaflet ou MapLibre pèseraient plus
+que le reste de la page. La carte affiche un **disque d’incertitude** plutôt
+qu’une épingle, parce que la base n’enregistre la position qu’à ~110 m près :
+prétendre mieux serait mentir sur la donnée.
 
 **État de la recherche.** Les filtres vivent dans l’URL
 (`?q=&categorie=&ville=&prix_min=…`) : la page reste un Server Component, la
@@ -252,6 +269,14 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
 - **En-têtes de sécurité** : CSP restrictive (`connect-src` limité à Supabase,
   `frame-ancestors 'none'`, `object-src 'none'`), HSTS, `X-Frame-Options`,
   `X-Content-Type-Options`, `Permissions-Policy` — voir `next.config.ts`.
+- **Carte de repérage, compromis assumé** : `img-src` autorise en plus l'hôte de
+  tuiles, dérivé de `NEXT_PUBLIC_MAP_TILE_URL`. Charger ces images révèle au
+  fournisseur l'adresse IP du visiteur ; `referrerPolicy="no-referrer"` lui
+  épargne au moins l'URL de l'annonce consultée. Aucun script tiers n'est
+  chargé — seulement des images. Pour supprimer toute dépendance externe,
+  pointez la variable vers un serveur de tuiles que vous hébergez : la CSP suit
+  automatiquement. Une annonce sans coordonnées n'appelle de toute façon aucune
+  tuile — elle affiche le repli « ville et quartier ».
 - **Erreurs opaques** : aucun message PostgreSQL brut n’atteint le navigateur
   (`lib/errors.ts`) ; le détail est journalisé côté serveur.
 - **Pas d’énumération de comptes** : connexion et réinitialisation renvoient une
@@ -318,14 +343,15 @@ lecture seule, `no-new-privileges` et une sonde de santé HTTP.
 
 ## Scripts
 
-| Commande            | Effet                                 |
-| ------------------- | ------------------------------------- |
-| `npm run dev`       | Serveur de développement              |
-| `npm run build`     | Build de production (`standalone`)    |
-| `npm start`         | Sert le build de production           |
-| `npm run typecheck` | Vérification TypeScript sans émission |
-| `npm run lint`      | ESLint (config Next.js + TypeScript)  |
-| `npm run format`    | Prettier (+ tri des classes Tailwind) |
+| Commande            | Effet                                                  |
+| ------------------- | ------------------------------------------------------ |
+| `npm run dev`       | Serveur de développement                               |
+| `npm run build`     | Build de production (`standalone`)                     |
+| `npm start`         | Sert le build de production                            |
+| `npm run typecheck` | Vérification TypeScript sans émission                  |
+| `npm run check:map` | Contrôles de la projection cartographique (Node 22.6+) |
+| `npm run lint`      | ESLint (config Next.js + TypeScript)                   |
+| `npm run format`    | Prettier (+ tri des classes Tailwind)                  |
 
 ---
 
