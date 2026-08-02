@@ -108,6 +108,10 @@ export interface AdCardData {
   categoryName: string | null;
   categorySlug: string | null;
   coverImageUrl: string | null;
+  /** Quartier — renseigné par la recherche, absent des listages simples. */
+  district?: string | null;
+  /** Distance en km, calculée seulement quand un rayon est actif. */
+  distanceKm?: number | null;
 }
 
 /** Ligne du tableau de bord vendeur (tous statuts confondus). */
@@ -156,12 +160,23 @@ export interface AdFilters {
   categorySlug?: string;
   city?: string;
   province?: string;
+  district?: string;
   minPrice?: number;
   maxPrice?: number;
   condition?: AdCondition;
   priceType?: PriceType;
   featuredOnly?: boolean;
   sellerId?: string;
+  /** Ancienneté maximale de publication, en jours. */
+  maxAgeDays?: number;
+  /**
+   * Filtre « autour de moi ». Les trois valeurs vont ensemble : une position
+   * sans rayon est ignorée. Elles restent **hors de l'URL** — la position d'un
+   * visiteur n'a pas à circuler dans un lien partagé.
+   */
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
   sort?: AdSort;
   page?: number;
   perPage?: number;

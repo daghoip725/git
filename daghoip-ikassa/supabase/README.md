@@ -15,7 +15,8 @@ supabase/
 │   ├── …000400_storage.sql                   # 4 buckets + politiques + nettoyage
 │   ├── …000500_performance.sql               # Vues, autovacuum, stats, pg_cron
 │   ├── …000600_auth_roles_verification.sql   # E.164, vérification vendeur, rôles, audit
-│   └── …000700_ad_form_features.sql          # Expiration, GPS, revue auto, mise en avant
+│   ├── …000700_ad_form_features.sql          # Expiration, GPS, revue auto, mise en avant
+│   └── …000800_search_filters.sql            # Quartier, ancienneté, rayon géographique
 ├── seed.sql                       # Offres d'abonnement + 32 catégories
 ├── templates/                     # E-mails d'authentification (charte graphique)
 └── tests/                         # Suite de tests fonctionnels et de sécurité
@@ -43,7 +44,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 5. `migrations/20260801000500_performance.sql`
 6. `migrations/20260801000600_auth_roles_verification.sql`
 7. `migrations/20260801000700_ad_form_features.sql`
-8. `seed.sql`
+8. `migrations/20260801000800_search_filters.sql`
+9. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -309,14 +311,37 @@ Les écritures sans `auth.uid()` (`service_role`, maintenance planifiée)
 échappent au bornage de l'expiration : c'est ce qui permet au back-office de
 corriger une date et à `expire_ads()` d'être testable.
 
+## Recherche
+
+`search_ads()` est le point d'entrée unique : texte, catégorie, ville,
+quartier, prix, état, type de prix, ancienneté et rayon géographique, avec tri
+et pagination — le tout en **une seule requête**, `total_count` compris (fonction
+fenêtre). La même RPC sert le rendu serveur et la recherche instantanée du
+navigateur.
+
+**Distance sans PostGIS.** Une recherche « autour de moi » se traite très bien
+avec un pré-filtre par rectangle englobant — servi par l'index partiel
+`ads_geo_idx` — suivi d'une distance de haversine sur le petit reliquat.
+Installer une extension géospatiale complète pour cela compliquerait le
+déploiement sans rien apporter à cette échelle. Le rayon est borné à 200 km :
+au-delà, le rectangle couvrirait le pays entier et l'index ne servirait plus.
+
+**Quartiers.** Le champ est libre : « Nzeng-Ayong », « nzeng ayong » et
+« NZENG AYONG » désignent le même endroit. `normalize_label()` les ramène à
+une forme comparable (minuscules, sans accents, ponctuation réduite à une
+espace) ; l'index `ads_district_idx` porte sur cette même expression, sans quoi
+il ne serait jamais utilisé. `list_districts()` recense les quartiers
+réellement présents et restitue l'orthographe la plus fréquente — il n'existe
+pas de référentiel des quartiers du Gabon, et en inventer un serait faux.
+
 ## Tests
 
-La suite couvre 134 assertions réparties en trois fichiers : schéma et sécurité
+La suite couvre 177 assertions réparties en quatre fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
-formulaire d'annonce (`03`). Elle vérifie le cycle de vie des annonces, la
+formulaire d'annonce (`03`), recherche et filtres (`04`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
-signalements, la maintenance, les cascades — et une batterie de tentatives
-d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
+signalements, la maintenance, les cascades, les filtres et tris de recherche —
+et une batterie de tentatives d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
 téléphone d'autrui, injection de notification, création de paiement, insertion
 dans le fil d'un tiers, mise en avant de l'annonce d'autrui, auto-mise en avant
 sans paiement).

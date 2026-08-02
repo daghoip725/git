@@ -24,6 +24,12 @@ export interface ListingCardProps {
   className?: string;
 }
 
+/** « 800 m » se lit mieux que « 0,8 km » ; au-delà, le kilomètre suffit. */
+function formatDistance(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toLocaleString('fr-GA', { maximumFractionDigits: 1 })} km`;
+}
+
 /**
  * Carte d'annonce responsive : 2 colonnes sur mobile, jusqu'à 4 sur desktop.
  * Le rapport d'image est fixé en 4/3 pour éviter tout décalage de mise en page.
@@ -89,7 +95,7 @@ export function ListingCard({
 
           <div className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
             <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
-            <span className="truncate">{listing.city}</span>
+            <span className="truncate">{listing.district ?? listing.city}</span>
             <span aria-hidden="true">·</span>
             <time
               dateTime={listing.published_at ?? listing.created_at}
@@ -99,11 +105,14 @@ export function ListingCard({
             </time>
           </div>
 
-          {listing.categoryName ? (
-            <Badge tone="brand" className="mt-2.5">
-              {listing.categoryName}
-            </Badge>
-          ) : null}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {listing.categoryName ? <Badge tone="brand">{listing.categoryName}</Badge> : null}
+            {/* La distance n'existe que si la recherche « autour de moi » est
+                active : c'est alors l'information la plus utile de la carte. */}
+            {typeof listing.distanceKm === 'number' ? (
+              <Badge tone="neutral">à {formatDistance(listing.distanceKm)}</Badge>
+            ) : null}
+          </div>
         </div>
       </Link>
     </article>

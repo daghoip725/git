@@ -623,12 +623,19 @@ export interface Database {
           p_category_slug?: string | null;
           p_city?: string | null;
           p_province?: string | null;
+          p_district?: string | null;
           p_min_price?: number | null;
           p_max_price?: number | null;
           p_condition?: AdCondition | null;
           p_price_type?: PriceType | null;
           p_seller_id?: string | null;
           p_featured_only?: boolean | null;
+          /** Ancienneté maximale de publication, en jours. */
+          p_max_age_days?: number | null;
+          /** Filtre « autour de moi » : les trois valeurs vont ensemble. */
+          p_latitude?: number | null;
+          p_longitude?: number | null;
+          p_radius_km?: number | null;
           p_sort?: string | null;
           p_limit?: number | null;
           p_offset?: number | null;
@@ -641,6 +648,7 @@ export interface Database {
           price: number | null;
           price_type: PriceType;
           city: string;
+          district: string | null;
           is_featured: boolean;
           views_count: number;
           published_at: string | null;
@@ -648,9 +656,21 @@ export interface Database {
           category_name: string | null;
           category_slug: string | null;
           cover_image_path: string | null;
+          /** Renseignée uniquement quand un rayon est actif. */
+          distance_km: number | null;
           total_count: number;
         }[];
       };
+      /** Quartiers présents dans les annonces publiées, du plus fourni au moins fourni. */
+      list_districts: {
+        Args: { p_city?: string | null; p_limit?: number | null };
+        Returns: { district: string; ads_count: number }[];
+      };
+      haversine_km: {
+        Args: { p_lat1: number; p_lon1: number; p_lat2: number; p_lon2: number };
+        Returns: number;
+      };
+      normalize_label: { Args: { p_value: string }; Returns: string | null };
       suggest_ads: {
         Args: { p_query: string; p_limit?: number };
         Returns: { title: string; slug: string; reference: string }[];

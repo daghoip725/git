@@ -15,6 +15,7 @@ import 'server-only';
  */
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { runSearch } from '@/services/ads.search';
 import { getAdImageUrl } from '@/services/storage.service';
 import type { AdCardData, AdFilters, AdWithRelations, Paginated, SellerAdRow } from '@/types';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/utils/constants';
@@ -23,86 +24,25 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@/utils/constants';
 /*  Recherche                                                                 */
 /* -------------------------------------------------------------------------- */
 
-interface SearchRow {
-  id: string;
-  reference: string;
-  title: string;
-  slug: string;
-  price: number | null;
-  price_type: AdCardData['price_type'];
-  city: string;
-  is_featured: boolean;
-  views_count: number;
-  published_at: string | null;
-  created_at: string;
-  category_name: string | null;
-  category_slug: string | null;
-  cover_image_path: string | null;
-  total_count: number;
-}
-
-function toCardData(row: SearchRow): AdCardData {
-  return {
-    id: row.id,
-    reference: row.reference,
-    title: row.title,
-    slug: row.slug,
-    price: row.price,
-    price_type: row.price_type,
-    city: row.city,
-    is_featured: row.is_featured,
-    published_at: row.published_at,
-    created_at: row.created_at,
-    categoryName: row.category_name,
-    categorySlug: row.category_slug,
-    coverImageUrl: getAdImageUrl(row.cover_image_path),
-  };
-}
-
 /**
- * Recherche paginée.
- * Le tri bascule sur la pertinence dès qu'une requête textuelle est fournie
- * sans tri explicite.
+ * Recherche paginée, côté serveur.
+ *
+ * La logique vit dans `services/ads.search.ts`, partagée avec la recherche
+ * instantanée du navigateur : un seul jeu de règles, une seule RPC. Ici on
+ * n'ajoute que ce qui est propre au serveur — le client authentifié par cookie
+ * et la journalisation d'un échec, invisible pour le visiteur.
  */
 export async function searchAds(filters: AdFilters = {}): Promise<Paginated<AdCardData>> {
   const supabase = await createClient();
-
   const page = Math.max(1, filters.page ?? 1);
   const perPage = Math.min(Math.max(1, filters.perPage ?? DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
-  const sort = filters.sort ?? (filters.query ? 'relevance' : 'recent');
 
-  const { data, error } = await supabase.rpc('search_ads', {
-    p_query: filters.query ?? null,
-    p_category_slug: filters.categorySlug ?? null,
-    p_city: filters.city ?? null,
-    p_province: filters.province ?? null,
-    p_min_price: filters.minPrice ?? null,
-    p_max_price: filters.maxPrice ?? null,
-    p_condition: filters.condition ?? null,
-    p_price_type: filters.priceType ?? null,
-    p_seller_id: filters.sellerId ?? null,
-    p_featured_only: filters.featuredOnly ?? false,
-    p_sort: sort,
-    p_limit: perPage,
-    p_offset: (page - 1) * perPage,
-  });
-
-  if (error) {
+  try {
+    return await runSearch(supabase, { ...filters, page, perPage });
+  } catch (error) {
     logger.error('Recherche d’annonces impossible', error, { filters });
     return { items: [], total: 0, page, perPage, totalPages: 0 };
   }
-
-  const rows = (data ?? []) as SearchRow[];
-  // `total_count` est identique sur toutes les lignes (fonction fenêtre).
-  const total = rows[0] ? Number(rows[0].total_count) : 0;
-
-  return {
-    items: rows.map(toCardData),
-    total,
-    page,
-    perPage,
-    totalPages: Math.max(1, Math.ceil(total / perPage)),
-  };
 }
 
 /** Suggestions d'autocomplétion (recherche approximative sur le titre). */

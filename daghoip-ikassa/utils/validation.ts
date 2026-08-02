@@ -232,19 +232,48 @@ export const reportSchema = z.object({
   details: z.string().trim().max(1000).nullable(),
 });
 
+/** Anciennetés proposées par le filtre « date de publication », en jours. */
+export const PUBLICATION_AGES = [1, 7, 30, 90] as const;
+
+/** Rayons proposés par le filtre « autour de moi », en kilomètres. */
+export const SEARCH_RADII_KM = [5, 10, 25, 50] as const;
+
 /** Coercition des paramètres d'URL de la page de recherche. */
 export const listingFiltersSchema = z.object({
   query: z.string().trim().max(120).optional(),
   categorySlug: z.string().trim().max(80).optional(),
   city: z.string().trim().max(80).optional(),
   province: z.string().trim().max(80).optional(),
+  district: z.string().trim().max(80).optional(),
   minPrice: z.coerce.number().int().min(0).optional(),
   maxPrice: z.coerce.number().int().min(0).optional(),
   condition: z.enum(['new', 'like_new', 'good', 'fair', 'for_parts']).optional(),
   priceType: z.enum(['fixed', 'negotiable', 'free', 'on_request']).optional(),
-  sort: z.enum(['recent', 'price_asc', 'price_desc', 'popular']).default('recent'),
+  maxAgeDays: z.coerce.number().int().min(1).max(365).optional(),
+  /**
+   * Laissé **optionnel** à dessein : sans choix explicite de l'utilisateur, une
+   * recherche textuelle est classée par pertinence et une navigation sans
+   * texte par date. Un `.default('recent')` écraserait cette nuance.
+   */
+  sort: z.enum(['relevance', 'recent', 'price_asc', 'price_desc', 'popular']).optional(),
   page: z.coerce.number().int().min(1).max(500).default(1),
   perPage: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+});
+
+/**
+ * Filtre « autour de moi ».
+ *
+ * Il ne transite **pas par l'URL** : la position d'un visiteur n'a rien à faire
+ * dans un lien partagé. Il est donc validé séparément, à l'entrée du hook de
+ * recherche, avant d'être transmis à PostgreSQL — qui reborne de toute façon
+ * le rayon à 200 km.
+ */
+export const geoFilterSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusKm: z.number().refine((value) => (SEARCH_RADII_KM as readonly number[]).includes(value), {
+    message: 'Rayon de recherche invalide.',
+  }),
 });
 
 /**

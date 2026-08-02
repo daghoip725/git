@@ -179,9 +179,32 @@ que le reste de la page. La carte affiche un **disque d’incertitude** plutôt
 qu’une épingle, parce que la base n’enregistre la position qu’à ~110 m près :
 prétendre mieux serait mentir sur la donnée.
 
+**Recherche instantanée.** `/annonces` est rendue **deux fois, à deux moments
+différents**, et c’est délibéré :
+
+1. le serveur produit la première page de résultats — c’est ce qu’indexe un
+   moteur de recherche, et ce que voit un visiteur dont le JavaScript n’est pas
+   encore chargé ;
+2. `SearchExperience` reprend ces résultats et interroge ensuite PostgreSQL
+   **directement depuis le navigateur** (RPC `search_ads`, toujours sous RLS).
+   Chaque changement de filtre coûte alors un aller-retour réseau au lieu de
+   deux — sur une connexion mobile gabonaise, c’est la latence qui pèse, pas le
+   calcul.
+
+Les deux chemins partagent le même code (`services/ads.search.ts`) : une seule
+définition des filtres, une seule RPC.
+
+Trois précautions dans un champ qui se met à jour à la frappe : le texte est
+temporisé (300 ms) alors que les autres filtres s’appliquent immédiatement ;
+les requêtes devenues obsolètes sont annulées et un compteur de génération
+écarte les réponses arrivées dans le désordre ; l’URL est mise à jour par
+`history.replaceState`, donc sans navigation ni rendu serveur.
+
 **État de la recherche.** Les filtres vivent dans l’URL
-(`?q=&categorie=&ville=&prix_min=…`) : la page reste un Server Component, la
-recherche est partageable et indexable.
+(`?q=&categorie=&ville=&quartier=&prix_min=&depuis=&tri=…`) : la recherche
+reste partageable et indexable. **Une seule exception : la position GPS du
+filtre « autour de moi »**, qui ne quitte jamais le navigateur — elle n’est ni
+enregistrée, ni ajoutée au lien de la page.
 
 **Dépôt d’annonce.** Le formulaire (`components/listings/ListingForm.tsx`)
 couvre titre, description, prix, catégorie, ville, quartier, photos multiples,
@@ -231,7 +254,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-134 assertions), qui rejoue notamment des tentatives d’auto-promotion
+177 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit et de
 mise en avant d’une annonce sans paiement.
