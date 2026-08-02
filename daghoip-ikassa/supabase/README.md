@@ -17,7 +17,8 @@ supabase/
 │   ├── …000600_auth_roles_verification.sql   # E.164, vérification vendeur, rôles, audit
 │   ├── …000700_ad_form_features.sql          # Expiration, GPS, revue auto, mise en avant
 │   ├── …000800_search_filters.sql            # Quartier, ancienneté, rayon géographique
-│   └── …000900_messaging.sql                 # Blocage, photos, recherche, temps réel
+│   ├── …000900_messaging.sql                 # Blocage, photos, recherche, temps réel
+│   └── …001000_admin_stats.sql               # Indicateurs, séries, répartitions
 ├── seed.sql                       # Offres d'abonnement + 32 catégories
 ├── templates/                     # E-mails d'authentification (charte graphique)
 └── tests/                         # Suite de tests fonctionnels et de sécurité
@@ -47,7 +48,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 7. `migrations/20260801000700_ad_form_features.sql`
 8. `migrations/20260801000800_search_filters.sql`
 9. `migrations/20260801000900_messaging.sql`
-10. `seed.sql`
+10. `migrations/20260801001000_admin_stats.sql`
+11. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -130,11 +132,17 @@ C'est la couche qui rend certaines attaques structurellement impossibles :
 ### Convention SECURITY DEFINER
 
 `security invoker` (défaut) partout où la RLS doit s'appliquer. `security
-definer` réservé à trois cas légitimes, avec `search_path` figé :
+definer` réservé à quatre cas légitimes, avec `search_path` figé :
 
 1. lecture du rôle (`current_user_role`) — sinon récursion de politique ;
 2. écriture destinée à **autrui** (`create_notification`) ;
-3. maintenance planifiée (`expire_ads`, `purge_old_notifications`, …).
+3. maintenance planifiée (`expire_ads`, `purge_old_notifications`, …) ;
+4. **agrégats de supervision** (`admin_kpis`, `admin_daily_stats`,
+   `admin_ad_distribution`) — compter les messages échangés suppose de
+   traverser une table dont la RLS est nominative, ce qu'aucun modérateur ne
+   peut ni ne doit pouvoir faire ligne à ligne. Ces trois fonctions vérifient
+   `is_staff()` **en première ligne** et ne renvoient que des nombres : jamais
+   une ligne, jamais un extrait, jamais un identifiant.
 
 ## Authentification
 
@@ -367,17 +375,20 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 218 assertions réparties en cinq fichiers : schéma et sécurité
+La suite couvre 246 assertions réparties en six fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
-formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`). Elle vérifie le cycle de vie des annonces, la
+formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
+statistiques d'administration (`06`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
-blocage, les pièces jointes et l'archivage — et une batterie de tentatives
-d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
+blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
+une batterie de tentatives d'attaque (auto-promotion administrateur, falsification de compteurs, lecture du
 téléphone d'autrui, injection de notification, création de paiement, insertion
 dans le fil d'un tiers, mise en avant de l'annonce d'autrui, auto-mise en avant
 sans paiement, contournement d'un blocage par insertion directe, pièce jointe
-déposée au nom d'autrui, lecture des conversations d'un tiers).
+déposée au nom d'autrui, lecture des conversations d'un tiers, lecture des
+statistiques par un compte ordinaire, injection dans le paramètre de
+dimension).
 
 ```bash
 ./supabase/tests/run.sh

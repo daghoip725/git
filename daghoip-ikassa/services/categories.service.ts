@@ -19,11 +19,26 @@ import type { Category, CategoryWithCount } from '@/types';
 
 /** Toutes les catégories actives, triées par position puis par nom. */
 export const getCategories = cache(async (): Promise<Category[]> => {
+  return fetchCategories(false);
+});
+
+/**
+ * Catégories, désactivées comprises — vue d'administration.
+ *
+ * Pas mémoïsée volontairement : elle est appelée depuis une page qui vient
+ * peut-être d'en modifier une, et servir la version d'avant serait déroutant.
+ */
+export async function getAllCategories(): Promise<Category[]> {
+  return fetchCategories(true);
+}
+
+async function fetchCategories(includeInactive: boolean): Promise<Category[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('is_active', true)
+
+  let query = supabase.from('categories').select('*');
+  if (!includeInactive) query = query.eq('is_active', true);
+
+  const { data, error } = await query
     .order('position', { ascending: true })
     .order('name', { ascending: true });
 
@@ -32,7 +47,7 @@ export const getCategories = cache(async (): Promise<Category[]> => {
     return [];
   }
   return data ?? [];
-});
+}
 
 /** Catégories racines (sans parent). */
 export const getRootCategories = cache(async (): Promise<Category[]> => {

@@ -118,7 +118,8 @@ daghoip-ikassa/
 │   ├── vendeurs/[id]/          # Profil public : annonces, avis, note moyenne
 │   ├── auth/callback/          # Retour du flux d'authentification Supabase
 │   ├── compte/                 # Espace privé (tableau de bord, profil, vérification…)
-│   ├── admin/                  # Modération : signalements, vérifications, rôles, audit
+│   ├── admin/                  # Tableau de bord : statistiques, annonces, catégories,
+│   │                           #   signalements, paiements, abonnements, paramètres, audit
 │   ├── (legal)/                # Pages légales, gabarit partagé
 │   ├── layout.tsx              # Gabarit racine, métadonnées, en-tête/pied
 │   ├── sitemap.ts robots.ts manifest.ts
@@ -129,6 +130,7 @@ daghoip-ikassa/
 │   ├── listings/               # Carte, grille, filtres, formulaire, galerie
 │   ├── messages/               # Fil temps réel, composeur, émojis, blocage
 │   ├── profile/                # Étoiles, avis, formulaire d'évaluation
+│   ├── charts/                 # Graphiques SVG maison : tendance, classement, vignette
 │   ├── categories/ home/ auth/ account/ common/
 ├── lib/                        # Infrastructure
 │   ├── supabase/               # Clients navigateur / serveur / admin / middleware
@@ -227,6 +229,30 @@ la messagerie avant d’autoriser une évaluation, et l’évalué dispose d’u
 de réponse, limité par le `GRANT UPDATE` aux seules colonnes `reply` et
 `replied_at`.
 
+**Tableau de bord d’administration.** `/admin` réunit les statistiques et
+graphiques, la modération des annonces, la gestion des catégories, les
+signalements, les vérifications, les paiements, les abonnements, les paramètres
+et le journal d’audit.
+
+Les **graphiques sont dessinés en SVG, sans bibliothèque** — Recharts ou
+Chart.js pèseraient plus que toutes les pages d’administration réunies pour un
+usage qui se résume à une mise à l’échelle et à un tracé. Trois règles s’y
+appliquent :
+
+- **une série par graphique.** Comptes, annonces, messages et recettes n’ont pas
+  les mêmes ordres de grandeur ; les superposer imposerait deux axes verticaux —
+  la faute la plus courante en visualisation. Quatre petits graphiques
+  indépendants disent la même chose sans mentir sur les proportions ;
+- **une seule teinte par graphique**, celle de la marque (l’or pour l’argent).
+  La couleur n’y code aucune identité : elle ne distingue rien, donc pas de
+  légende à décoder ;
+- **un tableau de repli sous chaque courbe**, qui restitue la série entière —
+  lisible au lecteur d’écran, exploitable au copier-coller.
+
+Les indicateurs viennent de trois fonctions `SECURITY DEFINER` qui vérifient
+`is_staff()` en première ligne et ne renvoient **que des nombres** : le volume
+de messages échangés, jamais leur contenu.
+
 **Messagerie temps réel.** `messages`, `conversations` et `notifications` sont
 diffusées par Supabase Realtime, RLS comprise : un abonné ne reçoit que les
 lignes qu’il pourrait lire. Le fil affiche les messages entrants et les accusés
@@ -292,7 +318,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-218 assertions), qui rejoue notamment des tentatives d’auto-promotion
+246 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement et de contournement d’un blocage par

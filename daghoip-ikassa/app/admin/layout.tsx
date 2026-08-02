@@ -1,10 +1,22 @@
-import { BadgeCheck, Flag, LayoutDashboard, ScrollText, Users } from 'lucide-react';
+import {
+  BadgeCheck,
+  Banknote,
+  BarChart3,
+  CreditCard,
+  FileText,
+  Flag,
+  FolderTree,
+  LayoutDashboard,
+  ScrollText,
+  Settings,
+  Users,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/Badge';
 import { ROLE_LABELS, requireRole } from '@/lib/auth/roles';
-import { countOpenReports } from '@/services/admin.service';
+import { countAdsPendingReview, countOpenReports } from '@/services/admin.service';
 import { countPendingVerifications } from '@/services/verification.service';
 
 export const metadata: Metadata = {
@@ -23,13 +35,15 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const role = await requireRole('moderator');
 
-  const [pendingVerifications, openReports] = await Promise.all([
+  const [pendingVerifications, openReports, pendingAds] = await Promise.all([
     countPendingVerifications(),
     countOpenReports(),
+    countAdsPendingReview(),
   ]);
 
   const nav = [
     { href: '/admin', label: 'Vue d’ensemble', icon: LayoutDashboard, count: 0 },
+    { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, count: 0 },
     { href: '/admin/signalements', label: 'Signalements', icon: Flag, count: openReports },
     {
       href: '/admin/verifications',
@@ -37,7 +51,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       icon: BadgeCheck,
       count: pendingVerifications,
     },
+    { href: '/admin/annonces', label: 'Annonces', icon: FileText, count: pendingAds },
     { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: Users, count: 0 },
+    { href: '/admin/categories', label: 'Catégories', icon: FolderTree, count: 0 },
+    { href: '/admin/paiements', label: 'Paiements', icon: Banknote, count: 0 },
+    { href: '/admin/abonnements', label: 'Abonnements', icon: CreditCard, count: 0 },
+    { href: '/admin/parametres', label: 'Paramètres', icon: Settings, count: 0 },
     { href: '/admin/journal', label: 'Journal d’audit', icon: ScrollText, count: 0 },
   ];
 

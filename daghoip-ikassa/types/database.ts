@@ -431,9 +431,17 @@ export interface Database {
           position: number;
           created_at: string;
         };
-        /** Catalogue tarifaire : réservé aux administrateurs (RLS). */
-        Insert: never;
-        Update: never;
+        /** Catalogue tarifaire : écriture réservée aux administrateurs (RLS). */
+        Insert: {
+          code: string;
+          name: string;
+          description?: string | null;
+          duration_days: number;
+          price: number;
+          is_active?: boolean;
+          position?: number;
+        };
+        Update: Partial<Database['public']['Tables']['ad_feature_plans']['Insert']>;
         Relationships: [];
       };
 
@@ -456,8 +464,22 @@ export interface Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: never;
-        Update: never;
+        /** Écriture réservée aux administrateurs (RLS `subscription_plans_write_admin`). */
+        Insert: {
+          code: string;
+          name: string;
+          description?: string | null;
+          price: number;
+          billing_interval?: BillingInterval;
+          max_active_ads: number;
+          featured_ads_quota?: number;
+          max_images_per_ad?: number;
+          has_priority_support?: boolean;
+          has_verified_badge?: boolean;
+          is_active?: boolean;
+          position?: number;
+        };
+        Update: Partial<Database['public']['Tables']['subscription_plans']['Insert']>;
         Relationships: [];
       };
 
@@ -760,6 +782,44 @@ export interface Database {
       admin_revoke_verification: {
         Args: { p_user_id: string; p_reason?: string | null };
         Returns: undefined;
+      };
+      /** Indicateurs instantanés du tableau de bord. Réservé au staff. */
+      admin_kpis: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          total_users: number;
+          active_users: number;
+          suspended_users: number;
+          verified_users: number;
+          staff_users: number;
+          new_users_30d: number;
+          total_ads: number;
+          published_ads: number;
+          pending_review_ads: number;
+          expired_ads: number;
+          new_ads_30d: number;
+          open_reports: number;
+          pending_verifications: number;
+          active_subscriptions: number;
+          messages_30d: number;
+          revenue_30d: number;
+          revenue_total: number;
+        }[];
+      };
+      /** Série quotidienne sur 7 à 180 jours, jours creux compris. */
+      admin_daily_stats: {
+        Args: { p_days?: number | null };
+        Returns: {
+          day: string;
+          new_users: number;
+          new_ads: number;
+          new_messages: number;
+          revenue: number;
+        }[];
+      };
+      admin_ad_distribution: {
+        Args: { p_dimension?: 'category' | 'city' | 'status'; p_limit?: number | null };
+        Returns: { label: string; total: number }[];
       };
       admin_moderate_ad: {
         Args: { p_ad_id: string; p_action: string; p_reason?: string | null };
