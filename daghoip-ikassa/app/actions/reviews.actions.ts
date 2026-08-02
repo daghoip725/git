@@ -115,7 +115,7 @@ export async function replyToReviewAction(
 
     if (error) return fail(error, 'Impossible d’enregistrer votre réponse.');
 
-    revalidatePath('/compte/avis');
+    revalidatePath('/vendeurs/[id]', 'page');
     return ok(null);
   } catch (error) {
     return fail(error);

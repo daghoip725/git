@@ -115,6 +115,7 @@ daghoip-ikassa/
 ├── app/                        # App Router : routes, layouts, Server Actions
 │   ├── actions/                # Server Actions ('use server') — écritures
 │   ├── annonces/               # Recherche, détail, dépôt d'annonce
+│   ├── vendeurs/[id]/          # Profil public : annonces, avis, note moyenne
 │   ├── auth/callback/          # Retour du flux d'authentification Supabase
 │   ├── compte/                 # Espace privé (tableau de bord, profil, vérification…)
 │   ├── admin/                  # Modération : signalements, vérifications, rôles, audit
@@ -126,6 +127,8 @@ daghoip-ikassa/
 │   ├── ui/                     # Primitives (Button, Field, Modal, Badge…)
 │   ├── layout/                 # En-tête, pied de page, recherche, menus
 │   ├── listings/               # Carte, grille, filtres, formulaire, galerie
+│   ├── messages/               # Fil temps réel, composeur, émojis, blocage
+│   ├── profile/                # Étoiles, avis, formulaire d'évaluation
 │   ├── categories/ home/ auth/ account/ common/
 ├── lib/                        # Infrastructure
 │   ├── supabase/               # Clients navigateur / serveur / admin / middleware
@@ -207,6 +210,22 @@ temporisé (300 ms) alors que les autres filtres s’appliquent immédiatement ;
 les requêtes devenues obsolètes sont annulées et un compteur de génération
 écarte les réponses arrivées dans le désordre ; l’URL est mise à jour par
 `history.replaceState`, donc sans navigation ni rendu serveur.
+
+**Profil utilisateur.** `/vendeurs/<id>` a **deux visages sans être deux
+pages** : tout le monde y voit la photo, le nom, la ville, la description, la
+note moyenne, les avis et l’historique des annonces ; le propriétaire y voit en
+plus son téléphone, ses favoris et le bouton de modification.
+
+Ce n’est pas un choix d’affichage mais une conséquence du schéma :
+`users.phone` est hors du `GRANT SELECT` public et `favorites` est protégée par
+une RLS « propriétaire uniquement ». Un visiteur ne les obtiendrait pas même en
+interrogeant l’API directement — l’interface ne fait que refléter ce que la
+base autorise.
+
+Les avis y trouvent enfin leur place : `can_review()` exige un échange réel par
+la messagerie avant d’autoriser une évaluation, et l’évalué dispose d’un droit
+de réponse, limité par le `GRANT UPDATE` aux seules colonnes `reply` et
+`replied_at`.
 
 **Messagerie temps réel.** `messages`, `conversations` et `notifications` sont
 diffusées par Supabase Realtime, RLS comprise : un abonné ne reçoit que les

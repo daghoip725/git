@@ -25,7 +25,9 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
 
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-bold text-brand-900">
-            <span className="truncate">{seller.full_name}</span>
+            <Link href={`/vendeurs/${seller.id}`} className="truncate hover:text-brand-700">
+              {seller.full_name}
+            </Link>
             {seller.is_verified ? <VerifiedBadge /> : null}
           </p>
 
@@ -54,12 +56,20 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
         </div>
       </div>
 
-      <Link
-        href={`/annonces?vendeur=${seller.id}`}
-        className="mt-3 inline-block text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
-      >
-        Voir toutes ses annonces
-      </Link>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+        <Link
+          href={`/vendeurs/${seller.id}`}
+          className="text-brand-700 underline underline-offset-2 hover:text-brand-800"
+        >
+          Voir son profil
+        </Link>
+        <Link
+          href={`/annonces?vendeur=${seller.id}`}
+          className="text-brand-700 underline underline-offset-2 hover:text-brand-800"
+        >
+          Toutes ses annonces
+        </Link>
+      </div>
     </section>
   );
 }

@@ -77,6 +77,8 @@ export interface PublicSeller {
   full_name: string;
   avatar_path: string | null;
   city: string | null;
+  province: string | null;
+  bio: string | null;
   is_professional: boolean;
   is_verified: boolean;
   business_name: string | null;

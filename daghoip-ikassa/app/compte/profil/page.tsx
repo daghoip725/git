@@ -1,4 +1,6 @@
+import { ExternalLink } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ProfileForm } from '@/components/account/ProfileForm';
@@ -25,6 +27,13 @@ export default async function ProfilePage() {
           Ces informations aident les acheteurs à vous faire confiance. Votre téléphone n’est jamais
           affiché publiquement sans votre accord.
         </p>
+        <Link
+          href={`/vendeurs/${user.id}`}
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+        >
+          Voir mon profil public
+          <ExternalLink className="size-3.5" aria-hidden="true" />
+        </Link>
       </header>
 
       {profile ? (

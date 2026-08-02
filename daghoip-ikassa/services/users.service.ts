@@ -16,7 +16,7 @@ import type { PublicSeller, UserProfile } from '@/types';
 
 /** Colonnes réellement accordées en lecture publique. */
 const PUBLIC_COLUMNS =
-  'id, full_name, avatar_path, city, is_professional, is_verified, ' +
+  'id, full_name, avatar_path, city, province, bio, is_professional, is_verified, ' +
   'business_name, rating_average, rating_count, ads_count, created_at';
 
 /** Profil public d'un vendeur. */
