@@ -131,6 +131,8 @@ export interface SellerAdRow {
   status: AdStatus;
   views_count: number;
   favorites_count: number;
+  /** Visiteurs distincts ayant demandé à joindre le vendeur. */
+  contacts_count: number;
   messages_count: number;
   created_at: string;
   coverImageUrl: string | null;

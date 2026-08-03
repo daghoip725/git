@@ -54,7 +54,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 13. `migrations/20260801001300_notifications.sql`
 14. `migrations/20260801001400_history.sql`
 15. `migrations/20260801001500_moderation.sql`
-16. `seed.sql`
+16. `migrations/20260801001600_ad_stats.sql`
+17. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -387,12 +388,13 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 462 assertions réparties en onze fichiers : schéma et sécurité
+La suite couvre 518 assertions réparties en douze fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
 statistiques d'administration (`06`), paiements et facturation (`07`), aides
 intelligentes (`08`), notifications et file d'envoi (`09`), historiques
-personnels (`10`), modération et blocage de comptes (`11`). Elle vérifie le cycle de vie des annonces, la
+personnels (`10`), modération et blocage de comptes (`11`), performances
+d'annonce (`12`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -616,6 +618,88 @@ Conséquence à connaître : un compte suspendu ou banni ne reçoit **plus** de
 notification dans l'application (`create_notification()` exige un compte actif).
 L'interface de modération le dit au modérateur plutôt que de laisser croire que
 la personne a été prévenue.
+
+## Performances des annonces
+
+### Ce qu'un vendeur peut savoir, et ce que nous refusons de savoir
+
+Quatre chiffres par annonce : vues, favoris, contacts, messages. Le troisième
+est le seul nouveau, et c'est le seul qui vaille vraiment — une annonce vue
+mille fois sans un appel n'est pas un succès, et confondre audience et intérêt
+donnerait au vendeur un tableau de bord flatteur mais inutile.
+
+Le compromis se joue sur la mesure des contacts. Compter finement suppose de
+reconnaître un visiteur ; reconnaître un visiteur suppose de le pister. Nous
+avons tranché dans l'autre sens :
+
+- `ad_contacts` ne porte **aucune colonne d'identité** — ni compte, ni session,
+  ni adresse IP. Un test l'affirme en interrogeant `information_schema`, de
+  sorte qu'une colonne ajoutée par mégarde ferait échouer la suite.
+- La seule chose stockée est l'empreinte SHA-256 de `visiteur:annonce:jour`.
+  Elle permet de ne pas compter deux fois le même clic dans la journée, et rien
+  d'autre : elle ne se recoupe avec aucune autre table.
+- Les empreintes sont purgées au bout de **sept jours**, l'historique quotidien
+  au bout d'un an. Les compteurs cumulés, eux, survivent : ils ne disent rien
+  de personne.
+- La table n'a **aucune politique RLS** et les droits sont révoqués : elle est
+  fermée à `anon`, à `authenticated`, et donc au vendeur lui-même.
+
+Conséquence assumée : nous ne saurons jamais dire _qui_ a appelé, ni tracer un
+parcours de visiteur. C'est le prix, et il est modeste face à ce qu'on évite.
+
+### Dédoublonnage, et pourquoi le jour entre dans la clé
+
+Un contact est compté **une fois par visiteur et par jour**, tous canaux
+confondus. Le lendemain, le même visiteur recompte : quelqu'un qui revient vers
+une annonce deux jours de suite manifeste bien deux fois son intérêt, et l'écraser
+sous une clé unique effacerait précisément le signal qu'on cherche.
+
+`record_ad_contact()` refuse par ailleurs deux cas silencieusement — annonce
+retirée, et vendeur qui consulte sa propre annonce. Elle renvoie `false` sans
+lever : l'appel se fait en marge d'un geste (afficher un numéro, ouvrir
+WhatsApp), et une mesure qui échoue ne doit jamais empêcher ce geste d'aboutir.
+
+### Écriture impossible depuis le client
+
+`ads.contacts_count`, comme `views_count` et `favorites_count`, est hors du
+`GRANT UPDATE` : un vendeur ne peut pas gonfler ses propres chiffres. Même
+chose pour `bump_daily_stat()`, révoquée aux rôles clients. Les deux tentatives
+figurent dans la suite de tests, ainsi qu'une lecture directe des tables brutes
+par le vendeur concerné.
+
+### Historique quotidien et séries sans trou
+
+`ad_daily_stats` tient un compteur par annonce et par jour. Deux détails
+comptent :
+
+- le solde des favoris **redescend** quand un favori est retiré. Sans cela la
+  courbe ne ferait que monter et raconterait une histoire fausse ; la valeur
+  reste bornée à zéro ;
+- `ad_daily_series()` s'appuie sur `generate_series` et renvoie une ligne par
+  jour, **y compris les jours creux**, à zéro. Une courbe à trous laisserait
+  croire à une interruption de mesure plutôt qu'à une absence d'activité.
+
+La fenêtre est bornée en base entre 7 et 180 jours : trop courte elle ne montre
+que du bruit, trop longue elle coûte cher pour une période sur laquelle on ne
+peut plus rien changer.
+
+### Comparaison à la catégorie : médiane, pas moyenne
+
+`ad_performance()` renvoie la **médiane** des vues des annonces publiées de la
+même catégorie. Sur un catalogue d'annonces, quelques annonces virales tirent
+n'importe quelle moyenne vers le haut ; comparer un vendeur à cette moyenne
+donnerait à la majorité l'impression, statistiquement garantie et pourtant
+fausse, d'être en échec.
+
+### `seller_performance()` est `security definer`
+
+Cinquième cas légitime de la convention (agrégat de supervision) : la fonction
+lit `ad_daily_stats`, table fermée aux clients. En `security invoker` elle était
+inutilisable par les seules personnes à qui elle s'adresse — le vendeur se
+voyait refuser l'accès à sa propre synthèse. Le cloisonnement ne repose donc pas
+sur les droits de table mais sur le filtre `auth.uid()`, appliqué à **toutes**
+les lectures ; sans session, la fonction ne renvoie rien. Un test vérifie qu'un
+concurrent n'y voit aucun chiffre d'autrui.
 
 ## Exploitation
 

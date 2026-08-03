@@ -22,15 +22,16 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 9. [Référencement et partage](#référencement-et-partage)
 10. [Modération](#modération)
 11. [Favoris et historiques](#favoris-et-historiques)
-12. [Notifications](#notifications)
-13. [Thème clair et sombre](#thème-clair-et-sombre)
-14. [Application installable (PWA)](#application-installable-pwa)
-15. [Performance](#performance)
-16. [Tests](#tests)
-17. [Identité visuelle](#identité-visuelle)
-18. [Docker](#docker)
-19. [Scripts](#scripts)
-20. [Exploitation](#exploitation)
+12. [Performances des annonces](#performances-des-annonces)
+13. [Notifications](#notifications)
+14. [Thème clair et sombre](#thème-clair-et-sombre)
+15. [Application installable (PWA)](#application-installable-pwa)
+16. [Performance](#performance)
+17. [Tests](#tests)
+18. [Identité visuelle](#identité-visuelle)
+19. [Docker](#docker)
+20. [Scripts](#scripts)
+21. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -437,13 +438,13 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   (`SECURITY DEFINER`).
 - `users.role` / `users.status` / `users.is_verified` — hors du `grant update` :
   **aucune auto-promotion possible**, y compris par requête forgée.
-- `ads.is_featured`, `views_count`, `favorites_count` — hors du `grant update` ;
-  posés par trigger ou à la confirmation d’un paiement.
+- `ads.is_featured`, `views_count`, `favorites_count`, `contacts_count` — hors
+  du `grant update` ; posés par trigger ou à la confirmation d’un paiement.
 - `payments` et `notifications` — aucun droit d’écriture client : seuls
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-462 assertions), qui rejoue notamment des tentatives d’auto-promotion
+518 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
@@ -646,6 +647,52 @@ purge, séparation d'avec le compteur public de vues — est dans
 
 ---
 
+## Performances des annonces
+
+Quatre chiffres par annonce — **vues**, **favoris**, **contacts**, **messages** —
+sur `/compte/annonces/<id>/statistiques`, plus une synthèse en tête de
+`/compte/annonces`.
+
+Le chiffre qui compte est le **taux de contact**, pas le nombre de vues. Mille
+vues sans un seul appel n'est pas un succès : c'est un prix mal placé ou une
+photo qui n'inspire pas confiance, et c'est cela qu'un vendeur peut corriger.
+La page l'affiche en grand, avec une phrase qui dit quoi en faire — et se tait
+sous une trentaine de vues, parce qu'un taux calculé sur cinq visites ne
+signifie rien.
+
+Un contact est enregistré au **clic** : afficher le numéro, ouvrir WhatsApp,
+envoyer un premier message. Pas à l'affichage de la page — une annonce très vue
+et jamais contactée est précisément le signal à ne pas noyer.
+
+### Mesurer sans pister
+
+Compter finement suppose de reconnaître un visiteur, et reconnaître un visiteur
+suppose de le pister. Nous avons tranché dans l'autre sens :
+
+|                         | Ce qui est conservé                          |
+| ----------------------- | -------------------------------------------- |
+| Identité du visiteur    | **aucune** — ni compte, ni session, ni IP    |
+| Clé de dédoublonnage    | empreinte SHA-256 de `visiteur:annonce:jour` |
+| Durée de vie de la clé  | 7 jours                                      |
+| Historique quotidien    | 1 an, agrégé, sans lien avec personne        |
+| Accès aux tables brutes | fermé à tous, **vendeur compris**            |
+
+Un test interroge `information_schema` pour vérifier qu'aucune colonne
+d'identité n'existe dans `ad_contacts` : une colonne ajoutée par mégarde ferait
+échouer la suite. Le vendeur apprend donc _combien_ de personnes l'ont contacté
+et _par quel canal_, jamais _qui_.
+
+Côté navigateur, `useVisitorId` tire un identifiant au hasard pour les visiteurs
+non connectés. Sans lui, tous les anonymes se confondraient en un seul et un
+vendeur ne verrait jamais qu'un contact par jour. Il ne contient rien de la
+personne, ne va que vers notre serveur, et n'y est jamais stocké en clair.
+
+Le détail — dédoublonnage, séries sans trou, médiane plutôt que moyenne pour la
+comparaison de catégorie, purge — est dans
+[`supabase/README.md`](supabase/README.md#performances-des-annonces).
+
+---
+
 ## Notifications
 
 Trois canaux, un seul entonnoir : tout passe par `create_notification()`, qui
@@ -770,7 +817,7 @@ Deux suites, exécutables hors ligne, sans service tiers :
 
 ```bash
 npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 462 assertions sur un PostgreSQL jetable
+npm run test:sql   # 518 assertions sur un PostgreSQL jetable
 npm run verify     # typage + lint + tests + build
 ```
 

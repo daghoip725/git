@@ -89,6 +89,26 @@ export async function startConversationAction(
       return fail(messageError, 'Impossible d’envoyer le message.');
     }
 
+    /*
+     * Le premier message est un contact au même titre qu'un appel : le compter
+     * ici, côté serveur, plutôt que depuis le formulaire — un contact décompté
+     * sur un clic pourrait l'être sans qu'aucun message ne parte.
+     *
+     * Seulement le **premier** : la base dédoublonne par personne et par jour,
+     * si bien qu'une conversation qui se poursuit ne regonfle pas le chiffre.
+     * Aucun identifiant de visite n'est nécessaire, l'expéditeur est connecté.
+     */
+    const { error: contactError } = await supabase.rpc('record_ad_contact', {
+      p_ad_id: parsed.data.adId,
+      p_channel: 'message',
+      p_visitor: null,
+    });
+    if (contactError) {
+      // La mesure ne conditionne pas l'envoi : le message est parti, c'est ce
+      // qui compte pour l'acheteur comme pour le vendeur.
+      logger.warn('Contact non comptabilisé', { error: contactError.message });
+    }
+
     revalidatePath('/messages');
     return ok({ conversationId });
   } catch (error) {

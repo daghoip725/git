@@ -4,7 +4,18 @@
  * Ligne d'annonce du tableau de bord vendeur, avec ses actions
  * (modifier, marquer vendue, remettre en ligne, supprimer).
  */
-import { Eye, ImageOff, Loader2, Megaphone, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  BarChart3,
+  Eye,
+  Heart,
+  ImageOff,
+  Loader2,
+  Megaphone,
+  Pencil,
+  PhoneCall,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -40,6 +51,8 @@ export interface ListingRowProps {
     price_type: 'fixed' | 'negotiable' | 'free' | 'on_request';
     status: AdStatus;
     views_count: number;
+    contacts_count: number;
+    favorites_count: number;
     coverImageUrl: string | null;
     created_at: string;
   };
@@ -92,10 +105,24 @@ export function ListingRow({ listing }: ListingRowProps) {
             {formatListingPrice(listing.price, listing.price_type)}
           </p>
 
+          {/*
+            Les trois compteurs côte à côte, dans l'ordre de l'entonnoir : on
+            voit, puis on met de côté, puis on contacte. Vus séparément ils ne
+            disent pas grand-chose ; l'un à côté de l'autre, ils racontent où
+            l'annonce accroche et où elle décroche.
+          */}
           <p className="mt-1 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
             <span className="flex items-center gap-1">
               <Eye className="size-3.5" aria-hidden="true" />
               {listing.views_count} vue{listing.views_count > 1 ? 's' : ''}
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="size-3.5" aria-hidden="true" />
+              {listing.favorites_count} favori{listing.favorites_count > 1 ? 's' : ''}
+            </span>
+            <span className="flex items-center gap-1">
+              <PhoneCall className="size-3.5" aria-hidden="true" />
+              {listing.contacts_count} contact{listing.contacts_count > 1 ? 's' : ''}
             </span>
             <span>Réf. {listing.reference}</span>
             <span>{formatRelativeDate(listing.created_at)}</span>
@@ -108,6 +135,14 @@ export function ListingRow({ listing }: ListingRowProps) {
             >
               <Pencil className="size-3.5" aria-hidden="true" />
               Modifier
+            </Link>
+
+            <Link
+              href={`/compte/annonces/${listing.id}/statistiques`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-neutral-300 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
+            >
+              <BarChart3 className="size-3.5" aria-hidden="true" />
+              Statistiques
             </Link>
 
             {listing.status === 'published' ? (

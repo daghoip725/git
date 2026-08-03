@@ -296,6 +296,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               <div>
                 <h2 className="mb-3 font-bold text-brand-900">Contacter le vendeur</h2>
                 <ContactActions
+                  listingId={listing.id}
                   phone={listing.contact_phone}
                   whatsapp={listing.contact_whatsapp}
                   listingTitle={listing.title}

@@ -38,20 +38,35 @@ sleep 2
 
 export PGHOST="$PGSOCKET" PGPORT PGUSER=postgres
 
-echo "==> Création de la base et du contexte Supabase simulé"
-psql -q -c "create database $DBNAME;"
-psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 \
-  -c "create extension if not exists pgcrypto;" \
-  -f "$SCRIPT_DIR/00_supabase_shim.sql" >/dev/null
+# Reconstruit une base complète : contexte Supabase, migrations, données de
+# référence. Une seule fonction pour la préparation initiale **et** pour la
+# remise à zéro entre deux suites : les deux versions existaient en double, et
+# elles avaient divergé — la seconde installait encore pgcrypto dans `public`,
+# si bien qu'une suite passait ou échouait selon l'endroit d'où venait sa base.
+#
+# pgcrypto va dans le schéma `extensions`, comme sur Supabase, et non dans
+# `public`. La nuance n'est pas cosmétique : installée dans `public`, elle rend
+# `extensions.digest(...)` introuvable ici alors que l'appel est correct en
+# production, et à l'inverse elle laisserait passer un appel non qualifié qui,
+# lui, échouerait chez Supabase. Le harnais doit reproduire la disposition
+# réelle, sans quoi il valide autre chose que ce qu'on déploie.
+build_database() {
+  psql -q -c "drop database if exists $DBNAME;" -c "create database $DBNAME;" >/dev/null
+  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 \
+    -c "create schema if not exists extensions;" \
+    -c "create extension if not exists pgcrypto with schema extensions;" \
+    -f "$SCRIPT_DIR/00_supabase_shim.sql" >/dev/null
 
-echo "==> Application des migrations"
-for migration in "$PROJECT_DIR"/supabase/migrations/*.sql; do
-  echo "    - $(basename "$migration")"
-  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
-done
+  for migration in "$PROJECT_DIR"/supabase/migrations/*.sql; do
+    [ "${1:-}" = "verbeux" ] && echo "    - $(basename "$migration")"
+    psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+  done
 
-echo "==> Chargement des données de référence"
-psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/dev/null
+  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/dev/null
+}
+
+echo "==> Création de la base, application des migrations et des données de référence"
+build_database verbeux
 
 # Chaque suite part d'une base vierge : les tests d'authentification créent
 # leurs propres comptes et supposent qu'aucun administrateur n'existe encore.
@@ -65,14 +80,7 @@ for suite in "$SCRIPT_DIR"/[0-9][0-9]_*.sql; do
   echo
   echo "==> Suite : $(basename "$suite")"
 
-  psql -q -c "drop database if exists $DBNAME;" -c "create database $DBNAME;" >/dev/null
-  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 \
-    -c "create extension if not exists pgcrypto;" \
-    -f "$SCRIPT_DIR/00_supabase_shim.sql" >/dev/null
-  for migration in "$PROJECT_DIR"/supabase/migrations/*.sql; do
-    psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
-  done
-  psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/dev/null
+  build_database
 
   psql -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$suite" 2>&1 \
     | grep -E "OK  |ECHEC|ERROR|^---|TOUS|TESTS" \

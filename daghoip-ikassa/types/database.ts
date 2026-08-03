@@ -78,6 +78,15 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled
 
 export type BillingInterval = 'monthly' | 'quarterly' | 'yearly';
 
+/**
+ * Moyen par lequel un visiteur a joint le vendeur.
+ *
+ * Le canal est la seule chose que l'on retient d'un contact : ni qui, ni quand
+ * précisément. Il sert à dire au vendeur par où on l'appelle, pas à profiler
+ * qui l'appelle.
+ */
+export type ContactChannel = 'phone' | 'whatsapp' | 'message';
+
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 /* -------------------------------------------------------------------------- */
@@ -195,6 +204,12 @@ export interface Database {
           views_count: number;
           favorites_count: number;
           messages_count: number;
+          /**
+           * Visiteurs distincts ayant demandé à joindre le vendeur, tous
+           * canaux confondus, une fois par personne et par jour. Alimenté par
+           * `record_ad_contact()` seul.
+           */
+          contacts_count: number;
           published_at: string | null;
           expires_at: string | null;
           sold_at: string | null;
@@ -650,6 +665,53 @@ export interface Database {
           view_count: number;
         };
         /** Aucun droit d'INSERT : passer par `record_ad_view()`. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
+       * Empreintes de dédoublonnage des contacts.
+       *
+       * **Aucune identité n'y figure**, volontairement : ni compte, ni session,
+       * ni adresse IP. Seule une empreinte `visiteur:annonce:jour` permet de ne
+       * compter qu'une fois par visiteur et par jour, sans qu'on puisse
+       * remonter au visiteur. Les lignes sont purgées au bout de sept jours.
+       *
+       * Fermée à `anon` comme à `authenticated` : elle n'a aucune politique
+       * RLS, ce qui la rend inaccessible même au vendeur concerné. L'écriture
+       * passe par `record_ad_contact()`.
+       */
+      ad_contacts: {
+        Row: {
+          id: string;
+          ad_id: string;
+          channel: ContactChannel;
+          dedupe_key: string;
+          created_at: string;
+        };
+        /** Aucun droit d'INSERT : passer par `record_ad_contact()`. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
+       * Historique quotidien d'une annonce : vues, contacts, favoris.
+       *
+       * Alimentée par les compteurs, jamais par le client — un vendeur qui
+       * pourrait écrire ici gonflerait ses propres chiffres. La lecture passe
+       * par `ad_daily_series()` ou `seller_performance()`, qui filtrent sur le
+       * propriétaire.
+       */
+      ad_daily_stats: {
+        Row: {
+          ad_id: string;
+          day: string;
+          views: number;
+          contacts: number;
+          favorites: number;
+        };
         Insert: never;
         Update: never;
         Relationships: [];
@@ -1263,6 +1325,84 @@ export interface Database {
           designation: string;
         }[];
       };
+
+      /* ---------------------------------------------------------------- */
+      /*  Performances des annonces                                       */
+      /* ---------------------------------------------------------------- */
+
+      /**
+       * Enregistre un contact et renvoie `true` s'il a été compté.
+       *
+       * Renvoie `false` — sans erreur — quand le contact ne compte pas :
+       * annonce retirée, vendeur qui consulte sa propre annonce, ou visiteur
+       * déjà compté le même jour. L'appelant n'a donc rien à traiter comme un
+       * échec.
+       *
+       * `p_visitor` sert aux visiteurs non connectés : un identifiant de
+       * session opaque, jamais une donnée personnelle. Il n'est pas stocké,
+       * seulement haché avec l'annonce et le jour.
+       */
+      record_ad_contact: {
+        Args: { p_ad_id: string; p_channel: ContactChannel; p_visitor?: string | null };
+        Returns: boolean;
+      };
+
+      /** Performances d'une annonce. Réservée à son propriétaire. */
+      ad_performance: {
+        Args: { p_ad_id: string };
+        Returns: {
+          views: number;
+          contacts: number;
+          favorites: number;
+          messages: number;
+          /** Part des visiteurs ayant pris contact, en pourcentage. */
+          contact_rate: number;
+          /** Médiane des vues des annonces publiées de la même catégorie. */
+          category_median_views: number;
+          days_online: number;
+          published_at: string | null;
+        }[];
+      };
+
+      /**
+       * Série quotidienne d'une annonce, sans trou : un jour sans activité vaut
+       * zéro et non une ligne absente. La fenêtre est bornée à 7–180 jours.
+       */
+      ad_daily_series: {
+        Args: { p_ad_id: string; p_days?: number };
+        Returns: { day: string; views: number; contacts: number; favorites: number }[];
+      };
+
+      /** Synthèse du compte courant, toutes annonces confondues. */
+      seller_performance: {
+        Args: { p_days?: number };
+        Returns: {
+          ads_published: number;
+          total_views: number;
+          total_contacts: number;
+          total_favorites: number;
+          total_messages: number;
+          period_views: number;
+          period_contacts: number;
+        }[];
+      };
+
+      /** Classement des annonces du compte courant, trié par contacts. */
+      seller_ad_ranking: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          title: string;
+          slug: string;
+          reference: string;
+          status: AdStatus;
+          views: number;
+          contacts: number;
+          favorites: number;
+          contact_rate: number;
+          published_at: string | null;
+        }[];
+      };
     };
 
     Enums: {
@@ -1283,6 +1423,7 @@ export interface Database {
       payment_purpose: PaymentPurpose;
       subscription_status: SubscriptionStatus;
       billing_interval: BillingInterval;
+      contact_channel: ContactChannel;
     };
 
     CompositeTypes: Record<never, never>;

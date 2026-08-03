@@ -301,17 +301,39 @@ interface SellerViewRow extends ListViewRow {
 /** Toutes les annonces de l'utilisateur, brouillons et expirées incluses. */
 export async function getMyAds(userId: string): Promise<SellerAdRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('ads_list_view')
-    .select(`${LIST_COLUMNS}, status, views_count, favorites_count`)
-    .eq('seller_id', userId)
-    .order('created_at', { ascending: false })
-    .returns<SellerViewRow[]>();
 
+  /*
+   * Deux requêtes plutôt qu'une colonne de plus dans `ads_list_view` : cette
+   * vue sert aussi les grilles publiques, et le nombre de contacts n'a aucune
+   * raison d'y voyager pour tous les visiteurs. La seconde requête ne remonte
+   * que deux colonnes, sur les seules annonces du compte, et la RLS s'y
+   * applique comme partout.
+   */
+  const [listResult, contactsResult] = await Promise.all([
+    supabase
+      .from('ads_list_view')
+      .select(`${LIST_COLUMNS}, status, views_count, favorites_count`)
+      .eq('seller_id', userId)
+      .order('created_at', { ascending: false })
+      .returns<SellerViewRow[]>(),
+    supabase.from('ads').select('id, contacts_count').eq('seller_id', userId),
+  ]);
+
+  const { data, error } = listResult;
   if (error) {
     logger.error('Chargement des annonces du compte impossible', error, { userId });
     return [];
   }
+
+  if (contactsResult.error) {
+    // Les annonces s'affichent sans leur nombre de contacts : une statistique
+    // manquante ne doit pas vider la page.
+    logger.warn('Nombre de contacts indisponible', { error: contactsResult.error.message });
+  }
+
+  const contactsById = new Map(
+    (contactsResult.data ?? []).map((row) => [row.id, row.contacts_count]),
+  );
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -323,6 +345,7 @@ export async function getMyAds(userId: string): Promise<SellerAdRow[]> {
     status: row.status,
     views_count: row.views_count,
     favorites_count: row.favorites_count,
+    contacts_count: contactsById.get(row.id) ?? 0,
     messages_count: 0,
     created_at: row.created_at,
     coverImageUrl: getAdImageUrl(row.cover_image_path),
