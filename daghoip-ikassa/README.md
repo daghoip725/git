@@ -34,8 +34,18 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 21. [Scripts](#scripts)
 22. [Exploitation](#exploitation)
 
-Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
-document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
+### Documentation
+
+Ce README est une vue d'ensemble. Le détail vit dans des documents dédiés :
+
+| Document                                           | Pour qui, pour quoi                                                   |
+| -------------------------------------------------- | --------------------------------------------------------------------- |
+| [Guide d'installation](docs/INSTALLATION.md)       | Partir de zéro : Node, Supabase, clés, premier administrateur         |
+| [Documentation développeur](docs/DEVELOPPEMENT.md) | Organisation du code, conventions, ajouter une fonctionnalité, pièges |
+| [Documentation de l'API](docs/API.md)              | Les 59 fonctions SQL appelables, les routes REST, les Server Actions  |
+| [Guide d'administration](docs/ADMINISTRATION.md)   | Modérer, encaisser, surveiller les tâches planifiées                  |
+| [Déploiement](DEPLOIEMENT.md)                      | Coolify, VPS Hostinger, Docker, GitHub Actions                        |
+| [Schéma Supabase](supabase/README.md)              | Modèle de données, politiques d'accès, fonctions SQL                  |
 
 ---
 

@@ -126,10 +126,10 @@ fi
 # faire échouer la suite. Un test qu'on laisse passer en silence ne protège plus
 # rien — c'est la panne la plus coûteuse d'une suite de tests.
 (cd "$PROJECT_DIR" && IKASSA_SCHEMA_JSON="$SCHEMA_JSON" "$NODE_BIN" --experimental-strip-types \
-   --import ./tests/register.mjs --test tests/integration/schema.test.mts) \
+   --import ./tests/register.mjs --test 'tests/integration/*.test.mts') \
   | grep -E "^ *(not )?ok|# (pass|fail)"
 
-echo "  TYPAGE CONFORME AU SCHÉMA"
+echo "  TYPAGE ET DOCUMENTATION CONFORMES AU SCHÉMA"
 
 echo
 echo "==> Terminé"
