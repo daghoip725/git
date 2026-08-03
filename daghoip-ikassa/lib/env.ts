@@ -88,6 +88,23 @@ const serverSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(20).optional(),
   /** Surcharge du modèle. Par défaut le modèle rapide, suffisant ici. */
   AI_MODEL: z.string().min(3).optional(),
+
+  /*
+   * Envoi d'e-mails (facultatif). Sans clé, les notifications restent dans
+   * l'application et dans la cloche — seule la copie par courriel manque, et
+   * l'interface le dit à l'utilisateur plutôt que de promettre un e-mail qui
+   * n'arrivera jamais.
+   */
+  RESEND_API_KEY: z.string().min(10).optional(),
+  /** Expéditeur, de la forme `Daghoip Ikassa <notifications@domaine.ga>`. */
+  EMAIL_FROM: z.string().min(5).optional(),
+  /** Adresse de réponse, si différente de l'expéditeur. */
+  EMAIL_REPLY_TO: z.string().email().optional(),
+  /**
+   * Secret partagé protégeant `/api/notifications/envoi`. La route draine la
+   * file d'envoi : sans secret, n'importe qui pourrait la déclencher en boucle.
+   */
+  NOTIFICATIONS_CRON_SECRET: z.string().min(24).optional(),
 });
 
 let cachedServerEnv: z.infer<typeof serverSchema> | null = null;
@@ -117,6 +134,11 @@ export function getServerEnv(): z.infer<typeof serverSchema> {
 
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
       AI_MODEL: process.env.AI_MODEL || undefined,
+
+      RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
+      EMAIL_FROM: process.env.EMAIL_FROM || undefined,
+      EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO || undefined,
+      NOTIFICATIONS_CRON_SECRET: process.env.NOTIFICATIONS_CRON_SECRET || undefined,
     });
   }
   return cachedServerEnv;

@@ -177,11 +177,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label: ReactNode;
+  /** Précision affichée sous le libellé, reliée au champ par `aria-describedby`. */
+  hint?: string;
   error?: string;
 }
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
-  { label, error, id, className, ...props },
+  { label, hint, error, id, className, ...props },
   ref,
 ) {
   const generatedId = useId();
@@ -199,11 +201,19 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
             className,
           )}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error ? undefined : hint ? `${checkboxId}-hint` : undefined}
           {...props}
         />
-        <label htmlFor={checkboxId} className="text-sm leading-snug text-neutral-700">
-          {label}
-        </label>
+        <span className="min-w-0">
+          <label htmlFor={checkboxId} className="text-sm leading-snug text-neutral-700">
+            {label}
+          </label>
+          {hint && !error ? (
+            <span id={`${checkboxId}-hint`} className="mt-0.5 block text-xs text-neutral-500">
+              {hint}
+            </span>
+          ) : null}
+        </span>
       </div>
       {error ? (
         <p role="alert" className="text-xs font-medium text-red-700">

@@ -19,14 +19,15 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 6. [Paiements](#paiements)
 7. [Aides intelligentes](#aides-intelligentes)
 8. [Modèle de sécurité](#modèle-de-sécurité)
-9. [Thème clair et sombre](#thème-clair-et-sombre)
-10. [Application installable (PWA)](#application-installable-pwa)
-11. [Performance et référencement](#performance-et-référencement)
-12. [Tests](#tests)
-13. [Identité visuelle](#identité-visuelle)
-14. [Docker](#docker)
-15. [Scripts](#scripts)
-16. [Exploitation](#exploitation)
+9. [Notifications](#notifications)
+10. [Thème clair et sombre](#thème-clair-et-sombre)
+11. [Application installable (PWA)](#application-installable-pwa)
+12. [Performance et référencement](#performance-et-référencement)
+13. [Tests](#tests)
+14. [Identité visuelle](#identité-visuelle)
+15. [Docker](#docker)
+16. [Scripts](#scripts)
+17. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -439,7 +440,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-333 assertions), qui rejoue notamment des tentatives d’auto-promotion
+374 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
@@ -503,6 +504,37 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
   échouer le build s’ils sont importés depuis un composant client.
 - **Anti-spam** : le numéro de téléphone d’une annonce n’est pas présent dans le
   HTML initial ; il n’est révélé qu’après un clic explicite.
+
+---
+
+## Notifications
+
+Trois canaux, un seul entonnoir : tout passe par `create_notification()`, qui
+écrit en base, diffuse en temps réel et met un e-mail en file si les préférences
+du destinataire l'autorisent.
+
+| Canal                        | Réglable           | Remarque                                                                                                                  |
+| ---------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Cloche dans l'application    | non                | Elle attend, elle ne dérange pas. La désactiver ferait manquer des réponses.                                              |
+| Alerte système du navigateur | oui, par appareil  | Demandée au clic, affichée seulement onglet caché, **titre uniquement** — le corps s'afficherait sur un écran verrouillé. |
+| E-mail                       | oui, par catégorie | Réglages sur `/compte/notifications`.                                                                                     |
+
+### Le différé qui évite le courriel de trop
+
+Un e-mail de nouveau message n'est pas expédié tout de suite : il attend dix
+minutes (réglable) et **s'annule** si le destinataire a lu le message
+entre-temps. Une rafale dans la même conversation ne fait qu'un seul e-mail.
+C'est ce qui distingue une notification utile d'une notification qu'on finit
+par désactiver.
+
+### Sans fournisseur d'e-mail
+
+Rien ne casse : les notifications restent dans la cloche, la file s'accumule
+sans dommage, et l'interface dit à l'utilisateur que l'envoi n'est pas activé
+plutôt que de lui promettre un e-mail qui n'arrivera jamais.
+
+Le détail du mécanisme — file d'envoi, travailleur, alertes ajoutées — est dans
+[`supabase/README.md`](supabase/README.md#notifications).
 
 ---
 
@@ -601,8 +633,8 @@ conversation de quelqu'un d'autre. Le risque ne vaut pas la seconde gagnée.
 Deux suites, exécutables hors ligne, sans service tiers :
 
 ```bash
-npm test           # 58 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 333 assertions sur un PostgreSQL jetable
+npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
+npm run test:sql   # 374 assertions sur un PostgreSQL jetable
 npm run verify     # typage + lint + tests + build
 ```
 
@@ -613,8 +645,8 @@ Un crochet de résolution (`tests/alias-hooks.mjs`) fait comprendre l'alias `@/`
 code de production.
 
 Ils couvrent le nettoyage typographique, la normalisation des numéros gabonais,
-les slugs et références d'annonces, la préférence de thème et la vérification de
-signature des rappels d'opérateur.
+les slugs et références d'annonces, la préférence de thème, la vérification de
+signature des rappels d'opérateur et la composition des e-mails de notification.
 
 ---
 

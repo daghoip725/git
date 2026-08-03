@@ -587,6 +587,57 @@ export interface Database {
       };
 
       /**
+       * Préférences de notification. L'absence de ligne vaut « valeurs par
+       * défaut » : rien n'oblige un compte à en posséder une.
+       */
+      notification_settings: {
+        Row: {
+          user_id: string;
+          email_messages: boolean;
+          email_ad_status: boolean;
+          email_reviews: boolean;
+          email_payments: boolean;
+          email_subscription: boolean;
+          message_email_delay_minutes: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email_messages?: boolean;
+          email_ad_status?: boolean;
+          email_reviews?: boolean;
+          email_payments?: boolean;
+          email_subscription?: boolean;
+          message_email_delay_minutes?: number;
+        };
+        Update: Omit<Database['public']['Tables']['notification_settings']['Insert'], 'user_id'>;
+        Relationships: [];
+      };
+
+      /**
+       * File d'envoi des e-mails. Aucune lecture ni écriture client : elle
+       * contient des adresses. Seul `service_role` y touche.
+       */
+      email_outbox: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: NotificationType;
+          payload: Json;
+          dedupe_key: string | null;
+          not_before: string;
+          claimed_at: string | null;
+          sent_at: string | null;
+          attempts: number;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
        * Journal des rappels reçus des opérateurs Mobile Money.
        *
        * Lecture réservée au personnel (RLS). Écriture réservée à
@@ -1006,6 +1057,35 @@ export interface Database {
           cover_image_path: string | null;
           reason: 'populaire' | 'affinite';
         }[];
+      };
+
+      /**
+       * Réclame un lot d'e-mails à expédier. **Réservée à `service_role`** :
+       * elle renvoie des adresses e-mail.
+       */
+      claim_pending_emails: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          user_id: string;
+          kind: NotificationType;
+          payload: Json;
+          email: string;
+          full_name: string;
+          attempts: number;
+        }[];
+      };
+
+      /** Clôt un envoi. `p_error` nul vaut succès. Réservée à `service_role`. */
+      mark_email_sent: {
+        Args: { p_id: string; p_error?: string | null };
+        Returns: undefined;
+      };
+
+      /** Préférences effectives d'un compte, valeurs par défaut comprises. */
+      effective_notification_settings: {
+        Args: { p_user_id: string };
+        Returns: Database['public']['Tables']['notification_settings']['Row'];
       };
 
       /** Facture d'un paiement abouti. La RLS de `payments` décide qui la voit. */

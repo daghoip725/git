@@ -13,7 +13,7 @@
  * diffuserait de toute façon que les lignes de l'utilisateur, mais autant ne
  * pas les transporter pour rien.
  */
-import { Bell, Check, MessageSquare, Loader2 } from 'lucide-react';
+import { Bell, BellOff, BellRing, Check, Loader2, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -21,6 +21,8 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { markNotificationsReadAction } from '@/app/actions/notifications.actions';
 import { createClient } from '@/lib/supabase/client';
 import type { Notification } from '@/types';
+import { notificationVisual } from '@/components/layout/notificationVisuals';
+import { useDesktopAlerts } from '@/hooks/useDesktopAlerts';
 import { cn } from '@/utils/cn';
 import { formatRelativeDate } from '@/utils/format';
 
@@ -45,6 +47,18 @@ export function NotificationBell({
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const alerts = useDesktopAlerts();
+
+  /*
+   * Le `notify` change d'identité à chaque changement de permission. Le passer
+   * en dépendance de l'effet temps réel démonterait et remonterait l'abonnement
+   * Realtime au moindre réglage — d'où la référence stable.
+   */
+  const alertsRef = useRef(alerts);
+  useEffect(() => {
+    alertsRef.current = alerts;
+  }, [alerts]);
+
   // --- Temps réel -----------------------------------------------------------
   useEffect(() => {
     const supabase = createClient();
@@ -67,6 +81,9 @@ export function NotificationBell({
               : [incoming, ...previous].slice(0, MAX_SHOWN),
           );
           setUnreadCount((count) => count + 1);
+          // Alerte système : seulement si l'onglet est caché, et seulement le
+          // titre — le corps s'afficherait sur un écran verrouillé.
+          alertsRef.current.notify(incoming.title, incoming.link);
           // Les badges rendus par le serveur (messages non lus) se remettent
           // à jour du même coup.
           router.refresh();
@@ -165,10 +182,12 @@ export function NotificationBell({
                       !notification.read_at && 'bg-brand-50/60',
                     )}
                   >
-                    <MessageSquare
-                      className="mt-0.5 size-4 shrink-0 text-brand-600"
-                      aria-hidden="true"
-                    />
+                    {(() => {
+                      const { icon: Icon, tone } = notificationVisual(notification.type);
+                      return (
+                        <Icon className={cn('mt-0.5 size-4 shrink-0', tone)} aria-hidden="true" />
+                      );
+                    })()}
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-neutral-900">
                         {notification.title}
@@ -200,6 +219,44 @@ export function NotificationBell({
               Aucune notification pour l’instant.
             </p>
           )}
+
+          {/* Alertes système : proposées seulement là où elles existent, et
+              seulement tant qu'elles n'ont pas été refusées — réinsister après
+              un refus est le meilleur moyen de faire bloquer le site. */}
+          {alerts.permission !== 'unsupported' && alerts.permission !== 'denied' ? (
+            <div className="border-t border-neutral-200 p-3">
+              {alerts.enabled ? (
+                <button
+                  type="button"
+                  onClick={alerts.disable}
+                  className="flex w-full items-center gap-2 text-xs text-neutral-600 hover:text-neutral-900"
+                >
+                  <BellOff className="size-3.5 shrink-0" aria-hidden="true" />
+                  Désactiver les alertes sur cet appareil
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void alerts.enable()}
+                  className="flex w-full items-center gap-2 text-xs font-semibold text-brand-800 hover:underline"
+                >
+                  <BellRing className="size-3.5 shrink-0" aria-hidden="true" />
+                  M’alerter sur cet appareil, même onglet fermé
+                </button>
+              )}
+            </div>
+          ) : null}
+
+          <div className="border-t border-neutral-200 p-3">
+            <Link
+              href="/compte/notifications"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 text-xs text-neutral-600 hover:text-neutral-900"
+            >
+              <Settings2 className="size-3.5 shrink-0" aria-hidden="true" />
+              Régler mes notifications par e-mail
+            </Link>
+          </div>
         </div>
       ) : null}
     </div>

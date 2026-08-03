@@ -51,7 +51,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 10. `migrations/20260801001000_admin_stats.sql`
 11. `migrations/20260801001100_payments.sql`
 12. `migrations/20260801001200_ai_features.sql`
-13. `seed.sql`
+13. `migrations/20260801001300_notifications.sql`
+14. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -384,11 +385,11 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 333 assertions réparties en huit fichiers : schéma et sécurité
+La suite couvre 374 assertions réparties en neuf fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
 statistiques d'administration (`06`), paiements et facturation (`07`), aides
-intelligentes (`08`). Elle vérifie le cycle de vie des annonces, la
+intelligentes (`08`), notifications et file d'envoi (`09`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -452,6 +453,58 @@ la conjonction qui alerte, pas l'indice unique.
 
 Un vendeur nouveau n'est pas suspect ; un vendeur nouveau qui brade un article
 et renvoie vers WhatsApp en exigeant un acompte, si.
+
+## Notifications
+
+Trois canaux, un seul entonnoir. Toute notification passe par
+`create_notification()` : c'est là que se décide l'écriture en base, la
+diffusion temps réel et la mise en file d'un e-mail. Un futur type de
+notification respectera donc les préférences sans qu'on ait à y penser.
+
+| Canal              | Mécanisme                                      | Réglable                                                   |
+| ------------------ | ---------------------------------------------- | ---------------------------------------------------------- |
+| Dans l'application | table `notifications` + Realtime               | non — elle attend dans la cloche, elle ne dérange personne |
+| Alerte système     | API `Notification` du navigateur               | oui, par appareil                                          |
+| E-mail             | file `email_outbox` drainée par un travailleur | oui, par catégorie                                         |
+
+### Pourquoi une file plutôt qu'un envoi direct
+
+Un trigger qui appellerait un service d'e-mail par HTTP ferait dépendre une
+transaction métier de la disponibilité d'un tiers : l'envoi d'un message
+échouerait parce qu'un serveur d'e-mail est lent. Le trigger écrit donc une
+ligne — opération locale, instantanée, transactionnelle — et
+`/api/notifications/envoi` la draine.
+
+Cela permet aussi le **différé utile** : un e-mail de nouveau message attend dix
+minutes par défaut, et s'annule si le destinataire a lu le message entre-temps.
+Personne ne veut recevoir un courriel pour une conversation qu'il est en train
+de tenir. Une rafale de messages dans une même conversation ne produit qu'un
+seul e-mail (clé d'unicité sur les envois en attente).
+
+### Alertes ajoutées
+
+Trois types existaient dans l'énumération sans que rien ne les émette :
+
+- **`ad_approved`** — un vendeur dont l'annonce passait en revue manuelle
+  n'apprenait sa mise en ligne qu'en revenant voir. C'est précisément le moment
+  où une alerte a de la valeur.
+- **`subscription_expiring`** — envoyée trois jours avant, une seule fois par
+  échéance, et uniquement si le renouvellement automatique est désactivé.
+- **`new_favorite`** — au plus une fois par annonce et par jour, et jamais par
+  e-mail : recevoir un courriel parce que quelqu'un a cliqué sur un cœur serait
+  pénible.
+
+### Le travailleur
+
+```bash
+curl -X POST https://votre-domaine.ga/api/notifications/envoi \
+     -H "Authorization: Bearer $NOTIFICATIONS_CRON_SECRET"
+```
+
+Toutes les cinq minutes suffisent. `claim_pending_emails()` utilise
+`for update skip locked` : deux travailleurs lancés en parallèle se partagent la
+file au lieu d'envoyer deux fois le même message. Après cinq échecs, un envoi
+cesse d'être proposé — à ce stade, le problème n'est plus passager.
 
 ## Exploitation
 

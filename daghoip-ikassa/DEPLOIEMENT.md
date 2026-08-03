@@ -249,13 +249,36 @@ Une liste courte, à parcourir une fois :
       mobile propose « Ajouter à l'écran d'accueil » ;
 - [ ] la bascule clair/sombre du pied de page tient au rechargement ;
 - [ ] en coupant le réseau, une navigation affiche la page hors ligne et non
-      l'erreur du navigateur.
+      l'erreur du navigateur ;
+- [ ] `/compte/notifications` s'ouvre et enregistre les préférences ;
+- [ ] la tâche planifiée d'envoi d'e-mails répond `200`.
 
 ### Tâches planifiées
 
 Activez `pg_cron` côté Supabase puis rejouez
 `supabase/migrations/20260801000500_performance.sql`. Sans cela, les annonces
 expirées ne basculent pas et les notifications anciennes ne sont jamais purgées.
+
+### Envoi des e-mails de notification
+
+La file `email_outbox` est drainée par une requête HTTP : sans planificateur,
+elle s'accumule sans jamais partir. Toutes les cinq minutes suffisent.
+
+**Coolify** — _Scheduled Tasks_ sur la ressource :
+
+```
+*/5 * * * *   curl -sS -X POST http://localhost:3000/api/notifications/envoi -H "Authorization: Bearer $NOTIFICATIONS_CRON_SECRET"
+```
+
+**VPS** — `crontab -e` sous l'utilisateur `ikassa` :
+
+```cron
+*/5 * * * * curl -sS -X POST http://127.0.0.1:3000/api/notifications/envoi -H "Authorization: Bearer VOTRE_SECRET" >/dev/null
+```
+
+La route répond `200 {"skipped":true}` tant qu'aucun fournisseur n'est
+configuré : le planificateur ne sonnera pas l'alerte pour une configuration
+volontaire.
 
 ### Rappels des opérateurs Mobile Money
 
