@@ -1,0 +1,213 @@
+##############################################################################
+#  Daghoip Ikassa — configuration Supabase (CLI)
+#
+#  Ce fichier pilote `supabase start` (environnement local) et sert de source
+#  de vérité versionnée pour la configuration Auth / Storage / API.
+#
+#  Le rapprochement avec un projet hébergé se fait avec :
+#      supabase link --project-ref <ref>
+#      supabase config push        # applique auth/storage/api au projet distant
+#      supabase db push            # applique les migrations
+#
+#  ⚠️ Les valeurs `env(...)` sont lues dans l'environnement : aucun secret
+#     n'est écrit dans ce fichier.
+##############################################################################
+
+project_id = "daghoip-ikassa"
+
+[api]
+enabled = true
+port = 54321
+# Seul `public` est exposé à PostgREST. `auth` et `storage` restent internes.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+# Plafond de lignes par requête : garde-fou contre une extraction massive.
+max_rows = 200
+
+[db]
+port = 54322
+major_version = 17
+
+[db.pooler]
+enabled = true
+# `transaction` convient aux fonctions serverless (Next.js) : une connexion
+# n'est retenue que le temps de la transaction.
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 200
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+# Plafond global ; chaque bucket applique en plus sa propre limite
+# (voir migration 20260801000400_storage.sql).
+file_size_limit = "10MiB"
+
+[storage.image_transformation]
+# Redimensionnement à la volée : indispensable pour ne pas servir 5 Mo de photo
+# à un téléphone sur réseau 3G.
+enabled = true
+
+[inbucket]
+# Serveur SMTP de test local : les e-mails d'inscription y sont capturés.
+enabled = true
+port = 54324
+
+# ============================================================================
+#  AUTHENTIFICATION
+# ============================================================================
+[auth]
+enabled = true
+
+# URL de base utilisée dans les liens des e-mails.
+site_url = "env(NEXT_PUBLIC_SITE_URL)"
+
+# Liste blanche des redirections autorisées après authentification.
+# Toute URL absente de cette liste est refusée par Supabase : c'est la
+# protection contre les redirections ouvertes.
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "https://daghoip-ikassa.ga/auth/callback",
+  "https://www.daghoip-ikassa.ga/auth/callback",
+]
+
+# Durée de vie du jeton d'accès : 1 heure. Le rafraîchissement est assuré par
+# le middleware Next.js à chaque requête.
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+# Fenêtre pendant laquelle un jeton de rafraîchissement déjà utilisé reste
+# accepté : absorbe les requêtes concurrentes sans déconnecter l'utilisateur.
+refresh_token_reuse_interval = 10
+
+# Inscription ouverte. Passez à `false` pour fermer temporairement les
+# créations de compte (maintenance, invasion de spam).
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+# Un compte = une identité par e-mail : empêche la fusion silencieuse de
+# comptes via un e-mail non vérifié.
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+# Confirmation obligatoire : un e-mail non vérifié ne peut pas publier.
+enable_confirmations = true
+# Toute modification d'adresse exige la confirmation de l'ANCIENNE et de la
+# NOUVELLE adresse : empêche la prise de contrôle d'un compte.
+secure_password_change = true
+double_confirm_changes = true
+# Délai minimal entre deux envois : freine l'usage du service comme relais.
+max_frequency = "60s"
+# Longueur du code OTP envoyé par e-mail, et sa durée de validité.
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Confirmez votre compte Daghoip Ikassa"
+content_path = "./templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Réinitialisez votre mot de passe Daghoip Ikassa"
+content_path = "./templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirmez votre nouvelle adresse e-mail"
+content_path = "./templates/email_change.html"
+
+[auth.email.template.magic_link]
+subject = "Votre lien de connexion Daghoip Ikassa"
+content_path = "./templates/magic_link.html"
+
+# --- Politique de mot de passe ---------------------------------------------
+[auth.password]
+min_length = 8
+# Impose au moins une minuscule, une majuscule et un chiffre.
+required_characters = "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
+
+# --- Téléphone (connexion par SMS) ------------------------------------------
+[auth.sms]
+# La connexion par SMS crée le compte au premier envoi : au Gabon le téléphone
+# est le premier identifiant, il n'y a donc pas d'écran d'inscription distinct.
+enable_signup = true
+enable_confirmations = true
+# Un même numéro ne peut être rattaché qu'à un seul compte (index unique
+# `users_phone_unique_idx` côté PostgreSQL).
+max_frequency = "60s"
+otp_length = 6
+otp_exp = 600
+
+[auth.sms.template]
+# Reste court : au-delà de 160 caractères, l'opérateur facture deux SMS.
+message = "Daghoip Ikassa : votre code de connexion est {{ .Code }}. Il expire dans 10 minutes. Ne le communiquez a personne."
+
+# --- Fournisseur SMS ---------------------------------------------------------
+# ⚠️ REQUIS pour la connexion par téléphone. Sans ces identifiants, l'envoi
+# d'OTP échoue et l'application bascule proprement sur la connexion par e-mail.
+#
+# Twilio couvre le Gabon (+241). Alternatives : Vonage, MessageBird, ou un
+# agrégateur local via [auth.sms.twilio_verify] / un webhook personnalisé.
+# Renseignez les variables dans l'environnement, puis passez `enabled = true`.
+[auth.sms.twilio]
+enabled = false
+account_sid = "env(SUPABASE_AUTH_SMS_TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(SUPABASE_AUTH_SMS_TWILIO_MESSAGE_SERVICE_SID)"
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
+# --- Limitation de débit ----------------------------------------------------
+[auth.rate_limit]
+# E-mails envoyés par heure, tous types confondus.
+email_sent = 30
+# Tentatives de vérification (OTP, lien) par IP et par 5 minutes.
+token_verifications = 30
+# Demandes de connexion / inscription par IP et par 5 minutes.
+sign_in_sign_ups = 30
+# Rafraîchissements de jeton par IP et par 5 minutes.
+token_refresh = 150
+# Requêtes anonymes par heure et par IP.
+anonymous_users = 30
+
+# --- Protection anti-fuite de mots de passe ---------------------------------
+[auth.security]
+# Vérifie le mot de passe choisi contre la base HaveIBeenPwned.
+# À activer aussi côté tableau de bord pour un projet hébergé.
+enable_password_verification = true
+
+# --- Fournisseurs externes ---------------------------------------------------
+# Google est le plus répandu au Gabon après l'e-mail.
+#
+# ⚠️ Ces fournisseurs sont ACTIVÉS ici mais restent inopérants tant que les
+# identifiants OAuth ne sont pas renseignés dans l'environnement. Créez-les
+# dans la Google Cloud Console et sur Meta for Developers, en déclarant comme
+# URL de redirection autorisée :
+#     https://<votre-ref>.supabase.co/auth/v1/callback
+#
+# Supabase relie automatiquement une identité OAuth à un compte e-mail existant
+# lorsque l'adresse est identique et vérifiée par le fournisseur : un même
+# utilisateur ne se retrouve donc pas avec deux comptes.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+redirect_uri = "env(NEXT_PUBLIC_SITE_URL)/auth/callback"
+skip_nonce_check = false
+
+[auth.external.facebook]
+enabled = true
+client_id = "env(SUPABASE_AUTH_FACEBOOK_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_FACEBOOK_SECRET)"
+redirect_uri = "env(NEXT_PUBLIC_SITE_URL)/auth/callback"
+
+# ============================================================================
+#  TEMPS RÉEL
+# ============================================================================
+[realtime]
+enabled = true
+
+# ============================================================================
+#  ANALYSE
+# ============================================================================
+[analytics]
+enabled = false

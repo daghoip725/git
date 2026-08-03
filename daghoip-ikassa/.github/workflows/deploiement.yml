@@ -1,0 +1,177 @@
+##############################################################################
+#  Déploiement automatique — Daghoip Ikassa
+#
+#  Trois étapes, dans cet ordre, chacune conditionnée par la précédente :
+#
+#    verifier   rejoue toute la CI (typage, lint, tests unitaires, suites SQL,
+#               image Docker). Rien ne part si un seul contrôle échoue.
+#    publier    construit l'image et la pousse sur GHCR.
+#    declencher prévient Coolify, qui tire la nouvelle image et bascule.
+#
+#  ## Pourquoi publier une image plutôt que laisser l'hébergeur construire
+#
+#  Construire Next.js demande environ 2 Go de mémoire. Un VPS Hostinger d'entrée
+#  de gamme en a 1 ou 2 : la construction y échoue, ou pire, y réussit en
+#  déclenchant le tueur de mémoire du noyau au milieu d'un déploiement. Publier
+#  une image déjà construite déplace ce coût sur un runner GitHub, et le
+#  serveur n'a plus qu'à tirer et démarrer.
+#
+#  ## ⚠️ Une image = un environnement
+#
+#  Les variables `NEXT_PUBLIC_*` sont **inlinées dans le bundle client au
+#  build** : l'image publiée est donc liée à un projet Supabase et à un domaine
+#  précis. Elle n'est pas réutilisable pour une pré-production. Pour deux
+#  environnements, il faut deux constructions — c'est une conséquence de Next.js,
+#  pas un choix qu'on pourrait défaire ici.
+#
+#  ## Réglages à faire une fois, dans le dépôt GitHub
+#
+#  Settings → Secrets and variables → Actions
+#
+#    Variables (onglet « Variables », valeurs non secrètes) :
+#      NEXT_PUBLIC_SUPABASE_URL        https://xxxx.supabase.co
+#      NEXT_PUBLIC_SUPABASE_ANON_KEY   eyJ...  (publique par conception : la
+#                                      RLS assure toute l'autorisation)
+#      NEXT_PUBLIC_SITE_URL            https://daghoip-ikassa.ga
+#
+#    Secrets (onglet « Secrets ») :
+#      COOLIFY_WEBHOOK   https://coolify.exemple.ga/api/v1/deploy?uuid=<uuid>
+#      COOLIFY_TOKEN     jeton d'API Coolify
+#
+#  Sans les deux secrets Coolify, l'image est quand même publiée et l'étape de
+#  déclenchement est simplement sautée : c'est le mode « je tire à la main sur
+#  le serveur », décrit dans DEPLOIEMENT.md.
+##############################################################################
+
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+  # Permet de redéployer sans nouveau commit — après un changement de variable
+  # d'environnement, par exemple, qui ne modifie aucun fichier.
+  workflow_dispatch:
+
+# Un déploiement à la fois, et **sans annulation**. Contrairement à la CI, on
+# ne coupe pas une exécution en cours : interrompre un `docker push` laisse une
+# image partielle, et interrompre une bascule laisse le service entre deux
+# versions.
+concurrency:
+  group: deploiement-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verifier:
+    name: Vérifications
+    # Réutilise CI telle quelle : un seul jeu de contrôles, impossible à
+    # désynchroniser d'avec celui des branches.
+    uses: ./.github/workflows/ci.yml
+
+  publier:
+    name: Publier l'image
+    needs: verifier
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    permissions:
+      contents: read
+      # Nécessaire pour pousser sur GHCR avec le jeton fourni par Actions :
+      # aucun identifiant de registre à gérer soi-même.
+      packages: write
+
+    outputs:
+      image: ${{ steps.metadonnees.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier les variables de construction
+        # Sans ce contrôle, une variable oubliée produit une image qui se
+        # construit parfaitement puis pointe vers `localhost` en production —
+        # panne silencieuse, et découverte par les utilisateurs.
+        #
+        # Les valeurs passent par `env:` et non par interpolation directe dans
+        # le script : une valeur contenant une apostrophe ou un guillemet
+        # casserait sinon la commande, et la règle vaut quelle que soit la
+        # confiance qu'on accorde à la source.
+        env:
+          URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          CLE: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SITE: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+        run: |
+          manquantes=""
+          [ -z "$URL" ]  && manquantes="$manquantes NEXT_PUBLIC_SUPABASE_URL"
+          [ -z "$CLE" ]  && manquantes="$manquantes NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          [ -z "$SITE" ] && manquantes="$manquantes NEXT_PUBLIC_SITE_URL"
+          if [ -n "$manquantes" ]; then
+            echo "::error::Variables de dépôt manquantes :$manquantes"
+            echo "Settings → Secrets and variables → Actions → onglet « Variables »."
+            exit 1
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: S'authentifier auprès de GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculer les étiquettes
+        id: metadonnees
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          # `latest` pour que le serveur ait une cible stable à tirer, et le
+          # SHA pour pouvoir revenir en arrière sur une version précise — un
+          # `latest` seul rend tout retour arrière impossible.
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - name: Construire et pousser
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.metadonnees.outputs.tags }}
+          labels: ${{ steps.metadonnees.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+
+  declencher:
+    name: Déclencher Coolify
+    needs: publier
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Appeler le webhook
+        # `-f` fait échouer curl sur une réponse HTTP d'erreur : sans lui, un
+        # 401 renvoyait un travail au vert et un déploiement qui n'a pas eu
+        # lieu. Trois tentatives, l'indisponibilité passagère d'un panneau de
+        # contrôle ne devant pas faire échouer une livraison par ailleurs saine.
+        env:
+          WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$WEBHOOK" ] || [ -z "$TOKEN" ]; then
+            echo "::notice::Coolify non configuré : l'image est publiée, la bascule reste manuelle."
+            echo "Sur le serveur : docker compose -f docker-compose.prod.yml pull && up -d"
+            exit 0
+          fi
+
+          curl -fsS --retry 3 --retry-delay 5 --retry-all-errors \
+               -X GET "$WEBHOOK" \
+               -H "Authorization: Bearer $TOKEN"
+
+          echo "::notice::Coolify prévenu : la bascule est en cours."

@@ -1,0 +1,35 @@
+# Dépendances et artefacts de build
+node_modules
+.next
+out
+build
+dist
+
+# Environnement (les secrets ne doivent jamais entrer dans une image)
+.env
+.env.*
+!.env.example
+
+# Contrôle de version et outillage
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Divers
+npm-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+coverage
+README.md
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+.dockerignore
+
+# Documentation et outillage de déploiement : rien de tout cela n'est utile à
+# l'image, et chaque fichier ajouté au contexte invalide le cache de build.
+DEPLOIEMENT.md
+scripts
+supabase/tests
