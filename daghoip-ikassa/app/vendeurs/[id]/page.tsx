@@ -47,12 +47,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const location = seller.city ? ` à ${seller.city}` : ' au Gabon';
 
+  const title = `${seller.full_name} — ${seller.ads_count} annonce${seller.ads_count > 1 ? 's' : ''}${location}`;
+  const description =
+    seller.bio?.slice(0, 155) ??
+    `Retrouvez les annonces de ${seller.full_name}${location} sur ${SITE.name}.`;
+
   return {
-    title: `${seller.full_name} — ${seller.ads_count} annonce${seller.ads_count > 1 ? 's' : ''}${location}`,
-    description:
-      seller.bio?.slice(0, 155) ??
-      `Retrouvez les annonces de ${seller.full_name}${location} sur ${SITE.name}.`,
+    title,
+    description,
     alternates: { canonical: `/vendeurs/${seller.id}` },
+    // Absentes jusqu'ici : un profil partagé sur WhatsApp n'affichait ni titre
+    // ni image propres. C'est pourtant le lien que diffusent les commerçants,
+    // en signature ou sur une carte de visite.
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+      url: `/vendeurs/${seller.id}`,
+      locale: 'fr_GA',
+      siteName: SITE.name,
+    },
+    twitter: { card: 'summary_large_image', title, description },
+    /*
+     * Un profil sans aucune annonce n'est pas un résultat de recherche utile :
+     * on le laisse accessible mais on ne le fait pas indexer, pour ne pas
+     * diluer le site avec des pages vides.
+     */
+    robots: seller.ads_count > 0 ? { index: true, follow: true } : { index: false, follow: true },
   };
 }
 

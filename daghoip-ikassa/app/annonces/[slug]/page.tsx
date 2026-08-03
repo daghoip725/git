@@ -42,18 +42,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const price = formatListingPrice(listing.price, listing.price_type);
   const description = truncate(listing.description.replace(/\s+/g, ' '), 155);
-  const coverUrl = getAdImageUrl(listing.images[0]?.storage_path);
+  const path = buildListingHref(listing.slug, listing.reference);
 
   return {
     title: `${listing.title} — ${price} à ${listing.city}`,
     description,
-    alternates: { canonical: buildListingHref(listing.slug, listing.reference) },
+    alternates: { canonical: path },
     openGraph: {
       title: listing.title,
       description,
       type: 'website',
-      images: coverUrl ? [{ url: coverUrl, alt: listing.title }] : undefined,
+      // `url` explicite : sans lui, l'aperçu partagé pointe vers l'adresse
+      // telle qu'elle a été copiée, paramètres de suivi compris.
+      url: path,
+      locale: 'fr_GA',
+      siteName: SITE.name,
+      /*
+       * Aucune image déclarée ici : `opengraph-image.tsx` compose une carte
+       * 1200×630 avec la photo, le titre, le prix et la ville. Redéclarer
+       * `images` ferait gagner la photo brute — souvent carrée, rognée dans les
+       * fils de discussion, et sans le prix, qui est ce qui décide du clic.
+       */
     },
+    twitter: { card: 'summary_large_image', title: listing.title, description },
     robots:
       listing.status === 'published'
         ? { index: true, follow: true }

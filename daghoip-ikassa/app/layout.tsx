@@ -34,13 +34,16 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
-    images: [{ url: SITE.logo, width: 1240, height: 1240, alt: SITE.name }],
+    /*
+     * Aucune image déclarée : `app/opengraph-image.tsx` en compose une au bon
+     * format (1200×630). Le logo carré déclaré ici auparavant s'affichait rogné
+     * dans les fils WhatsApp et Facebook, où l'aperçu attend un rectangle.
+     */
   },
   twitter: {
     card: 'summary_large_image',
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
-    images: [SITE.logo],
   },
   icons: {
     icon: SITE.logo,

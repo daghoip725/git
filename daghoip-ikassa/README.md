@@ -19,17 +19,18 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 6. [Paiements](#paiements)
 7. [Aides intelligentes](#aides-intelligentes)
 8. [Modèle de sécurité](#modèle-de-sécurité)
-9. [Modération](#modération)
-10. [Favoris et historiques](#favoris-et-historiques)
-11. [Notifications](#notifications)
-12. [Thème clair et sombre](#thème-clair-et-sombre)
-13. [Application installable (PWA)](#application-installable-pwa)
-14. [Performance et référencement](#performance-et-référencement)
-15. [Tests](#tests)
-16. [Identité visuelle](#identité-visuelle)
-17. [Docker](#docker)
-18. [Scripts](#scripts)
-19. [Exploitation](#exploitation)
+9. [Référencement et partage](#référencement-et-partage)
+10. [Modération](#modération)
+11. [Favoris et historiques](#favoris-et-historiques)
+12. [Notifications](#notifications)
+13. [Thème clair et sombre](#thème-clair-et-sombre)
+14. [Application installable (PWA)](#application-installable-pwa)
+15. [Performance](#performance)
+16. [Tests](#tests)
+17. [Identité visuelle](#identité-visuelle)
+18. [Docker](#docker)
+19. [Scripts](#scripts)
+20. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -509,6 +510,79 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
 
 ---
 
+## Référencement et partage
+
+### Ce qui a été mesuré, pas supposé
+
+Deux défauts silencieux ont été trouvés en interrogeant réellement les URL
+plutôt qu'en lisant le code :
+
+1. **`/sitemap.xml` renvoyait 404.** Next.js sert `/sitemap/0.xml`,
+   `/sitemap/1.xml`… quand on découpe le plan, mais **ne produit aucun index**
+   qui les référence — alors que `robots.txt` pointe vers `/sitemap.xml`. Le
+   build affichait pourtant « 3 sitemaps générés ». Google y aurait trouvé une
+   page d'erreur et le plan entier serait resté lettre morte. Un index est
+   désormais servi par `app/sitemap.xml/route.ts`.
+2. **Le numéro de fichier arrive en chaîne**, pas en nombre : la comparaison
+   stricte `id === 0` échouait, et le fichier des pages fixes partait chercher
+   des annonces sur une plage négative. Visible dans le journal de build
+   (`page: -1`), invisible autrement.
+
+### Images de partage
+
+Au Gabon, une annonce se partage sur WhatsApp. L'aperçu qui s'affiche dans la
+conversation **est** l'annonce, pour celui qui la reçoit. Un logo carré y
+tenait lieu d'illustration : autant envoyer une enveloppe vide.
+
+`opengraph-image.tsx` compose désormais une carte 1200×630 par page — photo,
+titre, prix, ville, badge « vendeur vérifié ». Trois variantes : le site,
+l'annonce, la fiche vendeur.
+
+> Les métadonnées ne déclarent plus d'`images` : une déclaration explicite
+> l'emporterait sur la carte générée et ferait gagner la photo brute, souvent
+> carrée et rognée dans les fils de discussion — sans le prix, qui est ce qui
+> décide du clic.
+
+Limite mesurée et assumée : dans le moteur de rendu de `next/og`, une `<img>`
+qui remplit son conteneur remplace le fond de celui-ci au lieu de s'y composer,
+et `background-image` avec une URL distante n'est pas rendue. Une photo à fond
+transparent apparaîtra donc sur fond clair chez le destinataire. Le cas est
+rare — les photos viennent d'appareils photo — et l'aperçu reste lisible.
+
+### Plan du site
+
+| Fichier           | Contenu                                     |
+| ----------------- | ------------------------------------------- |
+| `/sitemap.xml`    | index qui référence les suivants            |
+| `/sitemap/0.xml`  | pages fixes, catégories, **villes**         |
+| `/sitemap/1.xml`… | annonces publiées, 20 000 par fichier       |
+| suivants          | profils vendeurs ayant au moins une annonce |
+
+Les pages par ville sont nouvelles : « voiture Port-Gentil » est exactement ce
+qui se tape dans Google au Gabon, et seule la page nationale pouvait y répondre.
+Les profils vendeurs l'étaient aussi — un commerçant qui publie régulièrement a
+une page qui mérite d'être trouvée sur son nom.
+
+Le plan est construit avec un client Supabase **anonyme** : il ne liste que du
+public, la RLS s'applique donc pleinement et aucune clé secrète n'est requise au
+build.
+
+### robots.txt
+
+`/admin/` manquait à la liste d'exclusion. Chaque page d'administration
+parcourue est une annonce qui ne l'est pas — le budget d'exploration n'est pas
+extensible. À noter : `robots.txt` est public et n'a jamais protégé quoi que ce
+soit ; ce qui protège l'administration, c'est `requireRole()` et la RLS.
+
+### Données structurées
+
+`Organization` + `WebSite` + `SearchAction` sur l'accueil, `Product` +
+`BreadcrumbList` sur une annonce. Les canoniques des pages filtrées pointent
+vers la page de catégorie : des milliers d'URL pour un même inventaire diluent
+le signal au lieu de le concentrer.
+
+---
+
 ## Modération
 
 Trois niveaux, du plus ouvert au plus restreint.
@@ -673,7 +747,7 @@ conversation de quelqu'un d'autre. Le risque ne vaut pas la seconde gagnée.
 
 ---
 
-## Performance et référencement
+## Performance
 
 - **Images** : AVIF puis WebP, largeurs calées sur les `sizes` réellement
   demandées, un an de cache navigateur. `dangerouslyAllowSVG` reste à `false` —
@@ -685,11 +759,8 @@ conversation de quelqu'un d'autre. Le risque ne vaut pas la seconde gagnée.
   importer trois icônes ne doit pas tirer les mille autres.
 - **Polices** : pile système, aucun appel réseau. Sur une connexion mobile
   gabonaise, une police téléchargée coûte plus qu'elle ne rapporte.
-- **Données structurées** : `Organization` + `WebSite` + `SearchAction` sur
-  l'accueil, `Product` + `BreadcrumbList` sur une annonce.
-- **Canoniques** : les pages filtrées (`?q=`, `?ville=`, `?page=`) pointent vers
-  la page de catégorie. Des milliers d'URL pour un même inventaire diluent le
-  signal au lieu de le concentrer.
+  Le référencement a sa propre section :
+  [Référencement et partage](#référencement-et-partage).
 
 ---
 
