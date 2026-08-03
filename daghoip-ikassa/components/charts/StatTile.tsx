@@ -37,7 +37,7 @@ export function StatTile({
     <>
       {Icon ? (
         <Icon
-          className={cn('size-5', tone === 'alert' ? 'text-red-600' : 'text-brand-600')}
+          className={cn('size-5', tone === 'alert' ? 'text-red-700' : 'text-brand-600')}
           aria-hidden="true"
         />
       ) : null}
@@ -50,7 +50,7 @@ export function StatTile({
   );
 
   const classes = cn(
-    'rounded-xl border bg-white p-4',
+    'rounded-xl border bg-card p-4',
     tone === 'alert' ? 'border-red-200' : 'border-neutral-200',
     href && 'transition-colors hover:border-brand-300',
     className,

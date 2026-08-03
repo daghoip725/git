@@ -39,8 +39,8 @@ export function FavoriteButton({
         className={cn(
           'inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-5 text-sm font-semibold transition-colors',
           isFavorite
-            ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
-            : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
+            ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+            : 'border-neutral-300 bg-card text-neutral-700 hover:bg-neutral-50',
           isPending && 'opacity-60',
           className,
         )}
@@ -66,7 +66,7 @@ export function FavoriteButton({
       title={label}
       className={cn(
         'absolute top-2 right-2 z-10 flex size-9 items-center justify-center rounded-full',
-        'bg-white/90 shadow-sm backdrop-blur-sm transition-colors hover:bg-white',
+        'bg-card/90 shadow-sm backdrop-blur-sm transition-colors hover:bg-card',
         isPending && 'opacity-60',
         className,
       )}

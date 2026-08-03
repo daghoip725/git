@@ -44,10 +44,10 @@ export function CheckoutForm({
   providers,
   submitLabel,
 }: CheckoutFormProps) {
-  const [state, formAction, isPending] = useActionState<ActionResult<CheckoutData> | null, FormData>(
-    action,
-    null,
-  );
+  const [state, formAction, isPending] = useActionState<
+    ActionResult<CheckoutData> | null,
+    FormData
+  >(action, null);
 
   const [selected, setSelected] = useState(providers[0]?.code ?? '');
   const current = providers.find((provider) => provider.code === selected) ?? providers[0];
@@ -81,7 +81,7 @@ export function CheckoutForm({
             className={cn(
               'flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors',
               selected === provider.code
-                ? 'border-brand-700 bg-brand-50'
+                ? 'border-brand-800 bg-brand-50'
                 : 'border-neutral-200 hover:border-neutral-300',
             )}
           >
@@ -91,7 +91,7 @@ export function CheckoutForm({
               value={provider.code}
               checked={selected === provider.code}
               onChange={() => setSelected(provider.code)}
-              className="mt-0.5 size-4 accent-[var(--color-brand-700)]"
+              className="mt-0.5 size-4 accent-[var(--color-brand-800)]"
             />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-neutral-900">{provider.label}</span>
@@ -144,7 +144,7 @@ function CheckoutOutcome({ data }: { data: CheckoutData }) {
           Votre demande reste enregistrée sous la référence{' '}
           <strong className="font-semibold text-neutral-900">{reference}</strong>. Vous pouvez la
           relancer depuis{' '}
-          <a href="/compte/paiements" className="font-semibold text-brand-700 underline">
+          <a href="/compte/paiements" className="font-semibold text-brand-800 underline">
             votre historique de paiements
           </a>
           .
@@ -198,15 +198,15 @@ function CheckoutOutcome({ data }: { data: CheckoutData }) {
         {initiation.message}
       </Alert>
       <p className="flex items-center gap-2 text-sm text-neutral-600">
-        <Loader2 className="size-4 animate-spin text-brand-700" aria-hidden="true" />
+        <Loader2 className="size-4 animate-spin text-brand-800" aria-hidden="true" />
         {/* Honnêteté : la confirmation n'arrive pas dans cette page mais par le
             rappel de l'opérateur, qui peut prendre une minute. */}
         La confirmation peut prendre jusqu’à une minute. Vous recevrez une notification.
       </p>
       <p className="text-sm text-neutral-600">
-        Référence :{' '}
-        <strong className="font-semibold text-neutral-900">{reference}</strong> — suivi dans{' '}
-        <a href="/compte/paiements" className="font-semibold text-brand-700 underline">
+        Référence : <strong className="font-semibold text-neutral-900">{reference}</strong> — suivi
+        dans{' '}
+        <a href="/compte/paiements" className="font-semibold text-brand-800 underline">
           votre historique
         </a>
         .

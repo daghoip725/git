@@ -20,9 +20,9 @@ export default function ContactPage() {
       <div className="mt-8 space-y-3">
         <a
           href={`mailto:${SITE.supportEmail}`}
-          className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-brand-300"
+          className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-card p-4 transition-colors hover:border-brand-300"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
             <Mail className="size-5" aria-hidden="true" />
           </span>
           <span>
@@ -31,8 +31,8 @@ export default function ContactPage() {
           </span>
         </a>
 
-        <div className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+        <div className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-card p-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
             <MapPin className="size-5" aria-hidden="true" />
           </span>
           <span>
@@ -43,9 +43,9 @@ export default function ContactPage() {
 
         <Link
           href="/securite"
-          className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-brand-300"
+          className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-card p-4 transition-colors hover:border-brand-300"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
             <MessageSquare className="size-5" aria-hidden="true" />
           </span>
           <span>

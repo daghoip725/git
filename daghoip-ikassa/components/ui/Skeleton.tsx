@@ -12,7 +12,7 @@ export function Skeleton({ className }: SkeletonProps) {
 /** Squelette d'une carte d'annonce, utilisé par les `loading.tsx`. */
 export function ListingCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-card">
       <Skeleton className="aspect-4/3 w-full rounded-none" />
       <div className="space-y-2 p-3">
         <Skeleton className="h-4 w-3/4" />

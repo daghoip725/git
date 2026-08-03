@@ -56,7 +56,7 @@ export function Modal({
       ref={dialogRef}
       aria-labelledby="modal-title"
       className={cn(
-        'm-auto w-[calc(100vw-2rem)] max-w-lg rounded-xl bg-white p-0 shadow-2xl',
+        'm-auto w-[calc(100vw-2rem)] max-w-lg rounded-xl bg-card p-0 shadow-2xl',
         'backdrop:bg-neutral-900/50 backdrop:backdrop-blur-sm',
         className,
       )}

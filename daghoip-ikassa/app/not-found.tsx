@@ -5,7 +5,7 @@ import { ButtonLink } from '@/components/ui/Button';
 export default function NotFound() {
   return (
     <div className="container-app flex max-w-lg flex-col items-center py-20 text-center">
-      <span className="mb-6 flex size-20 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+      <span className="mb-6 flex size-20 items-center justify-center rounded-full bg-brand-50 text-brand-800">
         <SearchX className="size-10" aria-hidden="true" />
       </span>
 

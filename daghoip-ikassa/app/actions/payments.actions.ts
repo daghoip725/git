@@ -44,9 +44,7 @@ const checkoutSchema = z.object({
     // Les codes d'offre sont des identifiants techniques : les borner évite
     // qu'une valeur exotique ne se retrouve dans une requête.
     .regex(/^[a-z0-9_-]+$/i, 'Offre inconnue.'),
-  provider: z
-    .string()
-    .refine(isAvailableProvider, 'Ce moyen de paiement n’est pas disponible.'),
+  provider: z.string().refine(isAvailableProvider, 'Ce moyen de paiement n’est pas disponible.'),
   payerPhone: z.string().max(30).optional(),
 });
 
@@ -61,7 +59,13 @@ const paymentIdSchema = z.string().uuid('Paiement introuvable.');
  */
 async function initiateWithProvider(
   providerCode: string,
-  payment: { id: string; reference: string; amount: number; currency: string; payer_phone: string | null },
+  payment: {
+    id: string;
+    reference: string;
+    amount: number;
+    currency: string;
+    payer_phone: string | null;
+  },
   label: string,
 ): Promise<InitiationResult> {
   const adapter = getProvider(providerCode);
@@ -85,16 +89,14 @@ async function initiateWithProvider(
     });
     return {
       kind: 'error',
-      message: 'La demande n’a pas pu être transmise à l’opérateur. Réessayez depuis votre historique.',
+      message:
+        'La demande n’a pas pu être transmise à l’opérateur. Réessayez depuis votre historique.',
     };
   }
 }
 
 /** Relit le paiement qui vient d'être créé, pour le transmettre à l'adaptateur. */
-async function readPayment(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  paymentId: string,
-) {
+async function readPayment(supabase: Awaited<ReturnType<typeof createClient>>, paymentId: string) {
   const { data, error } = await supabase
     .from('payments')
     .select('id, reference, amount, currency, payer_phone, metadata')
@@ -139,7 +141,11 @@ export async function startSubscriptionAction(
       payerPhone: formData.get('payerPhone') ?? undefined,
     });
     if (!parsed.success) {
-      return { success: false, error: 'Formulaire incomplet.', fieldErrors: toFieldErrors(parsed.error) };
+      return {
+        success: false,
+        error: 'Formulaire incomplet.',
+        fieldErrors: toFieldErrors(parsed.error),
+      };
     }
 
     const { data: paymentId, error } = await supabase.rpc('request_subscription', {

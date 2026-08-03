@@ -51,7 +51,7 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 10. `migrations/20260801001000_admin_stats.sql`
 11. `migrations/20260801001100_payments.sql`
 12. `migrations/20260801001200_ai_features.sql`
-11. `seed.sql`
+13. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -418,13 +418,13 @@ Quatre des six fonctionnalités demandées sont **calculées en base**, sans mod
 de langage : ce sont des questions statistiques et relationnelles, et un modèle
 y serait plus lent, plus cher, non déterministe et impossible à auditer.
 
-| Fonction | Où | Principe |
-| --- | --- | --- |
-| `suggest_price` | SQL | Médiane et quartiles des comparables sur 365 jours. Trois périmètres (ville → province → national) ; celui retenu est renvoyé. Zéro ligne sous 5 comparables. |
-| `find_duplicate_ads` | SQL | Similarité trigramme sur le titre, même catégorie. Distingue le doublon du même vendeur du recopiage par un tiers. |
-| `ad_fraud_signals` / `flagged_ads` | SQL | Score de règles pondérées, avec justification par signal. Personnel seulement. |
-| `recommend_ads` | SQL | Recommandation par le contenu, déduite des favoris. Repli sur les annonces populaires. |
-| Rédaction, correction | `lib/ai/` | Modèle de langage, facultatif. |
+| Fonction                           | Où        | Principe                                                                                                                                                      |
+| ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `suggest_price`                    | SQL       | Médiane et quartiles des comparables sur 365 jours. Trois périmètres (ville → province → national) ; celui retenu est renvoyé. Zéro ligne sous 5 comparables. |
+| `find_duplicate_ads`               | SQL       | Similarité trigramme sur le titre, même catégorie. Distingue le doublon du même vendeur du recopiage par un tiers.                                            |
+| `ad_fraud_signals` / `flagged_ads` | SQL       | Score de règles pondérées, avec justification par signal. Personnel seulement.                                                                                |
+| `recommend_ads`                    | SQL       | Recommandation par le contenu, déduite des favoris. Repli sur les annonces populaires.                                                                        |
+| Rédaction, correction              | `lib/ai/` | Modèle de langage, facultatif.                                                                                                                                |
 
 ### Ce que ces fonctions ne font pas
 
@@ -440,15 +440,15 @@ préremplit pas le champ : proposer un prix, ce serait le fixer.
 Choisis pour qu'**aucun signal isolé n'atteigne le seuil de revue** (50) : c'est
 la conjonction qui alerte, pas l'indice unique.
 
-| Signal | Poids |
-| --- | --- |
-| `contenu_interdit` | 60 |
-| `prix_aberrant` (moins de 35 % de la médiane) | 35 |
-| `paiement_anticipe` | 30 |
-| `compte_neuf_prolifique` | 25 |
-| `contact_hors_plateforme` | 20 |
-| `republication_en_serie` | 15 |
-| `sans_photo` | 10 |
+| Signal                                        | Poids |
+| --------------------------------------------- | ----- |
+| `contenu_interdit`                            | 60    |
+| `prix_aberrant` (moins de 35 % de la médiane) | 35    |
+| `paiement_anticipe`                           | 30    |
+| `compte_neuf_prolifique`                      | 25    |
+| `contact_hors_plateforme`                     | 20    |
+| `republication_en_serie`                      | 15    |
+| `sans_photo`                                  | 10    |
 
 Un vendeur nouveau n'est pas suspect ; un vendeur nouveau qui brade un article
 et renvoie vers WhatsApp en exigeant un acompte, si.

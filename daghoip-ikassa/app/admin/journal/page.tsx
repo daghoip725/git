@@ -46,7 +46,7 @@ export default async function AdminAuditPage() {
           {entries.map((entry) => (
             <li
               key={entry.id}
-              className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-neutral-200 bg-white p-3.5"
+              className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-neutral-200 bg-card p-3.5"
             >
               <div className="min-w-0">
                 <Badge tone={ACTION_TONES[entry.action]}>{ACTION_LABELS[entry.action]}</Badge>
@@ -66,7 +66,7 @@ export default async function AdminAuditPage() {
                 ) : null}
               </div>
 
-              <time dateTime={entry.created_at} className="shrink-0 text-xs text-neutral-400">
+              <time dateTime={entry.created_at} className="shrink-0 text-xs text-neutral-500">
                 {formatDateTime(entry.created_at)}
               </time>
             </li>

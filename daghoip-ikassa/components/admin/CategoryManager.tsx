@@ -57,7 +57,7 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
 
       <ul className="space-y-2">
         {roots.map((root) => (
-          <li key={root.id} className="rounded-xl border border-neutral-200 bg-white p-3">
+          <li key={root.id} className="rounded-xl border border-neutral-200 bg-card p-3">
             <CategoryLine
               category={root}
               onEdit={() => setEditing(root)}

@@ -32,9 +32,7 @@ export interface DescriptionBrief {
   notes?: string | null;
 }
 
-export type AssistantResult =
-  | { ok: true; text: string }
-  | { ok: false; message: string };
+export type AssistantResult = { ok: true; text: string } | { ok: false; message: string };
 
 export interface TextAssistant {
   readonly label: string;

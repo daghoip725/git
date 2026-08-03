@@ -101,7 +101,7 @@ export default async function AdminSettingsPage() {
           </p>
         </div>
 
-        <dl className="grid gap-x-6 gap-y-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm sm:grid-cols-2">
+        <dl className="grid gap-x-6 gap-y-2 rounded-xl border border-neutral-200 bg-card p-4 text-sm sm:grid-cols-2">
           {[
             ['Site', SITE.name],
             [

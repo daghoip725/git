@@ -90,7 +90,7 @@ export function UserRow({ user, viewerRole, viewerId }: UserRowProps) {
   }
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-4">
+    <article className="rounded-xl border border-neutral-200 bg-card p-4">
       <div className="flex flex-wrap items-start gap-3">
         <Avatar name={user.full_name} src={user.avatarUrl} size={44} />
 
@@ -118,7 +118,7 @@ export function UserRow({ user, viewerRole, viewerId }: UserRowProps) {
 
         {isPending ? (
           <Loader2
-            className="size-4 animate-spin self-center text-neutral-400"
+            className="size-4 animate-spin self-center text-neutral-500"
             aria-hidden="true"
           />
         ) : null}
@@ -135,7 +135,7 @@ export function UserRow({ user, viewerRole, viewerId }: UserRowProps) {
               onChange={(event) =>
                 run(() => setUserRoleAction(user.id, event.target.value as UserRole))
               }
-              className="h-9 rounded-lg border border-neutral-300 bg-white px-2 text-xs font-semibold text-neutral-800 focus:outline-none"
+              className="h-9 rounded-lg border border-neutral-300 bg-card px-2 text-xs font-semibold text-neutral-800 focus:outline-none"
               aria-label={`Rôle de ${user.full_name}`}
             >
               <option value="user">Utilisateur</option>
@@ -151,7 +151,7 @@ export function UserRow({ user, viewerRole, viewerId }: UserRowProps) {
               type="button"
               disabled={isPending}
               onClick={() => setStatusModal('suspended')}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-amber-200 px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-amber-200 px-3 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-50 disabled:opacity-50"
             >
               <ShieldOff className="size-3.5" aria-hidden="true" />
               Suspendre
@@ -172,7 +172,7 @@ export function UserRow({ user, viewerRole, viewerId }: UserRowProps) {
             type="button"
             disabled={isPending}
             onClick={() => run(() => setUserStatusAction(user.id, 'active'))}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-800 transition-colors hover:bg-brand-50 disabled:opacity-50"
           >
             <ShieldCheckIcon className="size-3.5" aria-hidden="true" />
             Réactiver

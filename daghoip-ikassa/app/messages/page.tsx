@@ -40,7 +40,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
         <Link
           href="/compte/blocages"
-          className="text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="text-sm font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Comptes bloqués
         </Link>

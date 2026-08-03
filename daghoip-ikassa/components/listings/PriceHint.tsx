@@ -59,7 +59,7 @@ export function PriceHint({ categoryId, city, condition }: PriceHintProps) {
 
   return (
     <p className="mt-1.5 flex items-start gap-1.5 text-xs text-neutral-600">
-      <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-brand-700" aria-hidden="true" />
+      <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-brand-800" aria-hidden="true" />
       <span>
         Annonces comparables {SCOPE_LABELS[suggestion.scope]} : la moitié se situe entre{' '}
         <strong className="font-semibold text-neutral-800">{formatPrice(suggestion.p25)}</strong> et{' '}

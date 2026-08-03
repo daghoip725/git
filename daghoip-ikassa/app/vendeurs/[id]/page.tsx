@@ -96,7 +96,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
   return (
     <div className="container-app max-w-5xl py-6 sm:py-10">
       {/* ------------------------------- En-tête ------------------------------- */}
-      <header className="rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
+      <header className="rounded-xl border border-neutral-200 bg-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <Avatar name={seller.full_name} src={getAvatarUrl(seller.avatar_path)} size={88} />
 
@@ -178,7 +178,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
             Ajoutez une description : elle rassure les acheteurs et figure sur toutes vos annonces.{' '}
             <Link
               href="/compte/profil"
-              className="font-semibold text-brand-700 underline underline-offset-2"
+              className="font-semibold text-brand-800 underline underline-offset-2"
             >
               La rédiger
             </Link>
@@ -222,7 +222,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
           {isOwner ? (
             <Link
               href="/compte/annonces"
-              className="text-sm font-semibold text-brand-700 underline underline-offset-2"
+              className="text-sm font-semibold text-brand-800 underline underline-offset-2"
             >
               Gérer mes annonces
             </Link>
@@ -267,7 +267,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
             </h2>
             <Link
               href="/compte/favoris"
-              className="text-sm font-semibold text-brand-700 underline underline-offset-2"
+              className="text-sm font-semibold text-brand-800 underline underline-offset-2"
             >
               Tout voir
             </Link>

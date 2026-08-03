@@ -70,7 +70,7 @@ export default async function AdminVerificationsPage({ searchParams }: PageProps
             className={cn(
               'flex-1 rounded-md px-3 py-2 text-center text-sm font-semibold transition-colors',
               status === tab.value
-                ? 'bg-white text-brand-800 shadow-sm'
+                ? 'bg-card text-brand-800 shadow-sm'
                 : 'text-neutral-600 hover:text-neutral-800',
             )}
           >

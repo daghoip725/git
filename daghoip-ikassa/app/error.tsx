@@ -24,7 +24,7 @@ export default function GlobalError({
 
   return (
     <div className="container-app flex max-w-lg flex-col items-center py-20 text-center">
-      <span className="mb-6 flex size-20 items-center justify-center rounded-full bg-red-50 text-red-600">
+      <span className="mb-6 flex size-20 items-center justify-center rounded-full bg-red-50 text-red-700">
         <AlertOctagon className="size-10" aria-hidden="true" />
       </span>
 
@@ -35,7 +35,7 @@ export default function GlobalError({
       </p>
 
       {error.digest ? (
-        <p className="mt-3 font-mono text-xs text-neutral-400">Référence : {error.digest}</p>
+        <p className="mt-3 font-mono text-xs text-neutral-500">Référence : {error.digest}</p>
       ) : null}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">

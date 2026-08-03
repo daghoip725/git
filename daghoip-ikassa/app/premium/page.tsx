@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   title: 'Abonnement Premium',
   description:
     'Vendez plus vite sur Daghoip Ikassa : plus d’annonces en ligne, plus de photos, mises en avant incluses et badge vendeur vérifié.',
+  // Canonique sans `?offre=` : toutes ces variantes présentent le même contenu.
+  alternates: { canonical: '/premium' },
 };
 
 interface PageProps {
@@ -87,9 +89,11 @@ export default async function PremiumPage({ searchParams }: PageProps) {
               ribbon={plan.code === activePlanCode ? 'Votre offre' : undefined}
               footer={
                 plan.price === 0 ? (
-                  <p className="text-xs text-neutral-500">Offre par défaut de tout nouveau compte.</p>
+                  <p className="text-xs text-neutral-500">
+                    Offre par défaut de tout nouveau compte.
+                  </p>
                 ) : plan.code === activePlanCode ? (
-                  <p className="text-xs font-medium text-brand-700">Offre actuellement active.</p>
+                  <p className="text-xs font-medium text-brand-800">Offre actuellement active.</p>
                 ) : (
                   <ButtonLink
                     href={`/premium?offre=${plan.code}#souscrire`}
@@ -110,7 +114,7 @@ export default async function PremiumPage({ searchParams }: PageProps) {
         <section
           id="souscrire"
           aria-labelledby="souscrire-titre"
-          className="mx-auto max-w-xl scroll-mt-28 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6"
+          className="mx-auto max-w-xl scroll-mt-28 rounded-xl border border-neutral-200 bg-card p-5 sm:p-6"
         >
           <h2 id="souscrire-titre" className="text-xl font-bold text-brand-900">
             Souscrire à l’offre {selected.name}
@@ -144,7 +148,7 @@ export default async function PremiumPage({ searchParams }: PageProps) {
           </div>
 
           <p className="mt-5 flex items-start gap-2 text-xs text-neutral-500">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-700" aria-hidden="true" />
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-800" aria-hidden="true" />
             Daghoip Ikassa ne conserve jamais votre code secret Mobile Money : la confirmation se
             fait sur votre téléphone, chez votre opérateur.
           </p>

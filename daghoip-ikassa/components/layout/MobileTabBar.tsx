@@ -50,7 +50,7 @@ export function MobileTabBar({ isAuthenticated, unreadCount = 0 }: MobileTabBarP
 
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className="relative grid grid-cols-5">
           {tabs.map((tab, index) => (
@@ -60,7 +60,7 @@ export function MobileTabBar({ isAuthenticated, unreadCount = 0 }: MobileTabBarP
                 aria-current={isActive(tab.href) ? 'page' : undefined}
                 className={cn(
                   'flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                  isActive(tab.href) ? 'text-brand-700' : 'text-neutral-500',
+                  isActive(tab.href) ? 'text-brand-800' : 'text-neutral-500',
                 )}
               >
                 <span className="relative">
@@ -80,7 +80,7 @@ export function MobileTabBar({ isAuthenticated, unreadCount = 0 }: MobileTabBarP
           <li className="pointer-events-none absolute inset-x-0 -top-5 flex justify-center">
             <Link
               href="/annonces/nouvelle"
-              className="pointer-events-auto flex size-14 flex-col items-center justify-center rounded-full bg-gold-500 text-brand-900 shadow-lg ring-4 shadow-gold-500/40 ring-white transition-transform active:scale-95"
+              className="pointer-events-auto flex size-14 flex-col items-center justify-center rounded-full bg-gold-500 text-brand-ink shadow-lg ring-4 shadow-gold-500/40 ring-white transition-transform active:scale-95"
             >
               <Plus className="size-6" aria-hidden="true" />
               <span className="sr-only">Déposer une annonce</span>

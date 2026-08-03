@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: 'Toutes les catégories',
   description:
     'Parcourez toutes les catégories d’annonces de Daghoip Ikassa : véhicules, immobilier, téléphones, emploi, services et bien plus au Gabon.',
+  alternates: { canonical: '/categories' },
 };
 
 export default async function CategoriesPage() {
@@ -30,19 +31,16 @@ export default async function CategoriesPage() {
           const children = all.filter((child) => child.parent_id === category.id);
 
           return (
-            <section
-              key={category.id}
-              className="rounded-xl border border-neutral-200 bg-white p-5"
-            >
+            <section key={category.id} className="rounded-xl border border-neutral-200 bg-card p-5">
               <Link
                 href={`/annonces?categorie=${category.slug}`}
                 className="flex items-center gap-3"
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
                   <CategoryIcon name={category.icon} className="size-5.5" />
                 </span>
                 <span className="min-w-0">
-                  <h2 className="font-bold text-brand-900 hover:text-brand-700">{category.name}</h2>
+                  <h2 className="font-bold text-brand-900 hover:text-brand-800">{category.name}</h2>
                   <span className="text-xs text-neutral-500">
                     {formatCompactNumber(category.listingsCount)} annonce
                     {category.listingsCount > 1 ? 's' : ''}
@@ -60,7 +58,7 @@ export default async function CategoriesPage() {
                     <li key={child.id}>
                       <Link
                         href={`/annonces?categorie=${child.slug}`}
-                        className="inline-block rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+                        className="inline-block rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-brand-50 hover:text-brand-800"
                       >
                         {child.name}
                       </Link>

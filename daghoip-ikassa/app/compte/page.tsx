@@ -63,7 +63,7 @@ export default async function AccountDashboardPage() {
           <Link
             key={card.label}
             href={card.href}
-            className="rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-brand-300"
+            className="rounded-xl border border-neutral-200 bg-card p-4 transition-colors hover:border-brand-300"
           >
             <card.icon className="size-5 text-brand-600" aria-hidden="true" />
             <p className="mt-2 text-2xl font-extrabold text-brand-900">
@@ -77,7 +77,7 @@ export default async function AccountDashboardPage() {
       {/* --------------------------- Offre en cours --------------------------- */}
       <section
         aria-labelledby="plan-title"
-        className="rounded-xl border border-neutral-200 bg-white p-5"
+        className="rounded-xl border border-neutral-200 bg-card p-5"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -98,7 +98,7 @@ export default async function AccountDashboardPage() {
         </div>
 
         {published >= quota ? (
-          <p className="mt-3 text-sm text-amber-700">
+          <p className="mt-3 text-sm text-amber-800">
             Vous avez atteint le quota de votre offre. Passez à une offre supérieure pour publier
             davantage d’annonces simultanément.
           </p>
@@ -113,7 +113,7 @@ export default async function AccountDashboardPage() {
           </h2>
           <Link
             href="/compte/annonces"
-            className="text-sm font-semibold text-brand-700 underline underline-offset-2"
+            className="text-sm font-semibold text-brand-800 underline underline-offset-2"
           >
             Tout gérer
           </Link>
@@ -122,11 +122,11 @@ export default async function AccountDashboardPage() {
         {ads.length > 0 ? (
           <ul className="space-y-3">
             {ads.slice(0, 4).map((ad) => (
-              <li key={ad.id} className="rounded-xl border border-neutral-200 bg-white p-4">
+              <li key={ad.id} className="rounded-xl border border-neutral-200 bg-card p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href={`/compte/annonces/${ad.id}/modifier`}
-                    className="font-semibold text-brand-900 hover:text-brand-700"
+                    className="font-semibold text-brand-900 hover:text-brand-800"
                   >
                     {ad.title}
                   </Link>
@@ -142,7 +142,7 @@ export default async function AccountDashboardPage() {
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-600">
+          <p className="rounded-xl border border-dashed border-neutral-300 bg-card p-8 text-center text-sm text-neutral-600">
             Vous n’avez pas encore publié d’annonce.
           </p>
         )}

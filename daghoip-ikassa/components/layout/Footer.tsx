@@ -2,6 +2,7 @@ import { Mail, MapPin, ShieldCheck, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 
 import { Logo } from '@/components/common/Logo';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { getRootCategories } from '@/services/categories.service';
 import { GABON_CITIES, GABON_PROVINCES, SITE } from '@/utils/constants';
 
@@ -41,9 +42,12 @@ export async function Footer() {
   const categories = (await getRootCategories()).slice(0, 8);
 
   return (
-    <footer className="mt-16 bg-brand-800 text-white/85">
+    <footer className="mt-16 bg-brand-ink text-white/85">
       {/* --------------------------- Bandeau confiance -------------------------- */}
-      <div className="border-b border-white/10 bg-brand-900/40">
+      {/* `bg-black/20` et non `bg-brand-900/40` : en mode sombre, brand-900 est
+          un vert clair (c'est une couleur de texte), ce bandeau s'éclaircirait
+          au lieu de se creuser. */}
+      <div className="border-b border-white/10 bg-black/20">
         <div className="container-app grid gap-6 py-8 sm:grid-cols-3">
           {[
             {
@@ -138,7 +142,7 @@ export async function Footer() {
 
         {/* --------------------------- Annonces par ville -------------------------- */}
         <nav aria-label="Annonces par ville" className="mt-10 border-t border-white/10 pt-6">
-          <h2 className="text-xs font-bold tracking-wide text-white/50 uppercase">
+          <h2 className="text-xs font-bold tracking-wide text-white/70 uppercase">
             Annonces par ville
           </h2>
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
@@ -162,10 +166,15 @@ export async function Footer() {
           <p className="text-xs text-white/60">
             © {new Date().getFullYear()} {SITE.name}. Tous droits réservés.
           </p>
-          <p className="flex items-center gap-2 text-xs text-white/60">
-            <ShieldCheck className="size-4 text-gold-400" aria-hidden="true" />
-            Ne payez jamais avant d’avoir vu l’article.
-          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="flex items-center gap-2 text-xs text-white/60">
+              <ShieldCheck className="size-4 text-gold-400" aria-hidden="true" />
+              Ne payez jamais avant d’avoir vu l’article.
+            </p>
+            {/* Le sélecteur de thème vit en pied de page : c'est un réglage, pas
+                une action fréquente, et l'en-tête mobile est déjà chargé. */}
+            <ThemeToggle inverted />
+          </div>
         </div>
       </div>
     </footer>

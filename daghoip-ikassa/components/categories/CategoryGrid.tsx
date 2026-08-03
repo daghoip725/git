@@ -36,7 +36,7 @@ export function CategoryGrid({ categories, scrollOnMobile = false, className }: 
               'hover:shadow-[var(--shadow-card-hover)]',
             )}
           >
-            <span className="flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white">
+            <span className="flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-800 transition-colors group-hover:bg-brand-700 group-hover:text-white">
               <CategoryIcon name={category.icon} className="size-6" />
             </span>
 

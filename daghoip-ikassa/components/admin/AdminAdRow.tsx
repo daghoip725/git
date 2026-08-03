@@ -50,7 +50,7 @@ export function AdminAdRow({ ad }: { ad: AdminAd }) {
   }
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-4">
+    <article className="rounded-xl border border-neutral-200 bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@ export function AdminAdRow({ ad }: { ad: AdminAd }) {
             {formatListingPrice(ad.price, 'fixed')} · {ad.views_count} vue
             {ad.views_count > 1 ? 's' : ''}
           </p>
-          <p className="mt-0.5 text-xs text-neutral-400">
+          <p className="mt-0.5 text-xs text-neutral-500">
             Réf. {ad.reference} · {ad.category?.name ?? 'Sans catégorie'} ·{' '}
             {formatRelativeDate(ad.created_at)}
           </p>
@@ -79,7 +79,7 @@ export function AdminAdRow({ ad }: { ad: AdminAd }) {
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
         <Link
           href={buildListingHref(ad.slug, ad.reference)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-brand-700"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-brand-800"
         >
           <Eye className="size-4" aria-hidden="true" />
           Voir

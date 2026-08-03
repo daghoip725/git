@@ -1,6 +1,9 @@
 import { Clock, Flame, LayoutGrid, Sparkles, Wand2 } from 'lucide-react';
 
+import type { Metadata } from 'next';
+
 import { CategoryGrid } from '@/components/categories/CategoryGrid';
+import { JsonLd, organizationSchema } from '@/components/seo/JsonLd';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Hero } from '@/components/home/Hero';
 import { HowItWorks } from '@/components/home/HowItWorks';
@@ -8,6 +11,7 @@ import { PublishCTA } from '@/components/home/PublishCTA';
 import { SectionHeading } from '@/components/home/SectionHeading';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { ButtonLink } from '@/components/ui/Button';
+import { getSiteUrl } from '@/lib/env';
 import { getCurrentUser } from '@/lib/supabase/server';
 import {
   getFavoriteAdIds,
@@ -18,6 +22,11 @@ import {
   getRecommendedAds,
 } from '@/services/ads.service';
 import { getCategories, getRootCategoriesWithCounts } from '@/services/categories.service';
+import { SITE } from '@/utils/constants';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 /**
  * Page d'accueil.
@@ -54,8 +63,41 @@ export default async function HomePage() {
   const isAuthenticated = Boolean(user);
   const isEmpty = featured.length === 0 && popular.length === 0 && recent.length === 0;
 
+  const siteUrl = getSiteUrl();
+
   return (
     <>
+      {/*
+        Graphe Schema.org du site : l'organisation, le site lui-même, et
+        l'action de recherche qui permet à Google d'afficher un champ de
+        recherche directement dans ses résultats.
+      */}
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            organizationSchema(siteUrl, SITE.name, SITE.logo),
+            {
+              '@type': 'WebSite',
+              '@id': `${siteUrl}/#site`,
+              url: siteUrl,
+              name: SITE.name,
+              description: SITE.description,
+              inLanguage: 'fr-GA',
+              publisher: { '@id': `${siteUrl}/#organisation` },
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                  '@type': 'EntryPoint',
+                  urlTemplate: `${siteUrl}/annonces?q={search_term_string}`,
+                },
+                'query-input': 'required name=search_term_string',
+              },
+            },
+          ],
+        }}
+      />
+
       <Hero categories={allCategories} stats={stats} />
 
       {/* ------------------------------ Catégories ------------------------------ */}

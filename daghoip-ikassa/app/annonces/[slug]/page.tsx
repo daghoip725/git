@@ -14,6 +14,7 @@ import { MessageSellerForm } from '@/components/listings/MessageSellerForm';
 import { ReportDialog } from '@/components/listings/ReportDialog';
 import { SellerCard } from '@/components/listings/SellerCard';
 import { ShareButton } from '@/components/listings/ShareButton';
+import { JsonLd, breadcrumbSchema } from '@/components/seo/JsonLd';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { getSiteUrl } from '@/lib/env';
@@ -132,22 +133,40 @@ export default async function ListingDetailPage({ params }: PageProps) {
 
   return (
     <div className="container-app py-6 sm:py-8">
-      <script
-        type="application/ld+json"
-        // Contenu généré par nous à partir de données typées : pas d'injection possible.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      {/* Produit + fil d'Ariane dans un même graphe : Google les relie par
+          leurs identifiants plutôt que de les traiter comme deux pages. */}
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            jsonLd,
+            breadcrumbSchema(getSiteUrl(), [
+              { name: 'Accueil', path: '/' },
+              { name: 'Annonces', path: '/annonces' },
+              ...(listing.category
+                ? [
+                    {
+                      name: listing.category.name,
+                      path: `/annonces?categorie=${listing.category.slug}`,
+                    },
+                  ]
+                : []),
+              { name: listing.title, path: href },
+            ]),
+          ],
+        }}
       />
 
       <nav aria-label="Fil d’Ariane" className="mb-4 text-sm text-neutral-500">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href="/" className="hover:text-brand-700">
+            <Link href="/" className="hover:text-brand-800">
               Accueil
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href="/annonces" className="hover:text-brand-700">
+            <Link href="/annonces" className="hover:text-brand-800">
               Annonces
             </Link>
           </li>
@@ -157,7 +176,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               <li>
                 <Link
                   href={`/annonces?categorie=${listing.category.slug}`}
-                  className="hover:text-brand-700"
+                  className="hover:text-brand-800"
                 >
                   {listing.category.name}
                 </Link>
@@ -189,7 +208,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               {listing.title}
             </h1>
 
-            <p className="mt-2 text-3xl font-extrabold text-brand-700">{price}</p>
+            <p className="mt-2 text-3xl font-extrabold text-brand-800">{price}</p>
 
             <ul className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-neutral-600">
               <li className="flex items-center gap-1.5">
@@ -244,7 +263,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               </Link>
             </Alert>
           ) : (
-            <div className="space-y-4 rounded-xl border border-neutral-200 bg-white p-4">
+            <div className="space-y-4 rounded-xl border border-neutral-200 bg-card p-4">
               <div>
                 <h2 className="mb-3 font-bold text-brand-900">Contacter le vendeur</h2>
                 <ContactActions
@@ -327,7 +346,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
                 lui — de préférence dans un endroit public et fréquenté.
                 <Link
                   href={`/annonces?ville=${encodeURIComponent(listing.city)}`}
-                  className="mt-2 block font-semibold text-brand-700 underline underline-offset-2"
+                  className="mt-2 block font-semibold text-brand-800 underline underline-offset-2"
                 >
                   Voir les annonces à {listing.city}
                 </Link>

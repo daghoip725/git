@@ -42,12 +42,12 @@ export function HowItWorks() {
           {STEPS.map((step, index) => (
             <li
               key={step.title}
-              className="relative rounded-xl border border-neutral-200 bg-white p-5"
+              className="relative rounded-xl border border-neutral-200 bg-card p-5"
             >
-              <span className="absolute -top-3 left-5 flex size-7 items-center justify-center rounded-full bg-gold-500 text-sm font-extrabold text-brand-900">
+              <span className="absolute -top-3 left-5 flex size-7 items-center justify-center rounded-full bg-gold-500 text-sm font-extrabold text-brand-ink">
                 {index + 1}
               </span>
-              <span className="mt-2 flex size-11 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+              <span className="mt-2 flex size-11 items-center justify-center rounded-lg bg-brand-50 text-brand-800">
                 <step.icon className="size-5.5" aria-hidden="true" />
               </span>
               <h3 className="mt-3 font-bold text-brand-900">{step.title}</h3>

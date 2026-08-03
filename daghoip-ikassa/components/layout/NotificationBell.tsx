@@ -122,7 +122,7 @@ export function NotificationBell({
       >
         <Bell className="size-5" aria-hidden="true" />
         {unreadCount > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4.5 items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-brand-900">
+          <span className="absolute -top-0.5 -right-0.5 flex min-w-4.5 items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-brand-ink">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         ) : null}
@@ -132,7 +132,7 @@ export function NotificationBell({
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
+          className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-neutral-200 bg-card shadow-2xl"
         >
           <div className="flex items-center justify-between gap-2 border-b border-neutral-200 p-3">
             <h2 className="text-sm font-bold text-brand-900">Notifications</h2>
@@ -141,7 +141,7 @@ export function NotificationBell({
                 type="button"
                 onClick={markAllRead}
                 disabled={isPending}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800 disabled:opacity-50"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-800 hover:text-brand-800 disabled:opacity-50"
               >
                 {isPending ? (
                   <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -180,7 +180,7 @@ export function NotificationBell({
                       ) : null}
                       <time
                         dateTime={notification.created_at}
-                        className="mt-1 block text-[11px] text-neutral-400"
+                        className="mt-1 block text-[11px] text-neutral-500"
                       >
                         {formatRelativeDate(notification.created_at)}
                       </time>

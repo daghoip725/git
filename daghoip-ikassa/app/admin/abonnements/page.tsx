@@ -58,7 +58,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
           aria-current={!status ? 'page' : undefined}
           className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
             !status
-              ? 'border-brand-700 bg-brand-700 text-white'
+              ? 'border-brand-800 bg-brand-700 text-white'
               : 'border-neutral-300 text-neutral-700 hover:border-brand-500'
           }`}
         >
@@ -71,7 +71,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
             aria-current={status === value ? 'page' : undefined}
             className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
               status === value
-                ? 'border-brand-700 bg-brand-700 text-white'
+                ? 'border-brand-800 bg-brand-700 text-white'
                 : 'border-neutral-300 text-neutral-700 hover:border-brand-500'
             }`}
           >
@@ -85,7 +85,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
       </p>
 
       {subscriptions.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-card">
           <table className="w-full min-w-160 text-sm">
             <caption className="sr-only">Liste des abonnements</caption>
             <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs text-neutral-600">
@@ -117,12 +117,12 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
                     {subscription.user ? (
                       <Link
                         href={`/vendeurs/${subscription.user.id}`}
-                        className="text-brand-700 hover:underline"
+                        className="text-brand-800 hover:underline"
                       >
                         {subscription.user.full_name}
                       </Link>
                     ) : (
-                      <span className="text-neutral-400">Compte supprimé</span>
+                      <span className="text-neutral-500">Compte supprimé</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-neutral-700">{subscription.plan?.name ?? '—'}</td>

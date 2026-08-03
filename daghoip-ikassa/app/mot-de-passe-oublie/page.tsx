@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-neutral-200 bg-card p-6 shadow-sm">
         {state?.success ? (
           <Alert tone="success" title="E-mail envoyé">
             Si un compte est associé à cette adresse, vous recevrez un lien de réinitialisation dans
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
         <p className="mt-4 text-center text-sm text-neutral-600">
           <Link
             href="/connexion"
-            className="font-semibold text-brand-700 underline underline-offset-2"
+            className="font-semibold text-brand-800 underline underline-offset-2"
           >
             Retour à la connexion
           </Link>

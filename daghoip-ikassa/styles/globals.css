@@ -34,8 +34,36 @@
 
   --color-ivory: #fcfcfc;
 
+  /*
+   * Jetons de surface, en clair par défaut.
+   *
+   * `card` existe séparément de `white` pour une raison précise : `text-white`
+   * doit rester blanc dans les deux thèmes (il s'écrit sur le vert de marque),
+   * alors que le fond des cartes doit s'assombrir. Confondre les deux dans
+   * `bg-white` rendait le mode sombre impossible sans réécrire chaque écran.
+   */
+  --color-card: #ffffff;
   --color-surface: #fcfcfc;
   --color-surface-muted: #f4f6f5;
+
+  /*
+   * Bordure des champs de saisie. Distincte de `neutral-300`, qui sert aux
+   * séparations décoratives : la WCAG demande 3:1 pour la limite d'un composant
+   * d'interface, et `neutral-300` sur blanc plafonne à 1,5:1 — le contour d'un
+   * champ y était donc invisible pour une part des utilisateurs.
+   */
+  --color-field: #8a8a8a;
+
+  /*
+   * Vert profond de surface, **identique dans les deux thèmes**.
+   *
+   * Le pied de page et le survol des boutons primaires s'écrivent dessus en
+   * blanc : cette teinte doit rester sombre quel que soit le thème. La faire
+   * porter par `brand-800` ne marchait pas, ce palier servant aussi de couleur
+   * de texte — il devient clair en mode sombre, et le pied de page virait au
+   * vert pâle avec du texte blanc dessus.
+   */
+  --color-brand-ink: #073d27;
 
   /*
    * Pile système : aucun appel réseau au build ni au runtime, ce qui garantit
@@ -53,6 +81,97 @@
   --shadow-gold: 0 1px 2px rgb(200 159 74 / 0.12), 0 12px 28px -14px rgb(200 159 74 / 0.45);
 }
 
+/*
+ * =============================================================================
+ *  Mode sombre
+ * =============================================================================
+ *  Tailwind 4 compile chaque utilitaire de couleur en `var(--color-…)`.
+ *  Redéfinir ces variables dans une portée sombre bascule donc **toute**
+ *  l'interface, sans toucher aux quelque neuf cents classes du projet. C'est le
+ *  seul moyen d'obtenir un mode sombre cohérent sans réécrire chaque écran — et
+ *  surtout sans que le prochain composant écrit oublie de le gérer.
+ *
+ *  Deux principes ont guidé les valeurs :
+ *
+ *   1. **L'échelle neutre s'inverse.** `text-neutral-800` reste « le texte
+ *      principal » et `bg-neutral-100` « un fond légèrement contrasté » : le
+ *      sens de chaque palier est conservé, seule sa luminosité change.
+ *   2. **Le vert de marque ne s'inverse pas au milieu.** `bg-brand-700` reste
+ *      le vert profond de l'en-tête et des boutons : c'est l'identité visuelle,
+ *      elle ne doit pas changer selon l'heure de la journée. Seuls les paliers
+ *      *de texte* (800, 900) et *de fond teinté* (50, 100, 200) permutent, car
+ *      eux dépendent du fond sur lequel ils se posent.
+ *
+ *  Les gris sont légèrement verdis plutôt que neutres : sur un fond parfaitement
+ *  gris, le vert de marque paraît sale. Un soupçon de vert dans les neutres le
+ *  fait ressortir sans qu'on puisse nommer pourquoi.
+ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-card: #141b18;
+  --color-surface: #0d1310;
+  --color-surface-muted: #1a221e;
+
+  --color-field: #6b7a73;
+
+  --color-neutral-50: #171e1a;
+  --color-neutral-100: #1e2723;
+  --color-neutral-200: #2b3631;
+  --color-neutral-300: #3b4842;
+  --color-neutral-400: #8c9a93;
+  --color-neutral-500: #a3b0a9;
+  --color-neutral-600: #bcc7c1;
+  --color-neutral-700: #d2dbd6;
+  --color-neutral-800: #e4ebe7;
+  --color-neutral-900: #f3f7f5;
+
+  /* Fonds teintés : ce qui était un vert très clair devient un vert très sombre. */
+  --color-brand-50: #0e2a1e;
+  --color-brand-100: #123726;
+  --color-brand-200: #1b4b34;
+  /* Textes verts : ce qui était presque noir devient franchement clair. */
+  --color-brand-800: #a5dcc2;
+  --color-brand-900: #c8ecd9;
+
+  --color-gold-50: #2b2313;
+  --color-gold-100: #3a2f19;
+  --color-gold-700: #e2c98a;
+  --color-gold-800: #efdcae;
+
+  /*
+   * Couleurs de statut. Même partage que pour la marque : les paliers de fond
+   * (50–200) s'assombrissent, les paliers de texte (700–900) s'éclaircissent,
+   * et les paliers saturés (500, 600) ne bougent pas — ce sont eux qui portent
+   * le bouton « Supprimer » et l'anneau d'erreur, qui doivent rester rouges.
+   */
+  --color-red-50: #2a1416;
+  --color-red-100: #3a1a1e;
+  --color-red-200: #55252b;
+  --color-red-700: #ffb4b4;
+  --color-red-800: #ffcccc;
+  --color-red-900: #ffe0e0;
+
+  --color-emerald-50: #0d2620;
+  --color-emerald-100: #123329;
+  --color-emerald-200: #1d4a3d;
+  --color-emerald-800: #a7e7cd;
+  --color-emerald-900: #c8f2e0;
+
+  --color-amber-50: #2a2110;
+  --color-amber-100: #3a2d16;
+  --color-amber-200: #55401a;
+  --color-amber-800: #f0d08a;
+  --color-amber-900: #f7e2b4;
+
+  /*
+   * Ombres : sur fond sombre, une ombre noire ne se voit pas. On les renforce
+   * et on les fait porter par un halo plutôt que par une projection.
+   */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 32px -16px rgb(0 0 0 / 0.7);
+}
+
 @layer base {
   * {
     @apply border-neutral-200;
@@ -68,9 +187,21 @@
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
+  /*
+   * Aucune transition sur le changement de thème : animer la couleur de fond de
+   * centaines d'éléments à la fois produit un fondu poussif sur les téléphones
+   * d'entrée de gamme, majoritaires ici. La bascule instantanée est plus nette.
+   */
+
+  /* Les images photographiques sont légèrement adoucies en mode sombre : à
+     pleine luminosité sur un fond très sombre, elles éblouissent. */
+  [data-theme='dark'] img:not([src$='.svg']) {
+    filter: brightness(0.92);
+  }
+
   /* Anneau de focus accessible, cohérent avec la charte. */
   :focus-visible {
-    @apply rounded-sm outline-2 outline-offset-2 outline-brand-700;
+    @apply rounded-sm outline-2 outline-offset-2 outline-brand-800;
   }
 
   /* Neutralise les flèches des inputs numériques (prix). */

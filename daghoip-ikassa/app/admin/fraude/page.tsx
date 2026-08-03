@@ -62,7 +62,7 @@ export default async function AdminFraudPage({ searchParams }: PageProps) {
             aria-current={threshold === value ? 'page' : undefined}
             className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
               threshold === value
-                ? 'border-brand-700 bg-brand-700 text-white'
+                ? 'border-brand-800 bg-brand-700 text-white'
                 : 'border-neutral-300 text-neutral-700 hover:border-brand-500'
             }`}
           >
@@ -74,7 +74,7 @@ export default async function AdminFraudPage({ searchParams }: PageProps) {
       {flagged.length > 0 ? (
         <ul className="space-y-3">
           {flagged.map((ad) => (
-            <li key={ad.id} className="rounded-xl border border-neutral-200 bg-white p-4">
+            <li key={ad.id} className="rounded-xl border border-neutral-200 bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
@@ -108,7 +108,7 @@ export default async function AdminFraudPage({ searchParams }: PageProps) {
 
               <p className="mt-3 text-xs text-neutral-500">
                 Pour agir, ouvrez l’annonce depuis{' '}
-                <Link href="/admin/annonces" className="font-semibold text-brand-700 underline">
+                <Link href="/admin/annonces" className="font-semibold text-brand-800 underline">
                   la modération des annonces
                 </Link>
                 .

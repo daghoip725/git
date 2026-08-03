@@ -60,7 +60,7 @@ export function ReviewForm({ revieweeId, revieweeName }: ReviewFormProps) {
   return (
     <form
       action={formAction}
-      className="space-y-3 rounded-xl border border-neutral-200 bg-white p-4"
+      className="space-y-3 rounded-xl border border-neutral-200 bg-card p-4"
     >
       <h3 className="font-bold text-brand-900">Évaluer {revieweeName}</h3>
 
@@ -68,7 +68,7 @@ export function ReviewForm({ revieweeId, revieweeName }: ReviewFormProps) {
 
       <RatingInput name="rating" disabled={isPending} />
       {state?.success === false && state.fieldErrors?.rating ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {state.fieldErrors.rating[0]}
         </p>
       ) : null}
@@ -87,7 +87,7 @@ export function ReviewForm({ revieweeId, revieweeName }: ReviewFormProps) {
           placeholder="Décrivez votre expérience : accueil, conformité de l’article, ponctualité…"
           className="mt-1.5 w-full resize-y rounded-lg border border-neutral-300 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none"
         />
-        <p className="mt-1 text-right text-xs text-neutral-400" aria-live="polite">
+        <p className="mt-1 text-right text-xs text-neutral-500" aria-live="polite">
           {comment.length} / {COMMENT_MAX}
         </p>
       </div>

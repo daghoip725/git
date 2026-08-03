@@ -43,7 +43,7 @@ export function AuthMethodTabs({
             className={cn(
               'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors',
               method === id
-                ? 'bg-white text-brand-800 shadow-sm'
+                ? 'bg-card text-brand-800 shadow-sm'
                 : 'text-neutral-600 hover:text-neutral-800',
             )}
           >

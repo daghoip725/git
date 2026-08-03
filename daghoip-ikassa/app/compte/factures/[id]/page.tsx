@@ -51,7 +51,7 @@ export default async function InvoicePage({ params }: PageProps) {
       <div className="flex items-center justify-between gap-3 print:hidden">
         <Link
           href="/compte/paiements"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-800 hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Retour aux paiements
@@ -60,7 +60,7 @@ export default async function InvoicePage({ params }: PageProps) {
         <PrintButton />
       </div>
 
-      <article className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 print:border-0 print:p-0">
+      <article className="rounded-xl border border-neutral-200 bg-card p-6 sm:p-8 print:border-0 print:p-0">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-6">
           <div>
             {/* `href={null}` : sur une facture imprimée, un lien n'a pas de sens. */}
@@ -98,10 +98,8 @@ export default async function InvoicePage({ params }: PageProps) {
             <p className="mt-1.5 text-sm text-neutral-700">
               {PROVIDER_LABELS[invoice.provider] ?? invoice.provider}
             </p>
-            <p className="text-sm text-neutral-600">
-              Réglée le {formatLongDate(invoice.paid_at)}
-            </p>
-            <p className="mt-0.5 font-mono text-xs text-neutral-400">{invoice.reference}</p>
+            <p className="text-sm text-neutral-600">Réglée le {formatLongDate(invoice.paid_at)}</p>
+            <p className="mt-0.5 font-mono text-xs text-neutral-500">{invoice.reference}</p>
           </div>
         </section>
 
@@ -142,9 +140,7 @@ export default async function InvoicePage({ params }: PageProps) {
             Facture acquittée — aucun montant restant dû. Montants exprimés en francs CFA (XAF),
             toutes taxes comprises.
           </p>
-          <p className="mt-1">
-            Pour toute réclamation, indiquez la référence {invoice.reference}.
-          </p>
+          <p className="mt-1">Pour toute réclamation, indiquez la référence {invoice.reference}.</p>
         </footer>
       </article>
     </div>

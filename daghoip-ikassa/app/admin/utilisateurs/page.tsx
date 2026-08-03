@@ -49,7 +49,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       {/* Filtres : formulaire GET, l'état reste dans l'URL. */}
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4"
+        className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-card p-4"
       >
         <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-sm">
           <span className="font-medium text-neutral-800">Rechercher</span>
@@ -67,7 +67,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           <select
             name="role"
             defaultValue={roleParam ?? ''}
-            className="h-10 rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:outline-none"
+            className="h-10 rounded-lg border border-neutral-300 bg-card px-3 text-sm focus:outline-none"
           >
             <option value="">Tous</option>
             <option value="user">Utilisateur</option>
@@ -81,7 +81,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           <select
             name="statut"
             defaultValue={statusParam ?? ''}
-            className="h-10 rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:outline-none"
+            className="h-10 rounded-lg border border-neutral-300 bg-card px-3 text-sm focus:outline-none"
           >
             <option value="">Tous</option>
             <option value="active">Actif</option>
@@ -92,7 +92,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
         <button
           type="submit"
-          className="h-10 rounded-lg bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          className="h-10 rounded-lg bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-ink"
         >
           Filtrer
         </button>

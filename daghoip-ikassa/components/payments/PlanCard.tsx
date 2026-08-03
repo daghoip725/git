@@ -56,7 +56,7 @@ export function PlanCard({ plan, highlighted = false, ribbon, footer }: PlanCard
   return (
     <article
       className={cn(
-        'relative flex flex-col rounded-xl border bg-white p-5',
+        'relative flex flex-col rounded-xl border bg-card p-5',
         highlighted ? 'border-gold-400 ring-1 ring-gold-300' : 'border-neutral-200',
       )}
     >
@@ -87,7 +87,7 @@ export function PlanCard({ plan, highlighted = false, ribbon, footer }: PlanCard
       <ul className="mt-4 flex-1 space-y-2 text-sm text-neutral-700">
         {planBenefits(plan).map((benefit) => (
           <li key={benefit} className="flex items-start gap-2">
-            <Check className="mt-0.5 size-4 shrink-0 text-brand-700" aria-hidden="true" />
+            <Check className="mt-0.5 size-4 shrink-0 text-brand-800" aria-hidden="true" />
             {benefit}
           </li>
         ))}

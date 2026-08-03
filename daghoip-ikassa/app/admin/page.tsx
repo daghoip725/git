@@ -171,7 +171,7 @@ export default async function AdminOverviewPage() {
             <li key={href}>
               <Link
                 href={href}
-                className="flex h-full gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-brand-300"
+                className="flex h-full gap-3 rounded-xl border border-neutral-200 bg-card p-4 transition-colors hover:border-brand-300"
               >
                 <Icon className="mt-0.5 size-5 shrink-0 text-brand-600" aria-hidden="true" />
                 <span>
@@ -192,7 +192,7 @@ export default async function AdminOverviewPage() {
 
         <ul className="space-y-2">
           {(Object.keys(ROLE_LABELS) as UserRole[]).map((key) => (
-            <li key={key} className="rounded-xl border border-neutral-200 bg-white p-4">
+            <li key={key} className="rounded-xl border border-neutral-200 bg-card p-4">
               <p className="font-semibold text-brand-900">{ROLE_LABELS[key]}</p>
               <p className="mt-0.5 text-sm text-neutral-600">{ROLE_DESCRIPTIONS[key]}</p>
             </li>

@@ -126,9 +126,9 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
         role="search"
         onSubmit={submit}
         className={cn(
-          'flex w-full items-stretch overflow-hidden rounded-xl bg-white ring-1 ring-neutral-300',
+          'flex w-full items-stretch overflow-hidden rounded-xl bg-card ring-1 ring-neutral-300',
           'shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-brand-500',
-          size === 'lg' && 'shadow-lg shadow-brand-900/10 sm:rounded-2xl',
+          size === 'lg' && 'shadow-lg shadow-black/20 sm:rounded-2xl',
         )}
       >
         {/* --------------------------- Terme recherché --------------------------- */}
@@ -158,14 +158,14 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
             aria-controls={listboxId}
             aria-autocomplete="list"
             className={cn(
-              'w-full bg-transparent px-4 text-sm text-neutral-900 outline-none placeholder:text-neutral-400',
+              'w-full bg-transparent px-4 text-sm text-neutral-900 outline-none placeholder:text-neutral-500',
               height,
             )}
           />
 
           {isLoading ? (
             <Loader2
-              className="absolute right-2 size-4 animate-spin text-neutral-400"
+              className="absolute right-2 size-4 animate-spin text-neutral-500"
               aria-hidden="true"
             />
           ) : query ? (
@@ -176,7 +176,7 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
                 setSuggestions([]);
               }}
               aria-label="Effacer la recherche"
-              className="absolute right-1 rounded-full p-1.5 text-neutral-400 hover:text-neutral-600"
+              className="absolute right-1 rounded-full p-1.5 text-neutral-500 hover:text-neutral-600"
             >
               <X className="size-4" aria-hidden="true" />
             </button>
@@ -220,7 +220,7 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
             </label>
             <div className="relative hidden items-center sm:flex">
               <MapPin
-                className="pointer-events-none absolute left-3 size-4 text-neutral-400"
+                className="pointer-events-none absolute left-3 size-4 text-neutral-500"
                 aria-hidden="true"
               />
               <select
@@ -248,7 +248,7 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
           className={cn(
             // `shrink-0` : le formulaire est en `overflow-hidden` ; sans cela le
             // bouton cède de la place au champ et son libellé se retrouve rogné.
-            'flex shrink-0 items-center gap-2 bg-brand-700 px-4 font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-800 sm:px-6',
+            'flex shrink-0 items-center gap-2 bg-brand-700 px-4 font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-ink sm:px-6',
             height,
           )}
         >
@@ -264,7 +264,7 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
           id={listboxId}
           role="listbox"
           aria-label="Suggestions"
-          className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 text-left shadow-xl"
+          className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-card py-1 text-left shadow-xl"
         >
           {suggestions.map((suggestion, index) => (
             <li key={suggestion.reference} role="option" aria-selected={index === activeIndex}>
@@ -280,7 +280,7 @@ export function SearchBar({ className, size = 'md', showCity = true, categories 
                   index === activeIndex && 'bg-brand-50 text-brand-900',
                 )}
               >
-                <Search className="size-3.5 shrink-0 text-neutral-400" aria-hidden="true" />
+                <Search className="size-3.5 shrink-0 text-neutral-500" aria-hidden="true" />
                 <span className="truncate">{suggestion.title}</span>
               </button>
             </li>

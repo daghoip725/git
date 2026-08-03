@@ -117,7 +117,10 @@ async function ask(system: string, prompt: string): Promise<AssistantResult> {
     });
 
     if (!response.ok) {
-      logger.error('Assistant de rédaction : réponse en erreur', new Error(`HTTP ${response.status}`));
+      logger.error(
+        'Assistant de rédaction : réponse en erreur',
+        new Error(`HTTP ${response.status}`),
+      );
       return {
         ok: false,
         message: 'L’assistant est momentanément indisponible. Réessayez dans un instant.',

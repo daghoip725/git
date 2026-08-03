@@ -49,7 +49,7 @@ export function ListingCard({
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-xl border bg-white transition-all',
+        'group relative overflow-hidden rounded-xl border bg-card transition-all',
         isSponsored
           ? 'border-gold-300 shadow-[var(--shadow-gold)] hover:-translate-y-0.5'
           : 'border-neutral-200 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)]',
@@ -80,7 +80,7 @@ export function ListingCard({
           )}
 
           {isSponsored || listing.is_featured ? (
-            <span className="absolute top-2 left-2 rounded-full bg-gold-500 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-brand-900 uppercase">
+            <span className="absolute top-2 left-2 rounded-full bg-gold-500 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-brand-ink uppercase">
               {isSponsored ? 'Sponsorisé' : 'À la une'}
             </span>
           ) : null}
@@ -91,7 +91,7 @@ export function ListingCard({
             {listing.title}
           </h3>
 
-          <p className="mt-1.5 text-base font-extrabold text-brand-700">{price}</p>
+          <p className="mt-1.5 text-base font-extrabold text-brand-800">{price}</p>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
             <MapPin className="size-3.5 shrink-0" aria-hidden="true" />

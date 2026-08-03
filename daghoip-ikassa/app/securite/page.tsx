@@ -30,7 +30,7 @@ export default function SecurityPage() {
   return (
     <div className="container-app max-w-3xl py-8 sm:py-12">
       <header className="mb-8">
-        <span className="mb-4 inline-flex size-14 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+        <span className="mb-4 inline-flex size-14 items-center justify-center rounded-full bg-brand-50 text-brand-800">
           <ShieldCheck className="size-7" aria-hidden="true" />
         </span>
         <h1 className="text-2xl font-extrabold text-brand-900 sm:text-3xl">
@@ -45,7 +45,7 @@ export default function SecurityPage() {
 
       <section aria-labelledby="do-title" className="mb-8">
         <h2 id="do-title" className="mb-3 flex items-center gap-2 text-lg font-bold text-brand-900">
-          <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+          <CheckCircle2 className="size-5 text-emerald-800" aria-hidden="true" />
           Les bons réflexes
         </h2>
         <ul className="space-y-2">
@@ -65,7 +65,7 @@ export default function SecurityPage() {
           id="dont-title"
           className="mb-3 flex items-center gap-2 text-lg font-bold text-brand-900"
         >
-          <AlertTriangle className="size-5 text-red-600" aria-hidden="true" />
+          <AlertTriangle className="size-5 text-red-700" aria-hidden="true" />
           Les pièges à éviter
         </h2>
         <ul className="space-y-2">

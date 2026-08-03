@@ -88,7 +88,7 @@ export function MessageSellerForm({
             <button
               type="button"
               onClick={() => setBody(suggestion)}
-              className="rounded-full border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:border-brand-500 hover:text-brand-700"
+              className="rounded-full border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 transition-colors hover:border-brand-500 hover:text-brand-800"
             >
               {suggestion}
             </button>

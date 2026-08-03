@@ -148,7 +148,7 @@ export function MessageComposer({
 
   if (disabledReason) {
     return (
-      <div className="sticky bottom-16 border-t border-neutral-200 bg-white/95 py-3 backdrop-blur md:bottom-0">
+      <div className="sticky bottom-16 border-t border-neutral-200 bg-card/95 py-3 backdrop-blur md:bottom-0">
         <Alert tone="warning">{disabledReason}</Alert>
       </div>
     );
@@ -159,7 +159,7 @@ export function MessageComposer({
       onSubmit={handleSubmit}
       // `bottom-16` sur mobile : la barre d'onglets est fixée en bas d'écran,
       // une barre collante à `bottom-0` passerait derrière elle.
-      className="sticky bottom-16 space-y-2 border-t border-neutral-200 bg-white/95 py-3 backdrop-blur md:bottom-0"
+      className="sticky bottom-16 space-y-2 border-t border-neutral-200 bg-card/95 py-3 backdrop-blur md:bottom-0"
     >
       {photo ? (
         <div className="relative inline-block">
@@ -228,7 +228,7 @@ export function MessageComposer({
           type="submit"
           disabled={isSending || (!body.trim() && !photo)}
           aria-label="Envoyer"
-          className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-white transition-colors hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isSending ? (
             <Loader2 className="size-4.5 animate-spin" aria-hidden="true" />

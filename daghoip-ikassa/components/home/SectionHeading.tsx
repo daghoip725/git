@@ -39,7 +39,7 @@ export function SectionHeading({
             <span
               className={cn(
                 'flex size-9 shrink-0 items-center justify-center rounded-lg',
-                tone === 'gold' ? 'bg-gold-100 text-gold-700' : 'bg-brand-50 text-brand-700',
+                tone === 'gold' ? 'bg-gold-100 text-gold-700' : 'bg-brand-50 text-brand-800',
               )}
             >
               <Icon className="size-5" />
@@ -61,7 +61,7 @@ export function SectionHeading({
       {link ? (
         <Link
           href={link.href}
-          className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-700 transition-colors hover:text-brand-800"
+          className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-800 transition-colors hover:text-brand-800"
         >
           {link.label}
           <ArrowRight

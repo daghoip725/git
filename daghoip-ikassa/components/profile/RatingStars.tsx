@@ -89,7 +89,7 @@ export function RatingInput({ name, defaultValue = 0, disabled }: RatingInputPro
             />
             <Star
               className={cn(
-                'size-7 transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-700',
+                'size-7 transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-800',
                 star <= shown ? 'fill-gold-500 text-gold-500' : 'text-neutral-300',
               )}
               aria-hidden="true"

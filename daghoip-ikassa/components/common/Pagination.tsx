@@ -33,7 +33,7 @@ export function Pagination({ page, totalPages, buildHref }: PaginationProps) {
         aria-disabled={page === 1}
         className={cn(
           itemClass,
-          'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
+          'border-neutral-300 bg-card text-neutral-700 hover:bg-neutral-50',
           page === 1 && 'pointer-events-none opacity-40',
         )}
       >
@@ -42,10 +42,10 @@ export function Pagination({ page, totalPages, buildHref }: PaginationProps) {
 
       {pages[0] !== 1 ? (
         <>
-          <Link href={buildHref(1)} className={cn(itemClass, 'border-neutral-300 bg-white')}>
+          <Link href={buildHref(1)} className={cn(itemClass, 'border-neutral-300 bg-card')}>
             1
           </Link>
-          <span className="px-1 text-neutral-400" aria-hidden="true">
+          <span className="px-1 text-neutral-500" aria-hidden="true">
             …
           </span>
         </>
@@ -59,8 +59,8 @@ export function Pagination({ page, totalPages, buildHref }: PaginationProps) {
           className={cn(
             itemClass,
             pageNumber === page
-              ? 'border-brand-700 bg-brand-700 text-white'
-              : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
+              ? 'border-brand-800 bg-brand-700 text-white'
+              : 'border-neutral-300 bg-card text-neutral-700 hover:bg-neutral-50',
           )}
         >
           {pageNumber}
@@ -69,12 +69,12 @@ export function Pagination({ page, totalPages, buildHref }: PaginationProps) {
 
       {pages[pages.length - 1] !== totalPages ? (
         <>
-          <span className="px-1 text-neutral-400" aria-hidden="true">
+          <span className="px-1 text-neutral-500" aria-hidden="true">
             …
           </span>
           <Link
             href={buildHref(totalPages)}
-            className={cn(itemClass, 'border-neutral-300 bg-white')}
+            className={cn(itemClass, 'border-neutral-300 bg-card')}
           >
             {totalPages}
           </Link>
@@ -87,7 +87,7 @@ export function Pagination({ page, totalPages, buildHref }: PaginationProps) {
         aria-disabled={page === totalPages}
         className={cn(
           itemClass,
-          'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50',
+          'border-neutral-300 bg-card text-neutral-700 hover:bg-neutral-50',
           page === totalPages && 'pointer-events-none opacity-40',
         )}
       >

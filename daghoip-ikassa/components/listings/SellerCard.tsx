@@ -18,14 +18,14 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
   return (
     <section
       aria-label="Informations sur le vendeur"
-      className="rounded-xl border border-neutral-200 bg-white p-4"
+      className="rounded-xl border border-neutral-200 bg-card p-4"
     >
       <div className="flex items-start gap-3">
         <Avatar name={seller.full_name} src={getAvatarUrl(seller.avatar_path)} size={52} />
 
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-bold text-brand-900">
-            <Link href={`/vendeurs/${seller.id}`} className="truncate hover:text-brand-700">
+            <Link href={`/vendeurs/${seller.id}`} className="truncate hover:text-brand-800">
               {seller.full_name}
             </Link>
             {seller.is_verified ? <VerifiedBadge /> : null}
@@ -59,13 +59,13 @@ export function SellerCard({ seller, listingsCount }: SellerCardProps) {
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
         <Link
           href={`/vendeurs/${seller.id}`}
-          className="text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Voir son profil
         </Link>
         <Link
           href={`/annonces?vendeur=${seller.id}`}
-          className="text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Toutes ses annonces
         </Link>

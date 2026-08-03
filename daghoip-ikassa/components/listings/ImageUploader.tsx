@@ -125,7 +125,7 @@ export function ImageUploader({
             />
 
             {index === 0 ? (
-              <figcaption className="absolute top-1 left-1 flex items-center gap-1 rounded bg-gold-500 px-1.5 py-0.5 text-[10px] font-bold text-brand-900">
+              <figcaption className="absolute top-1 left-1 flex items-center gap-1 rounded bg-gold-500 px-1.5 py-0.5 text-[10px] font-bold text-brand-ink">
                 <Star className="size-3 fill-current" aria-hidden="true" />
                 Couverture
               </figcaption>
@@ -147,7 +147,7 @@ export function ImageUploader({
                   onClick={() => move(index, index - 1)}
                   disabled={index === 0}
                   aria-label="Déplacer vers la gauche"
-                  className="flex size-6 items-center justify-center rounded bg-white/90 text-neutral-700 disabled:opacity-30"
+                  className="flex size-6 items-center justify-center rounded bg-card/90 text-neutral-700 disabled:opacity-30"
                 >
                   <GripVertical className="size-3.5 rotate-90" aria-hidden="true" />
                 </button>
@@ -156,7 +156,7 @@ export function ImageUploader({
                   onClick={() => move(index, index + 1)}
                   disabled={index === images.length - 1}
                   aria-label="Déplacer vers la droite"
-                  className="flex size-6 items-center justify-center rounded bg-white/90 text-neutral-700 disabled:opacity-30"
+                  className="flex size-6 items-center justify-center rounded bg-card/90 text-neutral-700 disabled:opacity-30"
                 >
                   <GripVertical className="size-3.5 -rotate-90" aria-hidden="true" />
                 </button>
@@ -173,7 +173,7 @@ export function ImageUploader({
             className={cn(
               'flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed',
               'border-neutral-300 text-neutral-500 transition-colors',
-              'hover:border-brand-500 hover:text-brand-700 disabled:opacity-60',
+              'hover:border-brand-500 hover:text-brand-800 disabled:opacity-60',
             )}
           >
             {isUploading ? (

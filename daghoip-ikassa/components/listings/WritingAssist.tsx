@@ -19,11 +19,7 @@
 import { Check, Sparkles, SpellCheck, WandSparkles, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import {
-  proofreadAction,
-  tidyTextAction,
-  writeDescriptionAction,
-} from '@/app/actions/ai.actions';
+import { proofreadAction, tidyTextAction, writeDescriptionAction } from '@/app/actions/ai.actions';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 

@@ -37,7 +37,7 @@ export function SubscriptionPlanForm({ plan }: { plan: SubscriptionPlan }) {
     state?.success === false ? state.fieldErrors?.[field]?.[0] : undefined;
 
   return (
-    <form action={formAction} className="rounded-xl border border-neutral-200 bg-white p-4">
+    <form action={formAction} className="rounded-xl border border-neutral-200 bg-card p-4">
       <input type="hidden" name="id" value={plan.id} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -129,7 +129,7 @@ export function FeaturePlanForm({ plan }: { plan: AdFeaturePlan }) {
     state?.success === false ? state.fieldErrors?.[field]?.[0] : undefined;
 
   return (
-    <form action={formAction} className="rounded-xl border border-neutral-200 bg-white p-4">
+    <form action={formAction} className="rounded-xl border border-neutral-200 bg-card p-4">
       <input type="hidden" name="id" value={plan.id} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">

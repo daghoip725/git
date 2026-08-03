@@ -19,10 +19,17 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 6. [Paiements](#paiements)
 7. [Aides intelligentes](#aides-intelligentes)
 8. [Modèle de sécurité](#modèle-de-sécurité)
-9. [Identité visuelle](#identité-visuelle)
-10. [Docker](#docker)
-11. [Scripts](#scripts)
-12. [Exploitation](#exploitation)
+9. [Thème clair et sombre](#thème-clair-et-sombre)
+10. [Application installable (PWA)](#application-installable-pwa)
+11. [Performance et référencement](#performance-et-référencement)
+12. [Tests](#tests)
+13. [Identité visuelle](#identité-visuelle)
+14. [Docker](#docker)
+15. [Scripts](#scripts)
+16. [Exploitation](#exploitation)
+
+Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
+document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
 
 ---
 
@@ -91,18 +98,18 @@ update public.users set role = 'moderator' where id = '<uuid-utilisateur>';
 
 ## Variables d’environnement
 
-| Variable                        | Portée           | Obligatoire | Description                                                       |
-| ------------------------------- | ---------------- | ----------- | ----------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | client + serveur | ✅          | URL du projet Supabase                                            |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + serveur | ✅          | Clé publique ; l’autorisation réelle est assurée par la RLS       |
-| `NEXT_PUBLIC_SITE_URL`          | client + serveur | ✅ (prod)   | URL canonique, sans slash final (SEO, sitemap, redirections auth) |
-| `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌ (✅ pour encaisser) | Secret ; contourne la RLS. Requis pour appliquer les rappels d’opérateur |
-| `AIRTEL_MONEY_*`                | **serveur seul** | ❌          | `BASE_URL`, `CLIENT_ID`, `CLIENT_SECRET`, `CALLBACK_SECRET` — sans elles, Airtel Money n’est pas proposé |
-| `MOOV_MONEY_*`                  | **serveur seul** | ❌          | Idem pour Moov Money                                              |
-| `ANTHROPIC_API_KEY`             | **serveur seul** | ❌          | Active « Rédiger pour moi » et la correction orthographique       |
-| `AI_MODEL`                      | **serveur seul** | ❌          | Surcharge du modèle (défaut : le modèle rapide)                   |
-| `NEXT_PUBLIC_MAP_TILE_URL`      | client + serveur | ❌          | Gabarit de tuiles de la carte (défaut : OpenStreetMap)            |
-| `NEXT_PUBLIC_MAP_ATTRIBUTION`   | client + serveur | ❌          | Mention légale affichée sous la carte                             |
+| Variable                        | Portée           | Obligatoire            | Description                                                                                              |
+| ------------------------------- | ---------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | client + serveur | ✅                     | URL du projet Supabase                                                                                   |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + serveur | ✅                     | Clé publique ; l’autorisation réelle est assurée par la RLS                                              |
+| `NEXT_PUBLIC_SITE_URL`          | client + serveur | ✅ (prod)              | URL canonique, sans slash final (SEO, sitemap, redirections auth)                                        |
+| `SUPABASE_SERVICE_ROLE_KEY`     | **serveur seul** | ❌ (✅ pour encaisser) | Secret ; contourne la RLS. Requis pour appliquer les rappels d’opérateur                                 |
+| `AIRTEL_MONEY_*`                | **serveur seul** | ❌                     | `BASE_URL`, `CLIENT_ID`, `CLIENT_SECRET`, `CALLBACK_SECRET` — sans elles, Airtel Money n’est pas proposé |
+| `MOOV_MONEY_*`                  | **serveur seul** | ❌                     | Idem pour Moov Money                                                                                     |
+| `ANTHROPIC_API_KEY`             | **serveur seul** | ❌                     | Active « Rédiger pour moi » et la correction orthographique                                              |
+| `AI_MODEL`                      | **serveur seul** | ❌                     | Surcharge du modèle (défaut : le modèle rapide)                                                          |
+| `NEXT_PUBLIC_MAP_TILE_URL`      | client + serveur | ❌                     | Gabarit de tuiles de la carte (défaut : OpenStreetMap)                                                   |
+| `NEXT_PUBLIC_MAP_ATTRIBUTION`   | client + serveur | ❌                     | Mention légale affichée sous la carte                                                                    |
 
 Les variables publiques sont validées au démarrage par `lib/env.ts` : une clé
 absente ou malformée fait échouer le build avec un message explicite plutôt
@@ -304,8 +311,8 @@ Trois principes :
 
 ## Paiements
 
-**Le montant ne vient jamais du navigateur.** Le client n’envoie qu’un *code
-d’offre* ; `request_subscription()` et `request_ad_feature()` relisent le tarif
+**Le montant ne vient jamais du navigateur.** Le client n’envoie qu’un _code
+d’offre_ ; `request_subscription()` et `request_ad_feature()` relisent le tarif
 dans `subscription_plans` / `ad_feature_plans`, les seules tables qui font foi.
 Falsifier le prix affiché ne change rien au paiement créé.
 
@@ -496,6 +503,118 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
   échouer le build s’ils sont importés depuis un composant client.
 - **Anti-spam** : le numéro de téléphone d’une annonce n’est pas présent dans le
   HTML initial ; il n’est révélé qu’après un clic explicite.
+
+---
+
+## Thème clair et sombre
+
+Trois états : **clair**, **sombre**, **système** (défaut). Le troisième compte —
+un interrupteur à deux positions ne permet pas de dire « suis mon téléphone »,
+qui est pourtant le bon réglage pour la plupart des gens.
+
+### Comment c'est fait
+
+Tailwind 4 compile chaque utilitaire de couleur en `var(--color-…)`. Redéfinir
+ces variables sous `[data-theme='dark']` bascule donc toute l'interface, sans
+toucher aux ~900 classes de couleur du projet — et sans que le prochain
+composant écrit puisse « oublier » de gérer le mode sombre.
+
+Deux règles gouvernent les valeurs :
+
+- **l'échelle neutre s'inverse**, en conservant le sens de chaque palier :
+  `text-neutral-800` reste « le texte principal », `bg-neutral-100` reste « un
+  fond légèrement contrasté » ;
+- **le vert de marque ne s'inverse pas au milieu**. `bg-brand-700` reste le vert
+  profond de l'en-tête et des boutons : c'est l'identité visuelle, elle ne change
+  pas selon l'heure. Seuls permutent les paliers _de texte_ (800, 900) et _de
+  fond teinté_ (50–200), qui dépendent du fond sur lequel ils se posent.
+
+Trois jetons sémantiques rendent cela possible :
+
+| Jeton               | Rôle                    | Pourquoi il existe                                                                                                                     |
+| ------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-card`      | fond des cartes         | `text-white` doit rester blanc (il s'écrit sur le vert), `bg-white` doit s'assombrir. Les confondre rendait le mode sombre impossible. |
+| `--color-brand-ink` | vert profond de surface | Constant dans les deux thèmes : porte le pied de page et le survol des boutons primaires, où le texte est blanc.                       |
+| `--color-field`     | bordure des champs      | La WCAG demande 3:1 pour la limite d'un composant ; `neutral-300` sur blanc plafonne à 1,5:1.                                          |
+
+### Pas de clignotement
+
+Un script synchrone de six lignes pose `data-theme` dans le `<head>`, avant la
+première peinture. Sans lui, la page s'afficherait en clair puis basculerait —
+un éclair blanc en pleine nuit, exactement ce que le mode sombre évite.
+
+### Vérification
+
+Le contraste n'est pas estimé, il est **mesuré dans le navigateur** : les
+couleurs sont normalisées par un canvas (seul moyen fiable de lire `oklch()` et
+de composer les alphas), puis comparées paire par paire. Les deux thèmes passent
+WCAG AA sur l'ensemble des textes rendus.
+
+---
+
+## Application installable (PWA)
+
+Manifeste, service worker et page hors ligne. Sur mobile, le navigateur propose
+« Ajouter à l'écran d'accueil » ; l'icône ouvre l'application en plein écran,
+avec trois raccourcis (déposer une annonce, messages, mes annonces).
+
+### Ce qui est mis en cache — et ce qui ne l'est pas
+
+Les pages HTML ne sont **jamais** mises en cache. C'est une décision de
+sécurité, pas une limite technique : au Gabon, un téléphone est souvent partagé
+entre plusieurs personnes d'un même foyer ou d'un même commerce. Une page
+« Mes messages » servie depuis le cache après une déconnexion montrerait la
+conversation de quelqu'un d'autre. Le risque ne vaut pas la seconde gagnée.
+
+| Ressource                               | Stratégie                                       |
+| --------------------------------------- | ----------------------------------------------- |
+| `/_next/static/*` (nom haché, immuable) | cache d'abord                                   |
+| Images d'annonces                       | périmé pendant revalidation, 60 entrées max     |
+| Page hors ligne, logo                   | préchargés à l'installation                     |
+| Navigation HTML                         | réseau seul → page hors ligne en cas de coupure |
+| API, authentification, requêtes non-GET | jamais interceptées                             |
+
+---
+
+## Performance et référencement
+
+- **Images** : AVIF puis WebP, largeurs calées sur les `sizes` réellement
+  demandées, un an de cache navigateur. `dangerouslyAllowSVG` reste à `false` —
+  une image distante ne doit jamais pouvoir devenir un vecteur de script.
+- **Cache HTTP** : `immutable` sur les fichiers hachés ; `no-store` sur `/sw.js`,
+  car un service worker périmé continuerait de servir d'anciennes stratégies et
+  deviendrait impossible à corriger à distance.
+- **Bundle** : `optimizePackageImports` sur `lucide-react` et `date-fns` —
+  importer trois icônes ne doit pas tirer les mille autres.
+- **Polices** : pile système, aucun appel réseau. Sur une connexion mobile
+  gabonaise, une police téléchargée coûte plus qu'elle ne rapporte.
+- **Données structurées** : `Organization` + `WebSite` + `SearchAction` sur
+  l'accueil, `Product` + `BreadcrumbList` sur une annonce.
+- **Canoniques** : les pages filtrées (`?q=`, `?ville=`, `?page=`) pointent vers
+  la page de catégorie. Des milliers d'URL pour un même inventaire diluent le
+  signal au lieu de le concentrer.
+
+---
+
+## Tests
+
+Deux suites, exécutables hors ligne, sans service tiers :
+
+```bash
+npm test           # 58 tests unitaires (Node natif, zéro dépendance ajoutée)
+npm run test:sql   # 333 assertions sur un PostgreSQL jetable
+npm run verify     # typage + lint + tests + build
+```
+
+Les tests unitaires tournent avec `node --test` et le mode de retrait des types
+de Node 22 : pas de coureur de tests à installer, à configurer ni à maintenir.
+Un crochet de résolution (`tests/alias-hooks.mjs`) fait comprendre l'alias `@/`
+à Node, pour que les tests importent les modules **exactement** comme le fait le
+code de production.
+
+Ils couvrent le nettoyage typographique, la normalisation des numéros gabonais,
+les slugs et références d'annonces, la préférence de thème et la vérification de
+signature des rappels d'opérateur.
 
 ---
 

@@ -99,7 +99,7 @@ export function ConversationActions({
 
         {isPending ? (
           <Loader2
-            className="size-4 animate-spin self-center text-neutral-400"
+            className="size-4 animate-spin self-center text-neutral-500"
             aria-hidden="true"
           />
         ) : null}

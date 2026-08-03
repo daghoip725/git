@@ -57,7 +57,7 @@ export function CategoryNav({
   return (
     <nav
       aria-label="Catégories"
-      className="hidden border-t border-white/10 bg-brand-800/40 lg:block"
+      className="hidden border-t border-white/10 bg-brand-ink/40 lg:block"
     >
       <div className="container-app">
         <div ref={containerRef} className="relative flex items-center gap-1">
@@ -86,7 +86,7 @@ export function CategoryNav({
               </button>
 
               {open ? (
-                <div className="absolute top-full right-0 z-50 mt-1 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1.5 shadow-xl">
+                <div className="absolute top-full right-0 z-50 mt-1 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-card py-1.5 shadow-xl">
                   {overflow.map((category) => (
                     <Link
                       key={category.id}

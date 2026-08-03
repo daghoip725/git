@@ -38,7 +38,7 @@ export function UnblockButton({ userId, name }: UnblockButtonProps) {
         Débloquer
       </Button>
       {error ? (
-        <p role="alert" className="mt-1 text-xs font-medium text-red-600">
+        <p role="alert" className="mt-1 text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

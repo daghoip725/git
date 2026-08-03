@@ -45,7 +45,7 @@ export default async function VerificationPage() {
       {/* ------------------------------ Déjà vérifié ---------------------------- */}
       {profile?.is_verified ? (
         <div className="rounded-xl border border-brand-200 bg-brand-50 p-6 text-center">
-          <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-white">
+          <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-card">
             <ShieldCheck className="size-7 text-brand-600" aria-hidden="true" />
           </span>
           <h2 className="font-bold text-brand-900">Votre compte est vérifié</h2>
@@ -79,7 +79,7 @@ export default async function VerificationPage() {
             </Alert>
           ) : null}
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-5">
+          <section className="rounded-xl border border-neutral-200 bg-card p-5">
             <h2 className="flex items-center gap-2 font-bold text-brand-900">
               <BadgeCheck className="size-5 text-brand-600" aria-hidden="true" />
               Pourquoi se faire vérifier ?
@@ -96,7 +96,7 @@ export default async function VerificationPage() {
             </ul>
           </section>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="rounded-xl border border-neutral-200 bg-card p-5">
             <VerificationForm
               userId={user.id}
               defaultFullName={profile?.full_name ?? ''}
@@ -116,7 +116,7 @@ export default async function VerificationPage() {
             {requests.map((request) => (
               <li
                 key={request.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm"
+                className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-card px-3.5 py-2.5 text-sm"
               >
                 <span className="text-neutral-700">
                   {
@@ -128,7 +128,7 @@ export default async function VerificationPage() {
                     }[request.status]
                   }
                 </span>
-                <time dateTime={request.created_at} className="text-xs text-neutral-400">
+                <time dateTime={request.created_at} className="text-xs text-neutral-500">
                   {formatLongDate(request.created_at)}
                 </time>
               </li>

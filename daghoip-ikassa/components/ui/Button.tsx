@@ -15,11 +15,11 @@ const BASE =
   'focus-visible:outline-2 focus-visible:outline-offset-2';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-brand-700 text-white hover:bg-brand-800 focus-visible:outline-brand-700',
+  primary: 'bg-brand-700 text-white hover:bg-brand-ink focus-visible:outline-brand-800',
   secondary: 'bg-brand-500 text-white hover:bg-brand-600 focus-visible:outline-brand-500',
-  gold: 'bg-gold-500 text-brand-900 hover:bg-gold-600 hover:text-white focus-visible:outline-gold-600',
+  gold: 'bg-gold-500 text-brand-ink hover:bg-gold-600 hover:text-white focus-visible:outline-gold-600',
   outline:
-    'border border-brand-700 bg-transparent text-brand-700 hover:bg-brand-50 focus-visible:outline-brand-700',
+    'border border-brand-800 bg-transparent text-brand-800 hover:bg-brand-50 focus-visible:outline-brand-800',
   ghost: 'bg-transparent text-neutral-700 hover:bg-neutral-100 focus-visible:outline-neutral-400',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600',
 };

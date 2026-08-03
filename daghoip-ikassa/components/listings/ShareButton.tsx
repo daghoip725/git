@@ -37,11 +37,11 @@ export function ShareButton({ title, url }: ShareButtonProps) {
     <button
       type="button"
       onClick={handleShare}
-      className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-card px-5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
     >
       {copied ? (
         <>
-          <Check className="size-4.5 text-emerald-600" aria-hidden="true" />
+          <Check className="size-4.5 text-emerald-800" aria-hidden="true" />
           Lien copié
         </>
       ) : (

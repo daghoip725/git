@@ -182,7 +182,7 @@ export function ListingMap({ latitude, longitude, locationLabel }: ListingMapPro
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
           onKeyDown={handleKeyDown}
-          className="relative h-64 w-full cursor-grab touch-pan-y select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700 active:cursor-grabbing sm:h-80"
+          className="relative h-64 w-full cursor-grab touch-pan-y select-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-800 active:cursor-grabbing sm:h-80"
         >
           {tiles.map((tile) => (
             // Tuiles servies telles quelles : les faire passer par
@@ -208,7 +208,7 @@ export function ListingMap({ latitude, longitude, locationLabel }: ListingMapPro
             <>
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute rounded-full border-2 border-brand-700/70 bg-brand-600/20"
+                className="pointer-events-none absolute rounded-full border-2 border-brand-800/70 bg-brand-600/20"
                 style={{
                   left: markerLeft - radiusPx,
                   top: markerTop - radiusPx,
@@ -264,7 +264,7 @@ export function ListingMap({ latitude, longitude, locationLabel }: ListingMapPro
           href={openStreetMapLink(latitude, longitude, zoom)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="inline-flex items-center gap-1.5 font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Voir sur OpenStreetMap
           <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -273,7 +273,7 @@ export function ListingMap({ latitude, longitude, locationLabel }: ListingMapPro
           href={googleMapsLink(latitude, longitude)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="inline-flex items-center gap-1.5 font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Itinéraire
           <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -299,8 +299,8 @@ function MapControl({ label, onClick, icon, disabled }: MapControlProps) {
       aria-label={label}
       title={label}
       className={cn(
-        'flex size-8 items-center justify-center rounded-md border border-neutral-300 bg-white/95 text-neutral-700 shadow-sm transition-colors',
-        disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-white hover:text-brand-700',
+        'flex size-8 items-center justify-center rounded-md border border-neutral-300 bg-card/95 text-neutral-700 shadow-sm transition-colors',
+        disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-card hover:text-brand-800',
       )}
     >
       {icon}

@@ -37,7 +37,7 @@ export default async function BlockedAccountsPage() {
           {blocked.map((account) => (
             <li
               key={account.user_id}
-              className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3"
+              className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-card p-3"
             >
               <Avatar name={account.full_name} src={getAvatarUrl(account.avatar_path)} size={40} />
 

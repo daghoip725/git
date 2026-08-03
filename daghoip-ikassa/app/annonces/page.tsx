@@ -67,6 +67,12 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   return {
     title: parts.join(' '),
     description: `Découvrez ${parts.join(' ')} sur Daghoip Ikassa. Achetez et vendez en toute confiance au Gabon.`,
+    /*
+     * Canonique **sans les filtres** : `?q=`, `?page=`, `?ville=` produisent des
+     * milliers d'URL pour un même inventaire. Les pointer toutes vers la page de
+     * catégorie concentre le signal au lieu de le diluer.
+     */
+    alternates: { canonical: category ? `/annonces?categorie=${category.slug}` : '/annonces' },
     // Les pages de recherche filtrées ne sont pas indexées (contenu dupliqué).
     robots: query || city ? { index: false, follow: true } : undefined,
   };

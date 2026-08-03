@@ -38,7 +38,7 @@ export function BarList({
   items,
   format = 'number',
   emptyLabel = 'Aucune donnée pour l’instant.',
-  color = 'var(--color-brand-700)',
+  color = 'var(--color-brand-800)',
   className,
 }: BarListProps) {
   const titleId = useId();
@@ -48,7 +48,7 @@ export function BarList({
 
   return (
     <figure
-      className={cn('rounded-xl border border-neutral-200 bg-white p-4', className)}
+      className={cn('rounded-xl border border-neutral-200 bg-card p-4', className)}
       aria-labelledby={titleId}
     >
       <figcaption className="mb-3">

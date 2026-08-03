@@ -164,7 +164,7 @@ export function ListingFilters({
       {/* Colonne desktop */}
       <aside
         aria-label="Filtres de recherche"
-        className="hidden rounded-xl border border-neutral-200 bg-white p-4 lg:block"
+        className="hidden rounded-xl border border-neutral-200 bg-card p-4 lg:block"
       >
         <h2 className="mb-4 font-bold text-brand-900">Filtrer les annonces</h2>
         {panel}
@@ -174,8 +174,8 @@ export function ListingFilters({
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-neutral-900/50" onClick={() => setOpen(false)} />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-2xl bg-white">
-            <div className="sticky top-0 flex items-center justify-between border-b border-neutral-200 bg-white p-4">
+          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-2xl bg-card">
+            <div className="sticky top-0 flex items-center justify-between border-b border-neutral-200 bg-card p-4">
               <h2 className="font-bold text-brand-900">Filtrer les annonces</h2>
               <button
                 type="button"
@@ -187,7 +187,7 @@ export function ListingFilters({
               </button>
             </div>
             <div className="p-4">{panel}</div>
-            <div className="sticky bottom-0 border-t border-neutral-200 bg-white p-4">
+            <div className="sticky bottom-0 border-t border-neutral-200 bg-card p-4">
               <Button type="button" fullWidth size="lg" onClick={() => setOpen(false)}>
                 Voir les résultats
               </Button>
@@ -251,7 +251,7 @@ function PriceRangeFilter({ min, max, onChange }: PriceRangeFilterProps) {
           onKeyDown={(event) => event.key === 'Enter' && commit()}
           className={inputClass}
         />
-        <span className="text-neutral-400" aria-hidden="true">
+        <span className="text-neutral-500" aria-hidden="true">
           —
         </span>
         <input
@@ -419,8 +419,8 @@ function DistanceFilter({ latitude, longitude, radiusKm, onChange }: DistanceFil
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                 isActive
-                  ? 'border-brand-700 bg-brand-700 text-white'
-                  : 'border-neutral-300 text-neutral-700 hover:border-brand-500 hover:text-brand-700',
+                  ? 'border-brand-800 bg-brand-700 text-white'
+                  : 'border-neutral-300 text-neutral-700 hover:border-brand-500 hover:text-brand-800',
                 isLocating && 'cursor-wait opacity-60',
               )}
             >
@@ -448,7 +448,7 @@ function DistanceFilter({ latitude, longitude, radiusKm, onChange }: DistanceFil
       )}
 
       {error ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

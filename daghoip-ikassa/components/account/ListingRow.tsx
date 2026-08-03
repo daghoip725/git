@@ -63,7 +63,7 @@ export function ListingRow({ listing }: ListingRowProps) {
   const href = buildListingHref(listing.slug, listing.reference);
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-3 sm:p-4">
+    <article className="rounded-xl border border-neutral-200 bg-card p-3 sm:p-4">
       <div className="flex gap-3 sm:gap-4">
         <Link
           href={href}
@@ -81,14 +81,14 @@ export function ListingRow({ listing }: ListingRowProps) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <Link href={href} className="min-w-0">
-              <h3 className="line-clamp-2-safe text-sm font-semibold text-brand-900 hover:text-brand-700 sm:text-base">
+              <h3 className="line-clamp-2-safe text-sm font-semibold text-brand-900 hover:text-brand-800 sm:text-base">
                 {listing.title}
               </h3>
             </Link>
             <Badge tone={STATUS_TONES[listing.status]}>{AD_STATUS_LABELS[listing.status]}</Badge>
           </div>
 
-          <p className="mt-1 font-bold text-brand-700">
+          <p className="mt-1 font-bold text-brand-800">
             {formatListingPrice(listing.price, listing.price_type)}
           </p>
 
@@ -125,7 +125,7 @@ export function ListingRow({ listing }: ListingRowProps) {
                 type="button"
                 disabled={isPending}
                 onClick={() => runAction(() => setAdStatusAction(listing.id, 'sold'))}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-800 transition-colors hover:bg-brand-50 disabled:opacity-50"
               >
                 Marquer comme vendu
               </button>
@@ -139,7 +139,7 @@ export function ListingRow({ listing }: ListingRowProps) {
                 type="button"
                 disabled={isPending}
                 onClick={() => runAction(() => setAdStatusAction(listing.id, 'published'))}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-brand-300 px-3 text-xs font-semibold text-brand-800 transition-colors hover:bg-brand-50 disabled:opacity-50"
               >
                 <RotateCcw className="size-3.5" aria-hidden="true" />
                 Remettre en ligne
@@ -150,7 +150,7 @@ export function ListingRow({ listing }: ListingRowProps) {
               type="button"
               disabled={isPending}
               onClick={() => setConfirmOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
             >
               <Trash2 className="size-3.5" aria-hidden="true" />
               Supprimer
@@ -158,7 +158,7 @@ export function ListingRow({ listing }: ListingRowProps) {
 
             {isPending ? (
               <Loader2
-                className="size-4 animate-spin self-center text-neutral-400"
+                className="size-4 animate-spin self-center text-neutral-500"
                 aria-hidden="true"
               />
             ) : null}

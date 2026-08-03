@@ -50,14 +50,14 @@ export function PaymentRow({ payment }: { payment: Payment }) {
   const [retryState, retryAction, isRetrying] = useActionState(retryPaymentAction, null);
 
   return (
-    <li className="rounded-xl border border-neutral-200 bg-white p-4">
+    <li className="rounded-xl border border-neutral-200 bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold text-neutral-900">{PURPOSE_LABELS[payment.purpose]}</p>
           <p className="mt-0.5 text-xs text-neutral-500">
             {PROVIDER_LABELS[payment.provider]} · {formatDateTime(payment.created_at)}
           </p>
-          <p className="mt-0.5 font-mono text-xs text-neutral-400">{payment.reference}</p>
+          <p className="mt-0.5 font-mono text-xs text-neutral-500">{payment.reference}</p>
         </div>
 
         <div className="text-right">
@@ -75,7 +75,7 @@ export function PaymentRow({ payment }: { payment: Payment }) {
       ) : null}
 
       {(cancelState?.success === false || retryState?.success === false) && (
-        <p role="alert" className="mt-3 text-xs font-medium text-red-600">
+        <p role="alert" className="mt-3 text-xs font-medium text-red-700">
           {cancelState?.success === false ? cancelState.error : null}
           {retryState?.success === false ? retryState.error : null}
         </p>
@@ -91,7 +91,7 @@ export function PaymentRow({ payment }: { payment: Payment }) {
         {payment.status === 'succeeded' && payment.invoice_number ? (
           <Link
             href={`/compte/factures/${payment.id}`}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-800 hover:underline"
           >
             <FileText className="size-4" aria-hidden="true" />
             Facture {payment.invoice_number}

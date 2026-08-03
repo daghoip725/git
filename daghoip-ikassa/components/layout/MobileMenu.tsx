@@ -74,7 +74,7 @@ export function MobileMenu({ isAuthenticated, fullName }: MobileMenuProps) {
         <nav
           aria-label="Navigation mobile"
           className={cn(
-            'absolute inset-y-0 right-0 flex w-[85%] max-w-sm flex-col bg-white shadow-2xl transition-transform duration-200',
+            'absolute inset-y-0 right-0 flex w-[85%] max-w-sm flex-col bg-card shadow-2xl transition-transform duration-200',
             open ? 'translate-x-0' : 'translate-x-full',
           )}
         >
@@ -133,7 +133,7 @@ export function MobileMenu({ isAuthenticated, fullName }: MobileMenuProps) {
                 <form action={signOutAction} className="mt-4">
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
                   >
                     <LogOut className="size-4" aria-hidden="true" />
                     Se déconnecter

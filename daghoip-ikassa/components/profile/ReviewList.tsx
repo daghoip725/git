@@ -40,7 +40,7 @@ export function ReviewList({ reviews, isReviewee }: ReviewListProps) {
   return (
     <ul className="space-y-3">
       {reviews.map((review) => (
-        <li key={review.id} className="rounded-xl border border-neutral-200 bg-white p-4">
+        <li key={review.id} className="rounded-xl border border-neutral-200 bg-card p-4">
           <div className="flex items-start gap-3">
             <Avatar
               name={review.reviewer?.full_name ?? 'Utilisateur'}
@@ -54,7 +54,7 @@ export function ReviewList({ reviews, isReviewee }: ReviewListProps) {
                   {review.reviewer?.full_name ?? 'Utilisateur'}
                 </span>
                 <RatingStars value={review.rating} size="sm" />
-                <time dateTime={review.created_at} className="text-xs text-neutral-400">
+                <time dateTime={review.created_at} className="text-xs text-neutral-500">
                   {formatLongDate(review.created_at)}
                 </time>
               </div>
@@ -65,7 +65,7 @@ export function ReviewList({ reviews, isReviewee }: ReviewListProps) {
                   {review.comment}
                 </p>
               ) : (
-                <p className="mt-1.5 text-sm text-neutral-400 italic">
+                <p className="mt-1.5 text-sm text-neutral-500 italic">
                   Note laissée sans commentaire.
                 </p>
               )}
@@ -73,7 +73,7 @@ export function ReviewList({ reviews, isReviewee }: ReviewListProps) {
               {review.reply ? (
                 <div className="mt-3 flex gap-2 rounded-lg bg-neutral-50 p-3">
                   <CornerDownRight
-                    className="mt-0.5 size-4 shrink-0 text-neutral-400"
+                    className="mt-0.5 size-4 shrink-0 text-neutral-500"
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
@@ -132,7 +132,7 @@ function ReplyForm({ reviewId }: { reviewId: string }) {
       />
 
       {error ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

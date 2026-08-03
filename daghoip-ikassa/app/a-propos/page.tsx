@@ -43,7 +43,7 @@ export default function AboutPage() {
               text: 'Conçu pour fonctionner rapidement même sur une connexion mobile limitée.',
             },
           ].map((item) => (
-            <div key={item.title} className="rounded-xl border border-neutral-200 bg-white p-4">
+            <div key={item.title} className="rounded-xl border border-neutral-200 bg-card p-4">
               <h2 className="font-bold text-brand-900">{item.title}</h2>
               <p className="mt-1 text-sm text-neutral-600">{item.text}</p>
             </div>

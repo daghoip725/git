@@ -9,10 +9,18 @@ import {
 
 import { cn } from '@/utils/cn';
 
+/*
+ * `border-field` et non `border-neutral-300` : la limite d'un champ est un
+ * élément d'interface, que la WCAG veut à 3:1 minimum. Le gris décoratif n'y
+ * arrive pas, et un champ sans contour visible se cherche à tâtons.
+ *
+ * `placeholder:text-neutral-500` et non `-400` pour la même raison : un texte
+ * indicatif reste du texte, il doit atteindre 4,5:1.
+ */
 const CONTROL =
-  'w-full rounded-lg border border-neutral-300 bg-white px-3.5 text-neutral-900 ' +
-  'placeholder:text-neutral-400 transition-colors ' +
-  'focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 ' +
+  'w-full rounded-lg border border-field bg-card px-3.5 text-neutral-900 ' +
+  'placeholder:text-neutral-500 transition-colors ' +
+  'focus:border-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-800/30 ' +
   'disabled:cursor-not-allowed disabled:bg-neutral-100 ' +
   'aria-[invalid=true]:border-red-500 aria-[invalid=true]:focus:ring-red-500/25';
 
@@ -41,7 +49,7 @@ export function FieldShell({
       <label htmlFor={id} className="text-sm font-medium text-neutral-800">
         {label}
         {required ? (
-          <span className="text-red-600" aria-hidden="true">
+          <span className="text-red-700" aria-hidden="true">
             {' *'}
           </span>
         ) : null}
@@ -56,7 +64,7 @@ export function FieldShell({
       ) : null}
 
       {error ? (
-        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-red-600">
+        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}
@@ -150,7 +158,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       <select
         ref={ref}
         id={selectId}
-        className={cn(CONTROL, 'h-11 appearance-none bg-white pr-9', className)}
+        className={cn(CONTROL, 'h-11 appearance-none bg-card pr-9', className)}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
         required={required}
@@ -187,7 +195,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           id={checkboxId}
           type="checkbox"
           className={cn(
-            'mt-0.5 size-4.5 shrink-0 rounded border-neutral-300 text-brand-700 focus:ring-2 focus:ring-brand-500/40',
+            'mt-0.5 size-4.5 shrink-0 rounded border-neutral-300 text-brand-800 focus:ring-2 focus:ring-brand-500/40',
             className,
           )}
           aria-invalid={error ? true : undefined}
@@ -198,7 +206,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
         </label>
       </div>
       {error ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

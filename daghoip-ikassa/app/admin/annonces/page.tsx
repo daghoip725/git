@@ -57,7 +57,7 @@ export default async function AdminAdsPage({ searchParams }: PageProps) {
           <select
             name="statut"
             defaultValue={status ?? ''}
-            className="h-11 rounded-lg border border-neutral-300 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none"
+            className="h-11 rounded-lg border border-neutral-300 bg-card px-3 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Tous</option>
             {STATUSES.map((value) => (
@@ -70,7 +70,7 @@ export default async function AdminAdsPage({ searchParams }: PageProps) {
 
         <button
           type="submit"
-          className="h-11 rounded-lg bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          className="h-11 rounded-lg bg-brand-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-ink"
         >
           Filtrer
         </button>
@@ -78,7 +78,7 @@ export default async function AdminAdsPage({ searchParams }: PageProps) {
         {status || query ? (
           <Link
             href="/admin/annonces"
-            className="h-11 rounded-lg px-3 text-sm leading-[2.75rem] font-semibold text-neutral-600 hover:text-brand-700"
+            className="h-11 rounded-lg px-3 text-sm leading-[2.75rem] font-semibold text-neutral-600 hover:text-brand-800"
           >
             Réinitialiser
           </Link>

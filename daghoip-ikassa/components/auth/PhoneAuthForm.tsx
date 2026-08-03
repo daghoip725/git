@@ -93,7 +93,7 @@ export function PhoneAuthForm({ next }: PhoneAuthFormProps) {
       <button
         type="button"
         onClick={() => setPhone(null)}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-brand-700"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-brand-800"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Changer de numéro

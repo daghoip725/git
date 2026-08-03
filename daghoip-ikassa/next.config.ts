@@ -82,7 +82,21 @@ const nextConfig: NextConfig = {
   // `standalone` produit un bundle minimal consommé par le Dockerfile multi-stage.
   output: 'standalone',
   images: {
+    // AVIF d'abord : à qualité perçue égale, ~30 % de moins que WebP. Sur une
+    // connexion mobile gabonaise, c'est ce qui coûte le plus cher au visiteur.
     formats: ['image/avif', 'image/webp'],
+    /*
+     * Largeurs générées, calées sur les tailles réellement demandées par les
+     * composants (`sizes`). Chaque valeur superflue multiplie les variantes à
+     * produire et à stocker sans bénéfice.
+     */
+    deviceSizes: [360, 414, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [64, 96, 128, 256, 384],
+    // Les images d'annonces ne changent pas : un an de cache navigateur.
+    minimumCacheTTL: 60 * 60 * 24 * 365,
+    // Une image distante ne doit jamais pouvoir devenir un vecteur de script.
+    dangerouslyAllowSVG: false,
+    contentDispositionType: 'attachment',
     remotePatterns: supabaseHostname
       ? [
           {
@@ -93,14 +107,51 @@ const nextConfig: NextConfig = {
         ]
       : [],
   },
+  /*
+   * `optimizePackageImports` : `lucide-react` expose plus de mille icônes dans
+   * un seul module. Sans cette option, importer trois icônes tire l'ensemble
+   * dans le graphe de modules et alourdit sensiblement le bundle client.
+   */
   experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns'],
     serverActions: {
       // Limite la taille des payloads d'actions serveur (upload d'images inclus).
       bodySizeLimit: '8mb',
     },
   },
+  // En-tête `Server` retiré et compression activée côté Next : derrière un
+  // proxy qui ne compresse pas (cas d'un Coolify mal réglé), c'est le seul
+  // rempart contre des pages HTML servies en clair.
+  compress: true,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      /*
+       * Ressources au nom haché : immuables par construction. Un an de cache,
+       * et `immutable` pour que le navigateur ne perde même pas un aller-retour
+       * de revalidation.
+       */
+      {
+        source: '/_next/static/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/logo-daghoip-ikassa.png',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800, must-revalidate' }],
+      },
+      /*
+       * Le service worker, lui, ne doit JAMAIS être mis en cache : un worker
+       * périmé continuerait de servir d'anciennes stratégies et deviendrait
+       * impossible à corriger à distance.
+       */
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+    ];
   },
 };
 

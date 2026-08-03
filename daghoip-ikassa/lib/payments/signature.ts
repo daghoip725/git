@@ -34,7 +34,10 @@ export function computeHmacSha256(rawBody: string, secret: string): string {
 export function signaturesMatch(received: string | null, expected: string): boolean {
   if (!received) return false;
 
-  const normalized = received.trim().replace(/^sha256=/i, '').toLowerCase();
+  const normalized = received
+    .trim()
+    .replace(/^sha256=/i, '')
+    .toLowerCase();
   const a = Buffer.from(normalized, 'utf8');
   const b = Buffer.from(expected.toLowerCase(), 'utf8');
 

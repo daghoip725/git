@@ -29,7 +29,7 @@ export default async function ProfilePage() {
         </p>
         <Link
           href={`/vendeurs/${user.id}`}
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Voir mon profil public
           <ExternalLink className="size-3.5" aria-hidden="true" />

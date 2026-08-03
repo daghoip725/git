@@ -81,14 +81,14 @@ export default async function ConversationPage({ params }: PageProps) {
     <div className="container-app flex max-w-3xl flex-col py-6 sm:py-10">
       <Link
         href="/messages"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-brand-700"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 hover:text-brand-800"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Toutes les conversations
       </Link>
 
       {/* ---------------------------- En-tête du fil ---------------------------- */}
-      <header className="rounded-xl border border-neutral-200 bg-white p-4">
+      <header className="rounded-xl border border-neutral-200 bg-card p-4">
         <div className="flex gap-3">
           <Link
             href={buildListingHref(conversation.adSlug, conversation.adReference)}
@@ -108,7 +108,7 @@ export default async function ConversationPage({ params }: PageProps) {
           <div className="min-w-0 flex-1">
             <Link
               href={buildListingHref(conversation.adSlug, conversation.adReference)}
-              className="line-clamp-2-safe font-semibold text-brand-900 hover:text-brand-700"
+              className="line-clamp-2-safe font-semibold text-brand-900 hover:text-brand-800"
             >
               {conversation.adTitle}
             </Link>

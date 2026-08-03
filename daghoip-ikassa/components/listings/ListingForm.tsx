@@ -343,7 +343,7 @@ export function ListingForm({
             placeholder="Décrivez l’article : caractéristiques, état, raison de la vente, modalités de remise…"
             error={fieldError('description')}
           />
-          <p className="mt-1 text-right text-xs text-neutral-400" aria-live="polite">
+          <p className="mt-1 text-right text-xs text-neutral-500" aria-live="polite">
             {descriptionLength} / {LISTING_LIMITS.descriptionMax}
           </p>
 
@@ -579,7 +579,7 @@ export function ListingForm({
             className="flex items-center gap-2 text-sm font-semibold text-neutral-800"
           >
             {isValid ? (
-              <CheckCircle2 className="size-4.5 text-brand-700" aria-hidden="true" />
+              <CheckCircle2 className="size-4.5 text-brand-800" aria-hidden="true" />
             ) : (
               <AlertTriangle className="size-4.5 text-gold-600" aria-hidden="true" />
             )}
@@ -616,7 +616,7 @@ export function ListingForm({
       {/* La mention du brouillon garde sa propre ligne : le formulaire est
           contraint à `max-w-3xl`, où elle ne tiendrait jamais à côté des deux
           boutons sans déborder. */}
-      <div className="sticky bottom-16 -mx-4 flex flex-col gap-2 border-t border-neutral-200 bg-white/95 p-4 backdrop-blur sm:mx-0 sm:rounded-b-xl md:bottom-0">
+      <div className="sticky bottom-16 -mx-4 flex flex-col gap-2 border-t border-neutral-200 bg-card/95 p-4 backdrop-blur sm:mx-0 sm:rounded-b-xl md:bottom-0">
         {mode === 'create' ? (
           <p className="flex items-center gap-1.5 text-xs text-neutral-500">
             <Clock className="size-3.5 shrink-0" aria-hidden="true" />
@@ -648,7 +648,7 @@ export function ListingForm({
       <p className="text-xs text-neutral-500">
         {images.length} photo{images.length > 1 ? 's' : ''} sélectionnée
         {images.length > 1 ? 's' : ''}. En publiant, vous acceptez les{' '}
-        <Link href="/conditions" className="text-brand-700 underline underline-offset-2">
+        <Link href="/conditions" className="text-brand-800 underline underline-offset-2">
           conditions d’utilisation
         </Link>
         .
@@ -672,7 +672,7 @@ function FeatureOption({ code, name, description, price, checked, onSelect }: Fe
   return (
     <label
       className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-        checked ? 'border-gold-500 bg-gold-50' : 'border-neutral-200 bg-white hover:bg-neutral-50'
+        checked ? 'border-gold-500 bg-gold-50' : 'border-neutral-200 bg-card hover:bg-neutral-50'
       }`}
     >
       <input

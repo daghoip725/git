@@ -48,7 +48,7 @@ export function SignInForm({ next }: SignInFormProps) {
         />
         <Link
           href="/mot-de-passe-oublie"
-          className="block text-right text-xs font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          className="block text-right text-xs font-medium text-brand-800 underline underline-offset-2 hover:text-brand-800"
         >
           Mot de passe oublié ?
         </Link>
@@ -64,7 +64,7 @@ export function SignInForm({ next }: SignInFormProps) {
         Pas encore de compte ?{' '}
         <Link
           href="/inscription"
-          className="font-semibold text-brand-700 underline underline-offset-2"
+          className="font-semibold text-brand-800 underline underline-offset-2"
         >
           Créer un compte
         </Link>

@@ -50,7 +50,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      <div className="space-y-5 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className="space-y-5 rounded-xl border border-neutral-200 bg-card p-6 shadow-sm">
         {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
 
         <OAuthButtons next={next} />

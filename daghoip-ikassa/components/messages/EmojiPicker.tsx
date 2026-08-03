@@ -73,7 +73,7 @@ export function EmojiPicker({ onSelect, className }: EmojiPickerProps) {
         aria-label="Insérer un émoji"
         className={cn(
           'flex size-11 items-center justify-center rounded-lg transition-colors',
-          isOpen ? 'bg-brand-50 text-brand-700' : 'text-neutral-500 hover:bg-neutral-100',
+          isOpen ? 'bg-brand-50 text-brand-800' : 'text-neutral-500 hover:bg-neutral-100',
         )}
       >
         <Smile className="size-5" aria-hidden="true" />
@@ -83,7 +83,7 @@ export function EmojiPicker({ onSelect, className }: EmojiPickerProps) {
         <div
           role="dialog"
           aria-label="Émojis"
-          className="absolute bottom-full left-0 z-20 mb-2 max-h-72 w-72 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-xl"
+          className="absolute bottom-full left-0 z-20 mb-2 max-h-72 w-72 overflow-y-auto rounded-xl border border-neutral-200 bg-card p-3 shadow-xl"
         >
           {GROUPS.map((group) => (
             <section key={group.label} className="mb-3 last:mb-0">

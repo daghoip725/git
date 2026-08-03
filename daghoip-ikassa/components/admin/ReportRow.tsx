@@ -62,7 +62,7 @@ export function ReportRow({ report }: ReportRowProps) {
   const isOpen = report.status === 'open' || report.status === 'reviewing';
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-4">
+    <article className="rounded-xl border border-neutral-200 bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -77,7 +77,7 @@ export function ReportRow({ report }: ReportRowProps) {
             <Link
               href={buildListingHref(report.ad.slug, report.ad.reference)}
               target="_blank"
-              className="mt-2 inline-flex items-center gap-1.5 font-semibold text-brand-900 hover:text-brand-700"
+              className="mt-2 inline-flex items-center gap-1.5 font-semibold text-brand-900 hover:text-brand-800"
             >
               {report.ad.title}
               <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -101,7 +101,7 @@ export function ReportRow({ report }: ReportRowProps) {
         </div>
 
         {isPending ? (
-          <Loader2 className="size-4 animate-spin text-neutral-400" aria-hidden="true" />
+          <Loader2 className="size-4 animate-spin text-neutral-500" aria-hidden="true" />
         ) : null}
       </div>
 

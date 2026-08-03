@@ -90,7 +90,7 @@ export function OAuthButtons({ next, className }: OAuthButtonsProps) {
           disabled={pendingProvider !== null}
           className={cn(
             'flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-neutral-300',
-            'bg-white text-sm font-semibold text-neutral-700 transition-colors',
+            'bg-card text-sm font-semibold text-neutral-700 transition-colors',
             'hover:bg-neutral-50 disabled:opacity-60',
           )}
         >
@@ -109,7 +109,7 @@ export function AuthDivider({ label = 'ou' }: { label?: string }) {
   return (
     <div className="flex items-center gap-3" role="separator">
       <span className="h-px flex-1 bg-neutral-200" />
-      <span className="text-xs font-medium tracking-wide text-neutral-400 uppercase">{label}</span>
+      <span className="text-xs font-medium tracking-wide text-neutral-500 uppercase">{label}</span>
       <span className="h-px flex-1 bg-neutral-200" />
     </div>
   );

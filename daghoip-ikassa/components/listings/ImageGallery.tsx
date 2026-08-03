@@ -112,7 +112,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
-        className="relative aspect-4/3 touch-pan-y overflow-hidden rounded-xl bg-neutral-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-700"
+        className="relative aspect-4/3 touch-pan-y overflow-hidden rounded-xl bg-neutral-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-800"
       >
         <Image
           src={current.url}
@@ -127,7 +127,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           type="button"
           onClick={() => setIsFullscreen(true)}
           aria-label="Afficher la photo en plein écran"
-          className="absolute top-2 right-2 flex size-10 items-center justify-center rounded-full bg-white/90 text-neutral-700 shadow-md transition-colors hover:bg-white"
+          className="absolute top-2 right-2 flex size-10 items-center justify-center rounded-full bg-card/90 text-neutral-700 shadow-md transition-colors hover:bg-card"
         >
           <Expand className="size-4.5" aria-hidden="true" />
         </button>
@@ -138,7 +138,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
               type="button"
               onClick={() => go(-1)}
               aria-label="Photo précédente"
-              className="absolute top-1/2 left-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-neutral-700 shadow-md transition-colors hover:bg-white"
+              className="absolute top-1/2 left-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-neutral-700 shadow-md transition-colors hover:bg-card"
             >
               <ChevronLeft className="size-5" aria-hidden="true" />
             </button>
@@ -146,7 +146,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
               type="button"
               onClick={() => go(1)}
               aria-label="Photo suivante"
-              className="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-neutral-700 shadow-md transition-colors hover:bg-white"
+              className="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-neutral-700 shadow-md transition-colors hover:bg-card"
             >
               <ChevronRight className="size-5" aria-hidden="true" />
             </button>
@@ -172,7 +172,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                 className={cn(
                   'relative size-18 overflow-hidden rounded-lg border-2 transition-colors',
                   imageIndex === index
-                    ? 'border-brand-700'
+                    ? 'border-brand-800'
                     : 'border-transparent hover:border-neutral-300',
                 )}
               >

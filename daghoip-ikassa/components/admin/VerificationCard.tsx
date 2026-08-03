@@ -55,7 +55,7 @@ export function VerificationCard({ request, documentUrls }: VerificationCardProp
   }
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-4">
+    <article className="rounded-xl border border-neutral-200 bg-card p-4">
       <div className="flex flex-wrap items-start gap-3">
         <Avatar name={request.user?.full_name ?? request.full_legal_name} size={44} />
 
@@ -96,7 +96,7 @@ export function VerificationCard({ request, documentUrls }: VerificationCardProp
 
         {isPending ? (
           <Loader2
-            className="size-4 animate-spin self-center text-neutral-400"
+            className="size-4 animate-spin self-center text-neutral-500"
             aria-hidden="true"
           />
         ) : null}

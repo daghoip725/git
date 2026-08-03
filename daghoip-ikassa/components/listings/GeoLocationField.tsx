@@ -127,13 +127,13 @@ export function GeoLocationField({ latitude, longitude, onChange, error }: GeoLo
       </p>
 
       {deviceError ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {deviceError}
         </p>
       ) : null}
 
       {error ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

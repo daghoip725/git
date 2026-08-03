@@ -70,7 +70,7 @@ function formatDay(day: string): string {
 export function TrendChart({
   title,
   points,
-  color = 'var(--color-brand-700)',
+  color = 'var(--color-brand-800)',
   format = 'number',
   summary,
   className,
@@ -106,7 +106,7 @@ export function TrendChart({
 
   return (
     <figure
-      className={cn('rounded-xl border border-neutral-200 bg-white p-4', className)}
+      className={cn('rounded-xl border border-neutral-200 bg-card p-4', className)}
       aria-labelledby={titleId}
     >
       <figcaption className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -250,7 +250,7 @@ export function TrendChart({
         <div className="mt-3 max-h-64 overflow-y-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">{title}, valeurs par jour</caption>
-            <thead className="sticky top-0 bg-white">
+            <thead className="sticky top-0 bg-card">
               <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
                 <th scope="col" className="py-1.5 font-medium">
                   Jour

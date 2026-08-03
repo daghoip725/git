@@ -100,7 +100,7 @@ function DocumentField({
       <span className="text-sm font-medium text-neutral-800">
         {label}
         {required ? (
-          <span className="text-red-600" aria-hidden="true">
+          <span className="text-red-700" aria-hidden="true">
             {' *'}
           </span>
         ) : null}
@@ -114,7 +114,7 @@ function DocumentField({
           'flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 text-sm font-medium transition-colors',
           fileName
             ? 'border-brand-300 bg-brand-50 text-brand-800'
-            : 'border-neutral-300 text-neutral-600 hover:border-brand-500 hover:text-brand-700',
+            : 'border-neutral-300 text-neutral-600 hover:border-brand-500 hover:text-brand-800',
           isUploading && 'opacity-60',
         )}
       >
@@ -142,7 +142,7 @@ function DocumentField({
 
       <p className="text-xs text-neutral-500">{hint}</p>
       {error ? (
-        <p role="alert" className="text-xs font-medium text-red-600">
+        <p role="alert" className="text-xs font-medium text-red-700">
           {error}
         </p>
       ) : null}

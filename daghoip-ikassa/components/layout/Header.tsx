@@ -43,7 +43,7 @@ export async function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-brand-700 shadow-lg shadow-brand-900/10">
+      <header className="sticky top-0 z-40 bg-brand-700 shadow-lg shadow-black/20">
         <div className="container-app">
           <div className="flex h-16 items-center gap-3 lg:h-18">
             <div className="shrink-0">

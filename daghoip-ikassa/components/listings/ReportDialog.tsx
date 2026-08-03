@@ -58,7 +58,7 @@ export function ReportDialog({ listingId, isAuthenticated }: ReportDialogProps) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 underline underline-offset-2 transition-colors hover:text-red-600"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 underline underline-offset-2 transition-colors hover:text-red-700"
       >
         <Flag className="size-3.5" aria-hidden="true" />
         Signaler cette annonce

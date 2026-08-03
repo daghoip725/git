@@ -53,7 +53,7 @@ export default async function AdFeaturePage({ params, searchParams }: PageProps)
     <div className="space-y-6">
       <header>
         <p className="text-sm text-neutral-500">
-          <Link href="/compte/annonces" className="font-semibold text-brand-700 hover:underline">
+          <Link href="/compte/annonces" className="font-semibold text-brand-800 hover:underline">
             Mes annonces
           </Link>
         </p>
@@ -70,8 +70,8 @@ export default async function AdFeaturePage({ params, searchParams }: PageProps)
 
       {ad.is_featured && ad.featured_until ? (
         <Alert tone="info" title="Annonce déjà mise en avant">
-          Jusqu’au {formatLongDate(ad.featured_until)}. Un nouveau paiement prolongera cette
-          période plutôt que de la remplacer.
+          Jusqu’au {formatLongDate(ad.featured_until)}. Un nouveau paiement prolongera cette période
+          plutôt que de la remplacer.
         </Alert>
       ) : null}
 
@@ -94,8 +94,8 @@ export default async function AdFeaturePage({ params, searchParams }: PageProps)
                     aria-current={isSelected ? 'true' : undefined}
                     className={
                       isSelected
-                        ? 'rounded-xl border border-brand-700 bg-brand-50 p-4'
-                        : 'rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300'
+                        ? 'rounded-xl border border-brand-800 bg-brand-50 p-4'
+                        : 'rounded-xl border border-neutral-200 bg-card p-4 transition-colors hover:border-neutral-300'
                     }
                   >
                     <p className="flex items-center gap-1.5 font-semibold text-neutral-900">
@@ -115,7 +115,7 @@ export default async function AdFeaturePage({ params, searchParams }: PageProps)
           {selected ? (
             <section
               aria-labelledby="payer-titre"
-              className="max-w-xl rounded-xl border border-neutral-200 bg-white p-5"
+              className="max-w-xl rounded-xl border border-neutral-200 bg-card p-5"
             >
               <h2 id="payer-titre" className="text-lg font-bold text-brand-900">
                 Payer la mise en avant « {selected.name} »

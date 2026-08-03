@@ -28,7 +28,7 @@ export function SignUpForm() {
         </p>
         <Link
           href="/connexion"
-          className="mt-3 inline-block font-semibold text-brand-700 underline underline-offset-2"
+          className="mt-3 inline-block font-semibold text-brand-800 underline underline-offset-2"
         >
           Aller à la page de connexion
         </Link>
@@ -102,11 +102,11 @@ export function SignUpForm() {
         label={
           <>
             J’accepte les{' '}
-            <Link href="/conditions" className="text-brand-700 underline underline-offset-2">
+            <Link href="/conditions" className="text-brand-800 underline underline-offset-2">
               conditions d’utilisation
             </Link>{' '}
             et la{' '}
-            <Link href="/confidentialite" className="text-brand-700 underline underline-offset-2">
+            <Link href="/confidentialite" className="text-brand-800 underline underline-offset-2">
               politique de confidentialité
             </Link>
             .
@@ -124,7 +124,7 @@ export function SignUpForm() {
         Déjà inscrit ?{' '}
         <Link
           href="/connexion"
-          className="font-semibold text-brand-700 underline underline-offset-2"
+          className="font-semibold text-brand-800 underline underline-offset-2"
         >
           Se connecter
         </Link>

@@ -39,9 +39,7 @@ export interface PriceSuggestion {
 const priceQuerySchema = z.object({
   categoryId: z.string().uuid(),
   city: z.string().max(80).optional(),
-  condition: z
-    .enum(['new', 'like_new', 'good', 'fair', 'for_parts'])
-    .optional(),
+  condition: z.enum(['new', 'like_new', 'good', 'fair', 'for_parts']).optional(),
 });
 
 /**

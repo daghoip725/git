@@ -40,8 +40,9 @@ function unshout(value: string): string {
 
   return value
     .toLocaleLowerCase('fr')
-    .replace(/(^|[.!?]\s+|\n\s*)([a-zà-ÿ])/g, (_, prefix: string, letter: string) =>
-      prefix + letter.toLocaleUpperCase('fr'),
+    .replace(
+      /(^|[.!?]\s+|\n\s*)([a-zà-ÿ])/g,
+      (_, prefix: string, letter: string) => prefix + letter.toLocaleUpperCase('fr'),
     );
 }
 
@@ -65,13 +66,23 @@ function unshoutSentences(line: string): string {
  * après `«`. Sans cela le texte « saute » visuellement à la lecture.
  */
 function frenchSpacing(value: string): string {
-  return value
-    .replace(/\s*([;:!?])/g, ' $1')
-    .replace(/«\s*/g, '« ')
-    .replace(/\s*»/g, ' »')
-    // La virgule et le point, eux, se collent au mot qui précède.
-    .replace(/\s+([,.])/g, '$1')
-    .replace(/([,.])(?=[^\s\d.])/g, '$1 ');
+  return (
+    value
+      .replace(/\s*([;:!?])/g, ' $1')
+      .replace(/«\s*/g, '« ')
+      .replace(/\s*»/g, ' »')
+      // La virgule et le point, eux, se collent au mot qui précède.
+      .replace(/\s+([,.])/g, '$1')
+      .replace(/([,.])(?=[^\s\d.])/g, '$1 ')
+      /*
+       * Espace **après** la ponctuation haute quand elle manque : « Contenu:un
+       * chargeur » se lit mal. Les chiffres sont exclus pour ne pas casser une
+       * heure (« 10:30 ») et la barre oblique pour ne pas casser une adresse
+       * (« https://… ») ; les fermantes le sont pour ne pas insérer d'espace
+       * avant une parenthèse ou un guillemet fermant.
+       */
+      .replace(/([;:!?])(?=[^\s\d)\]»/])/g, '$1 ')
+  );
 }
 
 /** Sépare les milliers d'un montant écrit d'un bloc : `100000` → `100 000`. */

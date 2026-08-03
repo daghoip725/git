@@ -14,7 +14,10 @@
     "typecheck": "tsc --noEmit",
     "check:map": "node --experimental-strip-types utils/map.check.mts",
     "format": "prettier --write \"**/*.{ts,tsx,css,md,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json}\"",
+    "test": "node --experimental-strip-types --import ./tests/register.mjs --test 'tests/**/*.test.mts'",
+    "test:sql": "./supabase/tests/run.sh",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 
 import { Footer } from '@/components/layout/Footer';
+import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar';
 import { Header } from '@/components/layout/Header';
 import { getSiteUrl } from '@/lib/env';
+import { THEME_INIT_SCRIPT } from '@/lib/theme';
 import { BRAND_COLORS, SITE } from '@/utils/constants';
 
 import '@/styles/globals.css';
@@ -52,7 +54,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: BRAND_COLORS.primary,
+  /*
+   * La couleur de la barre d'adresse suit le thème : sur Android, un en-tête
+   * vert foncé au-dessus d'une page sombre est cohérent, au-dessus d'une page
+   * claire aussi — mais l'inverse jure.
+   */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: BRAND_COLORS.primary },
+    { media: '(prefers-color-scheme: dark)', color: '#0d1310' },
+  ],
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -60,7 +70,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    // `suppressHydrationWarning` : le script ci-dessous pose `data-theme` avant
+    // l'hydratation, l'attribut diffère donc du HTML rendu par le serveur — qui
+    // ne peut pas connaître le choix de l'utilisateur. C'est attendu, et c'est
+    // le seul endroit du projet où cette suppression est justifiée.
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        {/* Avant peinture : évite l'éclair blanc au chargement en mode sombre. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-dvh flex-col">
         {/* Lien d'évitement : premier élément focalisable de la page. */}
         <a
@@ -81,6 +99,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <Footer />
         </Suspense>
+
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

@@ -73,7 +73,7 @@ export function CollapsibleText({
           aria-expanded={isExpanded}
           className={cn(
             'mt-2 inline-flex items-center gap-1.5 text-sm font-semibold',
-            'text-brand-700 underline underline-offset-2 hover:text-brand-800',
+            'text-brand-800 underline underline-offset-2 hover:text-brand-800',
           )}
         >
           {isExpanded ? (

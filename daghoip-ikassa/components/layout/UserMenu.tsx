@@ -68,7 +68,7 @@ export function UserMenu({ fullName, avatarUrl, unreadCount = 0, isStaff = false
         <span className="relative">
           <Avatar name={fullName} src={avatarUrl} size={32} />
           {unreadCount > 0 ? (
-            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-gold-500 text-[10px] font-bold text-brand-900">
+            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-gold-500 text-[10px] font-bold text-brand-ink">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           ) : null}
@@ -80,7 +80,7 @@ export function UserMenu({ fullName, avatarUrl, unreadCount = 0, isStaff = false
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1.5 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-neutral-200 bg-card py-1.5 shadow-lg"
         >
           <p className="truncate px-4 py-2 text-xs font-semibold tracking-wide text-neutral-500 uppercase">
             {fullName}
@@ -120,7 +120,7 @@ export function UserMenu({ fullName, avatarUrl, unreadCount = 0, isStaff = false
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-700 transition-colors hover:bg-red-50"
             >
               <LogOut className="size-4" aria-hidden="true" />
               Se déconnecter

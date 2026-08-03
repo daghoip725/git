@@ -150,7 +150,7 @@ export function MessageThread({
       </ol>
 
       {isLive ? (
-        <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
+        <p className="mb-2 flex items-center justify-center gap-1.5 text-xs text-neutral-500">
           <Radio className="size-3.5" aria-hidden="true" />
           Les nouveaux messages arrivent en direct.
         </p>
@@ -200,7 +200,7 @@ function MessageBubble({ message, isMine, attachmentUrl, correspondentName }: Me
           'overflow-hidden rounded-2xl text-sm leading-relaxed',
           isMine
             ? 'rounded-br-sm bg-brand-700 text-white'
-            : 'rounded-bl-sm border border-neutral-200 bg-white text-neutral-800',
+            : 'rounded-bl-sm border border-neutral-200 bg-card text-neutral-800',
           pending && 'opacity-70',
         )}
       >
@@ -217,7 +217,7 @@ function MessageBubble({ message, isMine, attachmentUrl, correspondentName }: Me
               className="max-h-72 w-full object-cover"
             />
           ) : (
-            <div className="flex h-32 w-56 items-center justify-center bg-neutral-100 text-neutral-400">
+            <div className="flex h-32 w-56 items-center justify-center bg-neutral-100 text-neutral-500">
               <Loader2 className="size-5 animate-spin" aria-hidden="true" />
               <span className="sr-only">Chargement de la photo</span>
             </div>
@@ -230,7 +230,7 @@ function MessageBubble({ message, isMine, attachmentUrl, correspondentName }: Me
         ) : null}
       </div>
 
-      <span className="mt-1 flex flex-wrap items-center justify-end gap-x-1 px-1 text-[11px] text-neutral-400">
+      <span className="mt-1 flex flex-wrap items-center justify-end gap-x-1 px-1 text-[11px] text-neutral-500">
         <time dateTime={message.created_at}>{formatDateTime(message.created_at)}</time>
         {isMine && !pending ? (
           message.read_at ? (

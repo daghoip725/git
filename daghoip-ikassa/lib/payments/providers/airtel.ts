@@ -94,9 +94,7 @@ export const airtelMoneyProvider = createMobileMoneyProvider({
       status,
       providerReference: typeof airtelId === 'string' ? airtelId : null,
       failureReason:
-        status === 'failed' && typeof transaction.message === 'string'
-          ? transaction.message
-          : null,
+        status === 'failed' && typeof transaction.message === 'string' ? transaction.message : null,
       payload,
     };
   },

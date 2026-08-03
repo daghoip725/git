@@ -50,7 +50,7 @@ export default async function PaymentsPage() {
 
       <section
         aria-labelledby="abonnement-titre"
-        className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5"
+        className="rounded-xl border border-neutral-200 bg-card p-4 sm:p-5"
       >
         <h2 id="abonnement-titre" className="text-sm font-semibold text-neutral-800">
           Mon abonnement
@@ -111,7 +111,7 @@ export default async function PaymentsPage() {
 
       <p className="text-xs text-neutral-500">
         Une question sur un paiement ?{' '}
-        <Link href="/contact" className="font-semibold text-brand-700 underline">
+        <Link href="/contact" className="font-semibold text-brand-800 underline">
           Contactez-nous
         </Link>{' '}
         en indiquant la référence concernée.

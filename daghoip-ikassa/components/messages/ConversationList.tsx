@@ -131,7 +131,7 @@ export function ConversationList({
           Rechercher dans les conversations
         </label>
         <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-neutral-400"
+          className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-neutral-500"
           aria-hidden="true"
         />
         <input
@@ -141,7 +141,7 @@ export function ConversationList({
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Rechercher un message, une annonce, une personne…"
           autoComplete="off"
-          className="h-11 w-full appearance-none rounded-lg border border-neutral-300 bg-white pr-16 pl-10 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
+          className="h-11 w-full appearance-none rounded-lg border border-neutral-300 bg-card pr-16 pl-10 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
         />
         <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
           {isSearching ? (
@@ -152,7 +152,7 @@ export function ConversationList({
               type="button"
               onClick={clearSearch}
               aria-label="Effacer la recherche"
-              className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              className="rounded-full p-1 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
             >
               <X className="size-4" aria-hidden="true" />
             </button>
@@ -233,8 +233,8 @@ function TabLink({ href, isActive, icon: Icon, label }: TabLinkProps) {
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors',
         isActive
-          ? 'border-brand-700 bg-brand-700 text-white'
-          : 'border-neutral-300 text-neutral-700 hover:border-brand-500 hover:text-brand-700',
+          ? 'border-brand-800 bg-brand-700 text-white'
+          : 'border-neutral-300 text-neutral-700 hover:border-brand-500 hover:text-brand-800',
       )}
     >
       <Icon className="size-4" aria-hidden="true" />
@@ -249,7 +249,7 @@ function ConversationCard({ conversation }: { conversation: ConversationSummary 
   return (
     <Link
       href={`/messages/${conversation.id}`}
-      className="flex gap-3 rounded-xl border border-neutral-200 bg-white p-3 transition-colors hover:border-brand-300"
+      className="flex gap-3 rounded-xl border border-neutral-200 bg-card p-3 transition-colors hover:border-brand-300"
     >
       <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
         {conversation.adImageUrl ? (
@@ -272,7 +272,7 @@ function ConversationCard({ conversation }: { conversation: ConversationSummary 
           {conversation.lastMessageAt ? (
             <time
               dateTime={conversation.lastMessageAt}
-              className="shrink-0 text-xs text-neutral-400"
+              className="shrink-0 text-xs text-neutral-500"
             >
               {formatRelativeDate(conversation.lastMessageAt)}
             </time>
@@ -293,7 +293,7 @@ function ConversationCard({ conversation }: { conversation: ConversationSummary 
         </span>
 
         {hit ? (
-          <span className="mt-1 block text-[11px] text-neutral-400">
+          <span className="mt-1 block text-[11px] text-neutral-500">
             {MATCH_LABELS[hit.matchType]}
           </span>
         ) : null}

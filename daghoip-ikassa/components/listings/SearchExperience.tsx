@@ -90,7 +90,7 @@ export function SearchExperience({
               Rechercher une annonce
             </label>
             <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-neutral-400"
+              className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-neutral-500"
               aria-hidden="true"
             />
             <input
@@ -102,7 +102,7 @@ export function SearchExperience({
               autoComplete="off"
               // Le bouton d'effacement natif de `type="search"` ferait doublon
               // avec le nôtre : deux croix côte à côte dans le même champ.
-              className="h-11 w-full appearance-none rounded-lg border border-neutral-300 bg-white pr-20 pl-10 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
+              className="h-11 w-full appearance-none rounded-lg border border-neutral-300 bg-card pr-20 pl-10 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
             />
             <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
               {isSearching ? (
@@ -117,7 +117,7 @@ export function SearchExperience({
                   type="button"
                   onClick={() => setFilter('query', null)}
                   aria-label="Effacer la recherche"
-                  className="rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                  className="rounded-full p-1 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
                 >
                   <X className="size-4" aria-hidden="true" />
                 </button>
@@ -131,7 +131,7 @@ export function SearchExperience({
               value={filters.sort ?? (hasQuery ? 'relevance' : 'recent')}
               onChange={(event) => setFilter('sort', event.target.value as AdSort)}
               aria-label="Trier les annonces"
-              className="h-11 rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-800 focus:border-brand-500 focus:outline-none"
+              className="h-11 rounded-lg border border-neutral-300 bg-card px-3 text-sm text-neutral-800 focus:border-brand-500 focus:outline-none"
             >
               {(hasQuery ? [RELEVANCE_OPTION, ...SORT_OPTIONS] : SORT_OPTIONS).map((option) => (
                 <option key={option.value} value={option.value}>

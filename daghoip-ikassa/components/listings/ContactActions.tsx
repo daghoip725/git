@@ -36,7 +36,7 @@ export function ContactActions({ phone, whatsapp, listingTitle, listingUrl }: Co
         revealed ? (
           <a
             href={telHref}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-700 text-base font-bold text-white transition-colors hover:bg-brand-800"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-700 text-base font-bold text-white transition-colors hover:bg-brand-ink"
           >
             <Phone className="size-5" aria-hidden="true" />
             {formatGabonPhone(phone)}
