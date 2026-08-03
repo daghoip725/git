@@ -16,12 +16,14 @@
  *  - un rate limit par IP freine les tentatives répétées ;
  *  - les redirections `next` sont validées comme chemins internes.
  */
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { getSiteUrl } from '@/lib/env';
+import { RECOVERY_COOKIE } from '@/lib/auth/recovery';
+import { getSiteUrl, publicEnv } from '@/lib/env';
 import { fail, ok } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { RATE_LIMITS, checkRateLimit } from '@/lib/rate-limit';
@@ -239,11 +241,35 @@ export async function requestPasswordResetAction(
   return ok(null);
 }
 
+/**
+ * Change le mot de passe du compte connecté.
+ *
+ * Le mot de passe **actuel** est exigé. Sans lui, une session égarée — un
+ * téléphone prêté, un poste partagé resté ouvert, un cookie dérobé — suffisait
+ * à changer le mot de passe et donc à verrouiller définitivement la personne
+ * hors de son propre compte. C'est le scénario le plus courant, et de loin le
+ * plus coûteux pour la victime.
+ *
+ * Deux cas s'en dispensent, et ils sont légitimes :
+ *
+ *  1. **Retour du lien « mot de passe oublié »** — la personne ne connaît
+ *     précisément pas son mot de passe. L'authentification a déjà eu lieu :
+ *     elle a prouvé qu'elle relève les courriels du compte. Le marqueur est
+ *     posé par `/auth/callback` après un échange de code réussi, il n'est donc
+ *     pas falsifiable sans détenir déjà le lien reçu par courriel.
+ *  2. **Compte sans mot de passe** — inscription par Google, Facebook ou SMS.
+ *     Il n'y a pas d'ancien mot de passe à fournir ; exiger l'impossible
+ *     empêcherait simplement d'en définir un.
+ */
 export async function updatePasswordAction(
   _prevState: ActionResult<null> | null,
   formData: FormData,
 ): Promise<ActionResult<null>> {
   const parsed = updatePasswordSchema.safeParse({
+    // `?? undefined` : un champ absent du formulaire vaut `null` côté FormData,
+    // que Zod refuserait sur un `.optional()`. Le cas se présente vraiment —
+    // le formulaire de récupération n'affiche pas ce champ.
+    currentPassword: formData.get('currentPassword') ?? undefined,
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
   });
@@ -265,14 +291,120 @@ export async function updatePasswordAction(
     return { success: false, error: 'Votre session a expiré. Relancez la procédure.' };
   }
 
+  /*
+   * Limite par compte et non par IP : ici l'attaquant tient déjà la session,
+   * son adresse n'a plus rien de distinctif. Ce qu'on freine, c'est le
+   * devinage du mot de passe actuel à travers ce formulaire.
+   */
+  const rate = checkRateLimit(
+    `updatePassword:${user.id}`,
+    RATE_LIMITS.auth.limit,
+    RATE_LIMITS.auth.windowMs,
+  );
+  if (!rate.success) {
+    return { success: false, error: 'Trop de tentatives. Réessayez dans quelques minutes.' };
+  }
+
+  const fromRecovery = await consumeRecoveryGrant();
+
+  // Un compte créé par Google, Facebook ou SMS n'a aucune identité « email » :
+  // il n'a donc pas de mot de passe à confirmer, il s'en définit un premier.
+  const { data: identities } = await supabase.auth.getUserIdentities();
+  const hasPassword = (identities?.identities ?? []).some(
+    (identity) => identity.provider === 'email',
+  );
+
+  if (hasPassword && !fromRecovery) {
+    if (!parsed.data.currentPassword) {
+      return {
+        success: false,
+        error: 'Veuillez corriger les champs signalés.',
+        fieldErrors: { currentPassword: ['Saisissez votre mot de passe actuel.'] },
+      };
+    }
+
+    const valid = await verifyCurrentPassword(user.email, parsed.data.currentPassword);
+    if (!valid) {
+      logger.warn('Mot de passe actuel incorrect', { userId: user.id });
+      return {
+        success: false,
+        error: 'Veuillez corriger les champs signalés.',
+        fieldErrors: { currentPassword: ['Ce mot de passe ne correspond pas au compte.'] },
+      };
+    }
+
+    if (parsed.data.currentPassword === parsed.data.password) {
+      return {
+        success: false,
+        error: 'Veuillez corriger les champs signalés.',
+        fieldErrors: { password: ['Choisissez un mot de passe différent de l’actuel.'] },
+      };
+    }
+  }
+
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
     logger.warn('Échec de changement de mot de passe', { code: error.code });
     return fail(error, 'Impossible de mettre à jour le mot de passe.');
   }
 
+  /*
+   * Les autres sessions tombent. C'est le geste attendu après un changement de
+   * mot de passe : si l'on en change parce qu'on se croit compromis, laisser
+   * l'intrus connecté ailleurs viderait l'opération de son sens. La session
+   * courante, elle, est conservée — se déconnecter soi-même serait une punition
+   * gratuite.
+   */
+  const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+  if (signOutError) {
+    logger.warn('Révocation des autres sessions impossible', { code: signOutError.code });
+  }
+
   revalidatePath('/compte');
   return ok(null);
+}
+
+/**
+ * Vérifie le mot de passe actuel sans toucher à la session en cours.
+ *
+ * Le contrôle passe par un client **jetable** : `signInWithPassword` sur le
+ * client habituel écraserait les cookies de session, et un échec laisserait la
+ * personne déconnectée pour avoir mal tapé son ancien mot de passe. Ce
+ * client-ci ne persiste rien et ne voit aucun cookie.
+ */
+async function verifyCurrentPassword(
+  email: string | undefined,
+  password: string,
+): Promise<boolean> {
+  if (!email) return false;
+
+  const probe = createSupabaseClient(
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+
+  const { data, error } = await probe.auth.signInWithPassword({ email, password });
+  if (error || !data.session) return false;
+
+  // La session obtenue n'a servi qu'à prouver le mot de passe ; on la rend.
+  await probe.auth.signOut();
+  return true;
+}
+
+/**
+ * Consomme le marqueur de récupération posé par `/auth/callback`.
+ *
+ * À usage unique et à durée de vie courte : il autorise **un** changement de
+ * mot de passe sans l'ancien, celui qui suit immédiatement le clic sur le lien
+ * reçu par courriel. Une fois lu, il est effacé — sans quoi la dispense
+ * resterait acquise pour toute la durée de la session.
+ */
+async function consumeRecoveryGrant(): Promise<boolean> {
+  const store = await cookies();
+  const present = store.get(RECOVERY_COOKIE)?.value === '1';
+  if (present) store.delete(RECOVERY_COOKIE);
+  return present;
 }
 
 /* -------------------------------------------------------------------------- */

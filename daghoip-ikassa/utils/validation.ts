@@ -83,6 +83,18 @@ export const resetPasswordRequestSchema = z.object({ email: emailSchema });
 
 export const updatePasswordSchema = z
   .object({
+    /*
+     * Optionnel **ici**, obligatoire en pratique : deux cas légitimes s'en
+     * dispensent (retour du lien de récupération, compte sans mot de passe
+     * créé par Google, Facebook ou SMS). Le schéma ne peut pas trancher, il
+     * ignore lequel s'applique ; c'est la Server Action qui l'exige quand elle
+     * doit l'exiger. Le déclarer requis ici casserait la récupération.
+     *
+     * Aucune règle de robustesse dessus non plus : on vérifie un mot de passe
+     * existant, pas on n'en impose un nouveau. Le refuser pour cause de
+     * faiblesse alors qu'il est simplement *le bon* n'aurait aucun sens.
+     */
+    currentPassword: z.string().max(200).optional(),
     password: passwordSchema,
     confirmPassword: z.string(),
   })

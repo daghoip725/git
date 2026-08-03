@@ -23,15 +23,16 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 10. [Modération](#modération)
 11. [Favoris et historiques](#favoris-et-historiques)
 12. [Performances des annonces](#performances-des-annonces)
-13. [Notifications](#notifications)
-14. [Thème clair et sombre](#thème-clair-et-sombre)
-15. [Application installable (PWA)](#application-installable-pwa)
-16. [Performance](#performance)
-17. [Tests](#tests)
-18. [Identité visuelle](#identité-visuelle)
-19. [Docker](#docker)
-20. [Scripts](#scripts)
-21. [Exploitation](#exploitation)
+13. [Paramètres du compte](#paramètres-du-compte)
+14. [Notifications](#notifications)
+15. [Thème clair et sombre](#thème-clair-et-sombre)
+16. [Application installable (PWA)](#application-installable-pwa)
+17. [Performance](#performance)
+18. [Tests](#tests)
+19. [Identité visuelle](#identité-visuelle)
+20. [Docker](#docker)
+21. [Scripts](#scripts)
+22. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -444,7 +445,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-518 assertions), qui rejoue notamment des tentatives d’auto-promotion
+556 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
@@ -693,6 +694,77 @@ comparaison de catégorie, purge — est dans
 
 ---
 
+## Paramètres du compte
+
+Quatre réglages, réunis sur `/compte/parametres`.
+
+### Mot de passe — l'ancien est désormais exigé
+
+Le changement se faisait sans le demander. Une session égarée — téléphone
+prêté, poste partagé resté ouvert, cookie dérobé — suffisait alors à changer le
+mot de passe, donc à verrouiller la personne **hors de son propre compte**.
+C'est le scénario le plus courant, et de loin le plus coûteux pour la victime.
+
+Le mot de passe actuel est vérifié par un client Supabase **jetable** : le
+faire sur le client habituel écraserait les cookies de session, et une faute de
+frappe déconnecterait la personne pour la peine. Deux cas s'en dispensent, et
+ils sont légitimes :
+
+| Cas                                    | Pourquoi                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Retour du lien « mot de passe oublié » | La personne ne le connaît précisément pas. Elle a prouvé autrement qu'elle relève les courriels du compte. |
+| Compte Google, Facebook ou SMS         | Il n'y a pas d'ancien mot de passe. Exiger l'impossible empêcherait d'en définir un premier.               |
+
+Le premier cas repose sur un marqueur `httpOnly` posé par `/auth/callback`
+**après** un échange de code réussi — le forger suppose de détenir déjà le lien
+reçu par courriel. Il dure dix minutes et se consomme à la première
+utilisation.
+
+Un changement réussi **révoque les autres sessions** (`scope: 'others'`). Si
+l'on change de mot de passe parce qu'on se croit compromis, laisser l'intrus
+connecté ailleurs viderait l'opération de son sens. La session courante, elle,
+est conservée.
+
+### Langue
+
+Français par défaut — c'est la langue des affaires au Gabon — et anglais. Le
+choix vit dans un cookie **et** dans `users.language` : le cookie sert aux
+visiteurs sans compte, qui sont la majorité, la colonne fait suivre la
+préférence d'un appareil à l'autre.
+
+Le catalogue est un objet TypeScript typé, pas un JSON chargé à l'exécution ni
+une bibliothèque : `tsc` refuse alors de compiler s'il manque une clé en
+anglais — l'erreur la plus banale d'une traduction, et celle qui se voit le
+plus en production. Zéro dépendance ajoutée, rien à télécharger.
+
+`<html lang>` suit la langue rendue. Ce n'est pas cosmétique : un lecteur
+d'écran choisit sa voix d'après cet attribut, et un texte anglais annoncé avec
+les règles du français est à peu près inécoutable.
+
+> **Ce qui est traduit** : navigation, espace personnel, paramètres, et le
+> chrome partagé. **Ce qui ne l'est pas, et ne le sera pas** : les annonces et
+> les messages. Traduire automatiquement une annonce, c'est en changer le sens
+> sans que son auteur puisse le vérifier — un prix « à débattre » devenu ferme,
+> un « bon état » devenu « comme neuf ». Sur une plateforme où l'on s'engage sur
+> ce qui est écrit, c'est un risque qu'on ne prend pas. Le reste de l'interface
+> suit progressivement.
+
+### Suppression du compte
+
+Anonymisation irréversible, pas un `delete`. La base l'interdit et elle a
+raison : `payments.user_id` est en `on delete restrict`, et un effacement
+viderait les fils de discussion **des autres** comme il changerait la note
+d'autres vendeurs. Ce qui part, ce qui reste et pourquoi : le détail est dans
+[`supabase/README.md`](supabase/README.md#paramètres-du-compte).
+
+L'écran dit ce qui disparaît **et ce qui est conservé** avant de demander quoi
+que ce soit — beaucoup croient que leurs messages s'effacent des conversations
+de leurs acheteurs, et il vaut mieux l'apprendre là que le découvrir après. La
+confirmation demande de recopier un mot : une case à cocher se coche par
+réflexe.
+
+---
+
 ## Notifications
 
 Trois canaux, un seul entonnoir : tout passe par `create_notification()`, qui
@@ -817,7 +889,7 @@ Deux suites, exécutables hors ligne, sans service tiers :
 
 ```bash
 npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 518 assertions sur un PostgreSQL jetable
+npm run test:sql   # 556 assertions sur un PostgreSQL jetable
 npm run verify     # typage + lint + tests + build
 ```
 

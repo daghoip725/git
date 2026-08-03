@@ -8,6 +8,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { RECOVERY_COOKIE, RECOVERY_MAX_AGE, RECOVERY_NEXT_PATH } from '@/lib/auth/recovery';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
@@ -58,5 +59,26 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  const response = NextResponse.redirect(`${origin}${next}`);
+
+  /*
+   * Retour du lien « mot de passe oublié ». On pose ici — et nulle part
+   * ailleurs — le marqueur qui dispense de fournir l'ancien mot de passe : à
+   * ce point précis, l'échange de code a réussi, donc la personne a prouvé
+   * qu'elle relève les courriels du compte.
+   *
+   * Le poser après l'échange et non avant est ce qui rend le marqueur sûr :
+   * une requête forgée sans code valide n'atteint jamais cette ligne.
+   */
+  if (next === RECOVERY_NEXT_PATH) {
+    response.cookies.set(RECOVERY_COOKIE, '1', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: RECOVERY_MAX_AGE,
+    });
+  }
+
+  return response;
 }

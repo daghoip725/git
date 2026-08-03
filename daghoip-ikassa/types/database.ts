@@ -79,6 +79,14 @@ export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'cancelled
 export type BillingInterval = 'monthly' | 'quarterly' | 'yearly';
 
 /**
+ * Langue d'interface. Aligné sur l'enum PostgreSQL `app_language`.
+ *
+ * Ne concerne que l'interface : le contenu écrit par les gens n'est jamais
+ * traduit.
+ */
+export type AppLanguage = 'fr' | 'en';
+
+/**
  * Moyen par lequel un visiteur a joint le vendeur.
  *
  * Le canal est la seule chose que l'on retient d'un contact : ni qui, ni quand
@@ -125,6 +133,11 @@ export interface Database {
           email_verified: boolean;
           /** 'email' | 'phone' | 'google' | 'facebook' */
           auth_provider: string | null;
+          /**
+           * Langue d'interface. Hors du `grant select` public : une préférence
+           * ne regarde personne d'autre, elle se lit par `get_my_profile()`.
+           */
+          language: AppLanguage;
           last_seen_at: string | null;
           created_at: string;
           updated_at: string;
@@ -145,6 +158,7 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['users']['Insert']> & {
           last_seen_at?: string | null;
+          language?: AppLanguage;
         };
         Relationships: [];
       };
@@ -1387,6 +1401,25 @@ export interface Database {
         }[];
       };
 
+      /**
+       * Anonymise définitivement le compte courant.
+       *
+       * Ne prend **aucun paramètre**, volontairement : il n'existe donc aucune
+       * façon de l'appeler pour le compte de quelqu'un d'autre. Lève (P0001)
+       * pour un compte administrateur, un compte déjà supprimé ou l'absence de
+       * session.
+       */
+      delete_my_account: {
+        Args: Record<never, never>;
+        Returns: {
+          ads_archived: number;
+          images_removed: number;
+          favorites_removed: number;
+          notifications_removed: number;
+          reports_detached: number;
+        }[];
+      };
+
       /** Classement des annonces du compte courant, trié par contacts. */
       seller_ad_ranking: {
         Args: { p_limit?: number };
@@ -1424,6 +1457,7 @@ export interface Database {
       subscription_status: SubscriptionStatus;
       billing_interval: BillingInterval;
       contact_channel: ContactChannel;
+      app_language: AppLanguage;
     };
 
     CompositeTypes: Record<never, never>;

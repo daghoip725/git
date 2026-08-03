@@ -55,7 +55,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 14. `migrations/20260801001400_history.sql`
 15. `migrations/20260801001500_moderation.sql`
 16. `migrations/20260801001600_ad_stats.sql`
-17. `seed.sql`
+17. `migrations/20260801001700_account_settings.sql`
+18. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -388,13 +389,13 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 518 assertions réparties en douze fichiers : schéma et sécurité
+La suite couvre 556 assertions réparties en treize fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
 statistiques d'administration (`06`), paiements et facturation (`07`), aides
 intelligentes (`08`), notifications et file d'envoi (`09`), historiques
 personnels (`10`), modération et blocage de comptes (`11`), performances
-d'annonce (`12`). Elle vérifie le cycle de vie des annonces, la
+d'annonce (`12`), paramètres du compte (`13`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -700,6 +701,63 @@ voyait refuser l'accès à sa propre synthèse. Le cloisonnement ne repose donc 
 sur les droits de table mais sur le filtre `auth.uid()`, appliqué à **toutes**
 les lectures ; sans session, la fonction ne renvoie rien. Un test vérifie qu'un
 concurrent n'y voit aucun chiffre d'autrui.
+
+## Paramètres du compte
+
+### Supprimer un compte, sans casser celui des autres
+
+« Supprimer le compte » ne peut pas se traduire par un `delete from
+public.users`. La base l'interdit, et elle a raison :
+
+| Contrainte                        | Ce qu'un effacement provoquerait                                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `payments.user_id` — `restrict`   | La suppression est **bloquée** dès qu'un règlement existe. Une pièce comptable ne s'efface pas à la demande du payeur.                                 |
+| `messages.sender_id` — `cascade`  | Les fils de discussion **des autres** se videraient : l'acheteur garderait une conversation à sens unique.                                             |
+| `reviews.reviewer_id` — `cascade` | Les avis déposés disparaîtraient, et la note d'autres vendeurs changerait en silence. Partir ne doit pas permettre de réécrire la réputation d'autrui. |
+
+D'où le choix retenu : **anonymisation irréversible**. `delete_my_account()`
+efface ce qui désigne la personne, conserve ce qui appartient à la relation
+avec autrui ou à la comptabilité, et détache le reste.
+
+| Effacé                                                 | Conservé, détaché de toute identité         |
+| ------------------------------------------------------ | ------------------------------------------- |
+| Nom, téléphone, WhatsApp, ville, quartier, biographie  | Messages envoyés                            |
+| Avatar et photos d'annonces (fichiers Storage compris) | Avis déposés et reçus                       |
+| Pièces d'identité et demandes de vérification          | Règlements et abonnements (résiliés)        |
+| Favoris, historiques, notifications, réglages d'e-mail | Signalements émis, dont l'auteur est retiré |
+
+Les annonces sont **archivées et non supprimées** : `conversations.ad_id` est
+en `on delete cascade`, les effacer emporterait les discussions que des
+acheteurs ont eues à leur sujet. L'archivage les retire de la vitrine, ce qui
+est le résultat attendu, sans détruire l'historique d'autrui. Leurs
+coordonnées, elles, partent.
+
+### Deux garde-fous
+
+`delete_my_account()` **ne prend aucun paramètre**. Ce n'est pas un oubli :
+c'est ce qui garantit qu'il n'existe aucune façon de l'appeler pour le compte
+de quelqu'un d'autre. Un test l'affirme en interrogeant `pg_proc`, si bien
+qu'un `p_user_id` ajouté « pour l'administration » ferait échouer la suite.
+
+Un compte **administrateur** est refusé. Rien n'empêcherait sinon le dernier
+d'entre eux de laisser la plateforme sans personne pour la modérer, et il
+n'existerait plus aucun écran pour en nommer un autre.
+
+### Après le départ
+
+`is_active_account()` n'accepte que le statut « active » : un compte anonymisé
+ne peut plus rien publier, envoyer ni signaler — garantie de dernier recours si
+la révocation côté authentification échouait. La politique RLS de `users` exclut
+déjà les comptes supprimés pour les tiers, le profil sort donc aussi de la
+vitrine. Les deux sont vérifiés par la suite, avec un **témoin** : la même
+requête est d'abord jouée par un compte actif, pour s'assurer que le refus
+constaté vient bien de la protection et non d'une faute de frappe dans le test.
+
+### Langue
+
+`users.language` (enum `app_language`) suit le même régime que le téléphone :
+hors du `GRANT SELECT` public — une préférence ne regarde personne d'autre — et
+lue par `get_my_profile()`. Le `GRANT UPDATE` est accordé au propriétaire seul.
 
 ## Exploitation
 

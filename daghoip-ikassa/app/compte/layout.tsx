@@ -8,27 +8,15 @@ import {
   LayoutDashboard,
   ListOrdered,
   MessageSquare,
+  Settings,
   ShieldBan,
   User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { getTranslations } from '@/lib/i18n/server';
 import { getCurrentUser } from '@/lib/supabase/server';
-
-const NAV = [
-  { href: '/compte', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/compte/annonces', label: 'Mes annonces', icon: ListOrdered },
-  { href: '/compte/favoris', label: 'Mes favoris', icon: Heart },
-  { href: '/compte/historique', label: 'Mon historique', icon: History },
-  { href: '/messages', label: 'Messages', icon: MessageSquare },
-  { href: '/compte/profil', label: 'Mon profil', icon: User },
-  { href: '/compte/paiements', label: 'Paiements', icon: CreditCard },
-  { href: '/compte/notifications', label: 'Notifications', icon: Bell },
-  { href: '/compte/verification', label: 'Vérification', icon: BadgeCheck },
-  { href: '/compte/blocages', label: 'Comptes bloqués', icon: ShieldBan },
-  { href: '/compte/mot-de-passe', label: 'Mot de passe', icon: KeyRound },
-];
 
 /**
  * Gabarit de l'espace personnel. Le middleware bloque déjà les visiteurs non
@@ -38,12 +26,32 @@ export default async function AccountLayout({ children }: { children: React.Reac
   const user = await getCurrentUser();
   if (!user) redirect('/connexion?next=/compte');
 
+  // Les libellés viennent du catalogue : c'est la partie de l'interface la
+  // plus constamment sous les yeux, elle doit suivre la langue choisie.
+  const dict = await getTranslations();
+  const t = dict.account;
+
+  const nav = [
+    { href: '/compte', label: t.dashboard, icon: LayoutDashboard },
+    { href: '/compte/annonces', label: t.myAds, icon: ListOrdered },
+    { href: '/compte/favoris', label: t.favorites, icon: Heart },
+    { href: '/compte/historique', label: t.history, icon: History },
+    { href: '/messages', label: dict.nav.messages, icon: MessageSquare },
+    { href: '/compte/profil', label: t.profile, icon: User },
+    { href: '/compte/paiements', label: t.payments, icon: CreditCard },
+    { href: '/compte/notifications', label: t.notifications, icon: Bell },
+    { href: '/compte/verification', label: t.verification, icon: BadgeCheck },
+    { href: '/compte/blocages', label: t.blocked, icon: ShieldBan },
+    { href: '/compte/mot-de-passe', label: t.password, icon: KeyRound },
+    { href: '/compte/parametres', label: t.settings, icon: Settings },
+  ];
+
   return (
     <div className="container-app py-6 sm:py-10">
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr] lg:gap-8">
-        <nav aria-label="Navigation du compte" className="lg:sticky lg:top-32 lg:self-start">
+        <nav aria-label={t.navLabel} className="lg:sticky lg:top-32 lg:self-start">
           <ul className="no-scrollbar flex gap-1.5 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
-            {NAV.map(({ href, label, icon: Icon }) => (
+            {nav.map(({ href, label, icon: Icon }) => (
               <li key={href} className="shrink-0">
                 <Link
                   href={href}

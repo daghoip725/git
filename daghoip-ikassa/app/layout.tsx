@@ -5,6 +5,8 @@ import { Footer } from '@/components/layout/Footer';
 import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar';
 import { Header } from '@/components/layout/Header';
 import { getSiteUrl } from '@/lib/env';
+import { LOCALE_TAGS } from '@/lib/i18n/config';
+import { getLocale, getTranslations } from '@/lib/i18n/server';
 import { THEME_INIT_SCRIPT } from '@/lib/theme';
 import { BRAND_COLORS, SITE } from '@/utils/constants';
 
@@ -71,13 +73,21 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  /*
+   * `lang` doit refléter la langue réellement rendue. Ce n'est pas cosmétique :
+   * un lecteur d'écran choisit sa voix et sa prononciation d'après cet
+   * attribut, et un texte anglais annoncé avec les règles du français est à peu
+   * près inécoutable. Google s'en sert aussi pour savoir à qui servir la page.
+   */
+  const [locale, t] = await Promise.all([getLocale(), getTranslations()]);
+
   return (
     // `suppressHydrationWarning` : le script ci-dessous pose `data-theme` avant
     // l'hydratation, l'attribut diffère donc du HTML rendu par le serveur — qui
     // ne peut pas connaître le choix de l'utilisateur. C'est attendu, et c'est
     // le seul endroit du projet où cette suppression est justifiée.
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={LOCALE_TAGS[locale]} suppressHydrationWarning>
       <head>
         {/* Avant peinture : évite l'éclair blanc au chargement en mode sombre. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
@@ -88,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="#contenu-principal"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-brand-700 focus:px-4 focus:py-2 focus:font-semibold focus:text-white"
         >
-          Aller au contenu principal
+          {t.nav.skipToContent}
         </a>
 
         <Suspense fallback={<div className="h-28 bg-brand-700" />}>

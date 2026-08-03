@@ -1,64 +1,55 @@
-'use client';
-
-import { useActionState } from 'react';
-
-import { updatePasswordAction } from '@/app/actions/auth.actions';
-import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Field';
-import type { ActionResult } from '@/types';
-
 /**
  * Changement de mot de passe. Accessible depuis l'espace compte ou via le lien
  * de réinitialisation envoyé par e-mail (`/auth/callback?next=…`).
+ *
+ * La page décide ici, côté serveur, s'il faut demander le mot de passe actuel.
+ * Elle **lit** le marqueur de récupération sans le consommer : c'est la Server
+ * Action qui l'efface, au moment où elle s'en sert. Le lire ici pour l'effacer
+ * ferait échouer un second essai après une simple faute de frappe.
  */
-export default function ChangePasswordPage() {
-  const [state, formAction, isPending] = useActionState<ActionResult<null> | null, FormData>(
-    updatePasswordAction,
-    null,
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+import { PasswordForm } from '@/components/account/PasswordForm';
+import { RECOVERY_COOKIE } from '@/lib/auth/recovery';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
+
+export const metadata: Metadata = {
+  title: 'Mot de passe',
+  robots: { index: false, follow: false },
+};
+
+export default async function ChangePasswordPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect('/connexion?next=/compte/mot-de-passe');
+
+  const [store, supabase] = await Promise.all([cookies(), createClient()]);
+  const fromRecovery = store.get(RECOVERY_COOKIE)?.value === '1';
+
+  // Un compte créé par Google, Facebook ou SMS n'a pas d'identité « email » :
+  // il n'a donc aucun mot de passe à confirmer, il s'en définit un premier.
+  const { data: identities } = await supabase.auth.getUserIdentities();
+  const hasPassword = (identities?.identities ?? []).some(
+    (identity) => identity.provider === 'email',
   );
 
-  const fieldError = (field: string) =>
-    state?.success === false ? state.fieldErrors?.[field]?.[0] : undefined;
+  const requiresCurrent = hasPassword && !fromRecovery;
 
   return (
     <div className="max-w-md space-y-6">
       <header>
-        <h1 className="text-2xl font-extrabold text-brand-900">Mot de passe</h1>
+        <h1 className="text-2xl font-extrabold text-brand-900">
+          {hasPassword ? 'Mot de passe' : 'Définir un mot de passe'}
+        </h1>
         <p className="mt-1 text-sm text-neutral-600">
-          Choisissez un mot de passe unique, différent de ceux de vos autres comptes.
+          {hasPassword
+            ? 'Choisissez un mot de passe unique, différent de ceux de vos autres comptes.'
+            : 'Votre compte n’en a pas encore : vous vous connectez par un autre moyen. En définir un vous donne une seconde façon d’entrer.'}
         </p>
       </header>
 
-      <form action={formAction} className="space-y-4">
-        <Input
-          name="password"
-          type="password"
-          label="Nouveau mot de passe"
-          autoComplete="new-password"
-          required
-          hint="8 caractères minimum, avec au moins une lettre et un chiffre."
-          error={fieldError('password')}
-        />
-
-        <Input
-          name="confirmPassword"
-          type="password"
-          label="Confirmer le nouveau mot de passe"
-          autoComplete="new-password"
-          required
-          error={fieldError('confirmPassword')}
-        />
-
-        {state?.success ? (
-          <Alert tone="success">Votre mot de passe a bien été modifié.</Alert>
-        ) : null}
-        {state?.success === false ? <Alert tone="error">{state.error}</Alert> : null}
-
-        <Button type="submit" size="lg" isLoading={isPending}>
-          Modifier le mot de passe
-        </Button>
-      </form>
+      <PasswordForm requiresCurrent={requiresCurrent} />
     </div>
   );
 }
