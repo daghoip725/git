@@ -885,23 +885,104 @@ conversation de quelqu'un d'autre. Le risque ne vaut pas la seconde gagnée.
 
 ## Tests
 
-Deux suites, exécutables hors ligne, sans service tiers :
+Quatre suites, toutes exécutables **hors ligne**, sans service tiers :
 
 ```bash
-npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 556 assertions sur un PostgreSQL jetable
-npm run verify     # typage + lint + tests + build
+npm run test:unit    # 77 tests unitaires — modules purs, aucun DOM
+npm run test:ui      # 29 tests de composants — jsdom + Testing Library
+npm run test:sql     # 556 assertions SQL + conformité du typage (PostgreSQL jetable)
+npm run verify:perf  # budget de poids, après `npm run build`
+npm test             # unitaires + composants
+npm run verify       # typage + lint + tests + build
 ```
 
-Les tests unitaires tournent avec `node --test` et le mode de retrait des types
-de Node 22 : pas de coureur de tests à installer, à configurer ni à maintenir.
-Un crochet de résolution (`tests/alias-hooks.mjs`) fait comprendre l'alias `@/`
-à Node, pour que les tests importent les modules **exactement** comme le fait le
-code de production.
+### Unitaires
 
-Ils couvrent le nettoyage typographique, la normalisation des numéros gabonais,
-les slugs et références d'annonces, la préférence de thème, la vérification de
-signature des rappels d'opérateur et la composition des e-mails de notification.
+`node --test` et le dépouillement de types de Node 22 : pas de coureur de tests
+à installer, à configurer ni à maintenir. Un crochet de résolution
+(`tests/alias-hooks.mjs`) fait comprendre l'alias `@/` à Node, pour que les
+tests importent les modules **exactement** comme le fait le code de production.
+
+Ils couvrent le nettoyage typographique, la normalisation des numéros
+gabonais, les slugs et références d'annonces, la préférence de thème, la
+vérification de signature des rappels d'opérateur, la composition des e-mails
+de notification et le contrôle de configuration.
+
+### Composants
+
+jsdom + Testing Library, dans une exécution **séparée** des tests unitaires. La
+séparation n'est pas cosmétique : `getServerEnv()` lève dès que `window` existe
+— c'est le garde-fou qui empêche un secret de partir au navigateur — et un
+jsdom chargé pour tout le monde ferait échouer les tests de configuration, ou
+pire, les ferait passer en testant autre chose que le chemin de production.
+
+Deux dépendances de développement s'ajoutent ici, et elles ne se contournent
+pas : Node ne transforme **pas** le JSX (`--experimental-strip-types` retire
+les types, il n'est pas un compilateur), d'où `esbuild` ; et il n'y a pas de
+DOM sous Node, d'où `jsdom`. `npm run test:unit`, lui, n'a toujours besoin de
+rien.
+
+Les requêtes passent par les **rôles et les noms accessibles**, jamais par des
+classes CSS : un test qui cherche `.input-error` continue de passer quand le
+`aria-describedby` disparaît. Ce qui est protégé ici :
+
+| Sujet                | Ce qui casserait silencieusement sans le test                       |
+| -------------------- | ------------------------------------------------------------------- |
+| `Input` / `Textarea` | Libellé détaché du champ, erreur qu'aucun lecteur d'écran n'annonce |
+| `TrendChart`         | Repli en tableau supprimé, coordonnées `NaN` sur une série vide     |
+| `BarList`            | Largeur de barre `NaN` sur une valeur nulle                         |
+| `StatTile`           | Nombres sans séparateur de milliers                                 |
+| `LanguageForm`       | Bascule optimiste sans retour arrière quand le serveur refuse       |
+
+`next/link`, `next/image` et `next/navigation` sont remplacés par des
+doublures (`tests/stubs/`) : ces modules ne sont pas résolubles par Node hors
+bundler, leur champ `exports` visant Webpack et Turbopack.
+
+### Intégration
+
+`npm run test:sql` démarre un PostgreSQL 16 jetable, rejoue toutes les
+migrations, exécute les treize suites — puis **compare le typage TypeScript au
+schéma réel**.
+
+C'est la vérification la plus utile du lot, parce qu'elle couvre le seul
+endroit du projet où deux sources de vérité coexistent : `types/database.ts`
+est un miroir écrit à la main, et un miroir dérive. Une colonne ajoutée en SQL
+et oubliée côté TypeScript ne se voit nulle part — `tsc` compile, les tests
+passent, la CI est verte — jusqu'à ce qu'une requête échoue en production sur
+un champ que personne ne croyait absent.
+
+Le typage est lu par l'**API du compilateur TypeScript**, pas par des
+expressions régulières : les types sont effacés à l'exécution, on ne peut pas
+les importer, et un `grep` se tromperait au premier commentaire contenant une
+accolade. La comparaison porte sur les énumérations et leurs valeurs, les
+colonnes de chaque table déclarée dans les deux sens, et l'existence des RPC.
+
+### Vérification des performances
+
+`npm run verify:perf` mesure le **poids de premier chargement** de chaque page,
+gzippé, et le compare à un budget.
+
+Un budget plutôt qu'une mesure de temps : un chronomètre dépend du réseau, de
+la machine et du moment, et un seuil dessus déclenche des alertes qui
+n'apprennent rien. Le poids, lui, est déterministe — le même code produit
+exactement les mêmes octets. Sur une connexion mobile gabonaise, c'est le
+facteur qui domine tous les autres.
+
+| Mesure actuelle                       | Budget           |
+| ------------------------------------- | ---------------- |
+| Socle partagé par toutes les pages    | 99,8 ko / 110 ko |
+| Page la plus lourde (dépôt d'annonce) | 229 ko / 240 ko  |
+
+Les plafonds sont calés sur les mesures réelles avec de la marge, jamais sur un
+chiffre rond décidé d'avance : trop bas, un budget est déjà dépassé le jour où
+on l'écrit ; trop haut, il ne se déclenche jamais. Son rôle n'est pas de faire
+maigrir l'application aujourd'hui, c'est de rendre visible l'ajout qui ne se
+voit pas dans un diff — une bibliothèque de graphiques prise par confort, un
+import qui tire un paquet entier au lieu d'une fonction.
+
+**Ce qu'il ne mesure pas** : temps de rendu, travail du processeur, requêtes à
+l'exécution, Core Web Vitals. Ceux-là demandent un vrai navigateur et une vraie
+base ; ils relèvent de la recette, pas de l'intégration continue.
 
 ---
 

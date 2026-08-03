@@ -19,7 +19,11 @@ describe('renderNotificationEmail', () => {
   it('produit systématiquement un sujet, un HTML et une version texte', () => {
     const email = renderNotificationEmail(
       'ad_approved',
-      { title: 'Votre annonce est approuvée', body: 'Elle est en ligne.', link: '/annonces/x-AB12' },
+      {
+        title: 'Votre annonce est approuvée',
+        body: 'Elle est en ligne.',
+        link: '/annonces/x-AB12',
+      },
       'Awa Mbourou',
     );
 
@@ -65,7 +69,11 @@ describe('renderNotificationEmail', () => {
   });
 
   it('transforme un chemin interne en URL absolue', () => {
-    const email = renderNotificationEmail('new_message', { title: 'A', link: '/messages/42' }, null);
+    const email = renderNotificationEmail(
+      'new_message',
+      { title: 'A', link: '/messages/42' },
+      null,
+    );
     assert.ok(email.html.includes('https://daghoip-ikassa.ga/messages/42'));
     assert.ok(email.text.includes('https://daghoip-ikassa.ga/messages/42'));
   });

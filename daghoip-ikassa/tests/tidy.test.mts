@@ -91,7 +91,10 @@ describe('tidyDescription', () => {
   it('ne perd aucun mot du texte d’origine', () => {
     const source = 'Vends REFRIGERATEUR combiné, très bon état, livraison possible à Owendo';
     const before = source.toLocaleLowerCase('fr').match(/[\p{L}\p{N}]+/gu) ?? [];
-    const after = tidyDescription(source).text.toLocaleLowerCase('fr').match(/[\p{L}\p{N}]+/gu) ?? [];
+    const after =
+      tidyDescription(source)
+        .text.toLocaleLowerCase('fr')
+        .match(/[\p{L}\p{N}]+/gu) ?? [];
     assert.deepEqual(after, before);
   });
 });

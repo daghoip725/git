@@ -71,10 +71,19 @@ jobs:
         run: npm run format:check
 
       - name: Tests unitaires
-        run: npm test
+        run: npm run test:unit
+
+      - name: Tests de composants
+        run: npm run test:ui
 
       - name: Build de production
         run: npm run build
+
+      - name: Budget de poids
+        # Après le build, forcément : le script mesure ce que le build a produit.
+        # Un dépassement fait échouer la CI — un budget qui se contente
+        # d'avertir n'est pas un budget, c'est une statistique qu'on ignore.
+        run: npm run verify:perf
 
   sql:
     name: Migrations et tests SQL
@@ -89,13 +98,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends postgresql-16 postgresql-contrib-16
 
-      - name: Rejouer les migrations et les suites de tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Installer les dépendances
+        # Le runner compare aussi le typage TypeScript au schéma réel : il a
+        # besoin du compilateur, donc des dépendances.
+        run: npm ci
+
+      - name: Rejouer les migrations, les suites de tests et la conformité du typage
         # Le script démarre son propre serveur jetable : il ne doit pas tourner
-        # en root, `initdb` le refuse.
+        # en root, `initdb` le refuse. `NODE_BIN` est transmis explicitement —
+        # le `node` du PATH de `pgtest` n'est pas celui qu'a installé
+        # `setup-node`, et une version trop ancienne ferait échouer le
+        # dépouillement de types sur un message incompréhensible.
         run: |
           sudo useradd -m pgtest || true
           sudo chmod -R a+rX .
           sudo -u pgtest env PATH="/usr/lib/postgresql/16/bin:$PATH" \
+            NODE_BIN="$(command -v node)" \
             PGDATA=/tmp/pgdata-ci ./supabase/tests/run.sh
 
   docker:

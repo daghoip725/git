@@ -87,5 +87,49 @@ for suite in "$SCRIPT_DIR"/[0-9][0-9]_*.sql; do
     | sed 's/^psql.*NOTICE: *//'
 done
 
+# ---------------------------------------------------------------------------
+#  Intégration : le typage TypeScript décrit-il la base réelle ?
+# ---------------------------------------------------------------------------
+#  `types/database.ts` est un miroir écrit à la main, et un miroir dérive. On
+#  interroge la base qu'on vient de construire, puis on compare. C'est ici et
+#  nulle part ailleurs : le test a besoin d'un PostgreSQL, il appartient donc à
+#  la suite d'intégration, pas aux tests unitaires.
+echo
+echo "==> Introspection du schéma"
+build_database
+
+# Le dossier du projet n'est pas forcément accessible en écriture à
+# l'utilisateur qui exécute ce script (`initdb` refuse root, d'où un compte
+# dédié). L'introspection va donc dans un fichier temporaire, dont le chemin
+# est transmis au test.
+SCHEMA_JSON="${SCHEMA_JSON:-$(mktemp -t ikassa-schema-XXXXXX.json)}"
+psql -q -A -t -d "$DBNAME" -v ON_ERROR_STOP=1 \
+  -f "$SCRIPT_DIR/introspection.sql" > "$SCHEMA_JSON"
+
+echo "==> Conformité du typage TypeScript"
+
+# `--experimental-strip-types` demande Node 22. Le `node` du PATH n'est pas
+# forcément celui du projet : ce script tourne sous un utilisateur dédié
+# (`initdb` refuse root), dont l'environnement peut pointer sur une version plus
+# ancienne. On le vérifie explicitement plutôt que d'échouer sur un « bad option »
+# incompréhensible — ou, pire, de sauter la vérification en silence.
+NODE_BIN="${NODE_BIN:-node}"
+NODE_MAJEURE="$("$NODE_BIN" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+
+if [ "$NODE_MAJEURE" -lt 22 ]; then
+  echo "ERREUR : Node 22+ requis pour la conformité du typage (trouvé : ${NODE_MAJEURE:-aucun})."
+  echo "         Indiquez le binaire : NODE_BIN=/chemin/vers/node ./supabase/tests/run.sh"
+  exit 1
+fi
+
+# Surtout pas de `|| true` ici : une divergence entre le typage et la base doit
+# faire échouer la suite. Un test qu'on laisse passer en silence ne protège plus
+# rien — c'est la panne la plus coûteuse d'une suite de tests.
+(cd "$PROJECT_DIR" && IKASSA_SCHEMA_JSON="$SCHEMA_JSON" "$NODE_BIN" --experimental-strip-types \
+   --import ./tests/register.mjs --test tests/integration/schema.test.mts) \
+  | grep -E "^ *(not )?ok|# (pass|fail)"
+
+echo "  TYPAGE CONFORME AU SCHÉMA"
+
 echo
 echo "==> Terminé"
