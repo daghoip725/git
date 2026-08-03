@@ -1,10 +1,11 @@
 import { Flag } from 'lucide-react';
 import Link from 'next/link';
 
+import { ModerationQueue } from '@/components/admin/ModerationQueue';
 import { ReportRow } from '@/components/admin/ReportRow';
 import { EmptyState } from '@/components/common/EmptyState';
 import { requireRole } from '@/lib/auth/roles';
-import { getReports } from '@/services/admin.service';
+import { getModerationQueue, getReports } from '@/services/admin.service';
 import { cn } from '@/utils/cn';
 
 interface PageProps {
@@ -27,14 +28,21 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   const raw = Array.isArray(params.statut) ? params.statut[0] : params.statut;
   const status: ReportTab = TABS.some((tab) => tab.value === raw) ? (raw as ReportTab) : 'open';
 
-  const reports = await getReports(status);
+  // La file de triage n'a de sens que sur les dossiers en cours : « traités »
+  // et « rejetés » ne se trient plus, ils se relisent.
+  const showQueue = status === 'open' || status === 'reviewing';
+  const [reports, queue] = await Promise.all([
+    getReports(status),
+    showQueue ? getModerationQueue(50) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-5">
       <header>
         <h2 className="text-lg font-bold text-brand-900">Signalements</h2>
         <p className="mt-1 text-sm text-neutral-600">
-          Traitez les contenus signalés par la communauté.
+          Traitez les contenus et les comptes signalés par la communauté. Aucun compte n’est bloqué
+          automatiquement : un signalement ouvre un dossier, une personne tranche.
         </p>
       </header>
 
@@ -56,21 +64,42 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
         ))}
       </nav>
 
-      {reports.length > 0 ? (
-        <ul className="space-y-3">
-          {reports.map((report) => (
-            <li key={report.id}>
-              <ReportRow report={report} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState
-          icon={Flag}
-          title="Aucun signalement"
-          description="Rien à traiter dans cette catégorie pour le moment."
-        />
-      )}
+      {showQueue ? (
+        <section aria-labelledby="triage-titre" className="space-y-3">
+          <div>
+            <h3 id="triage-titre" className="text-sm font-semibold text-neutral-800">
+              À traiter, par cible ({queue.length})
+            </h3>
+            <p className="mt-0.5 text-xs text-neutral-500">
+              Classé par nombre de <strong>signaleurs distincts</strong> : c’est la seule mesure qui
+              résiste à quelqu’un qui signalerait en boucle.
+            </p>
+          </div>
+          <ModerationQueue items={queue} />
+        </section>
+      ) : null}
+
+      <section aria-labelledby="detail-titre" className="space-y-3">
+        <h3 id="detail-titre" className="text-sm font-semibold text-neutral-800">
+          Signalements un par un ({reports.length})
+        </h3>
+
+        {reports.length > 0 ? (
+          <ul className="space-y-3">
+            {reports.map((report) => (
+              <li key={report.id}>
+                <ReportRow report={report} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            icon={Flag}
+            title="Aucun signalement"
+            description="Rien à traiter dans cette catégorie pour le moment."
+          />
+        )}
+      </section>
     </div>
   );
 }

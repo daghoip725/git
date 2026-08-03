@@ -435,3 +435,91 @@ export async function getAllFeaturePlans(): Promise<AdFeaturePlan[]> {
   }
   return data ?? [];
 }
+
+/* -------------------------------------------------------------------------- */
+/*  File de triage                                                            */
+/* -------------------------------------------------------------------------- */
+
+export interface QueueEntry {
+  targetType: 'ad' | 'user' | 'message' | 'review';
+  targetId: string;
+  label: string;
+  href: string;
+  targetStatus: AccountStatus;
+  reportCount: number;
+  reporterCount: number;
+  reasons: string[];
+  firstReported: string;
+  lastReported: string;
+}
+
+/**
+ * File de triage groupée par cible.
+ *
+ * `moderation_queue()` vérifie `is_staff()` en première ligne : la garde de
+ * rôle côté page n'évite qu'un écran vide, elle n'est pas la sécurité.
+ */
+export async function getModerationQueue(limit = 50): Promise<QueueEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('moderation_queue', { p_limit: limit });
+
+  if (error) {
+    logger.error('Chargement de la file de triage impossible', error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    targetType: row.target_type,
+    targetId: row.target_id,
+    label: row.target_label,
+    href: row.target_href,
+    targetStatus: row.target_status,
+    reportCount: row.report_count,
+    reporterCount: row.reporter_count,
+    reasons: row.reasons,
+    firstReported: row.first_reported,
+    lastReported: row.last_reported,
+  }));
+}
+
+export interface AccountDossier {
+  fullName: string;
+  status: AccountStatus;
+  role: UserRole;
+  isVerified: boolean;
+  createdAt: string;
+  adsTotal: number;
+  adsPublished: number;
+  reportsReceived: number;
+  reportersDistinct: number;
+  reportsFiled: number;
+  reportsFiledDismissed: number;
+}
+
+/** Éléments de contexte avant décision de modération. */
+export async function getAccountDossier(userId: string): Promise<AccountDossier | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('account_dossier', { p_user_id: userId });
+
+  if (error) {
+    logger.warn('Dossier de compte indisponible', { userId, code: error.code });
+    return null;
+  }
+
+  const row = data?.[0];
+  if (!row) return null;
+
+  return {
+    fullName: row.full_name,
+    status: row.status,
+    role: row.role,
+    isVerified: row.is_verified,
+    createdAt: row.created_at,
+    adsTotal: row.ads_total,
+    adsPublished: row.ads_published,
+    reportsReceived: row.reports_received,
+    reportersDistinct: row.reporters_distinct,
+    reportsFiled: row.reports_filed,
+    reportsFiledDismissed: row.reports_filed_dismissed,
+  };
+}

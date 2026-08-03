@@ -310,3 +310,95 @@ export async function confirmPaymentAction(
     return fail(error);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Modération : blocage et clôture groupée                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sanctionne un compte et clôt d'un geste les signalements qui le visent.
+ *
+ * Les deux gestes vont toujours ensemble en pratique. Les laisser séparés
+ * revenait à compter sur la discipline du modérateur pour que la file reste
+ * juste — et à afficher longtemps des dossiers déjà tranchés.
+ *
+ * `block_account()` revérifie tout : garde de rôle, protection de soi et de la
+ * hiérarchie, retrait des annonces de la vitrine, journal d'audit.
+ */
+export async function blockAccountAction(
+  userId: string,
+  status: 'suspended' | 'banned' | 'active',
+  reason?: string,
+): Promise<ActionResult<{ closedReports: number }>> {
+  try {
+    await requireUser();
+
+    const parsed = z
+      .object({
+        userId: uuidSchema,
+        status: z.enum(['suspended', 'banned', 'active']),
+        reason: z.string().trim().max(500).optional(),
+      })
+      .safeParse({ userId, status, reason });
+    if (!parsed.success) return { success: false, error: 'Requête invalide.' };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('block_account', {
+      p_user_id: parsed.data.userId,
+      p_status: parsed.data.status,
+      p_reason: parsed.data.reason ?? null,
+    });
+
+    if (error) {
+      logger.warn('Blocage de compte refusé', { code: error.code });
+      return { success: false, error: toAdminError(error) };
+    }
+
+    revalidatePath('/admin/signalements');
+    revalidatePath('/admin/utilisateurs');
+    revalidatePath(`/vendeurs/${parsed.data.userId}`);
+    return ok({ closedReports: data ?? 0 });
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/** Clôt tous les signalements ouverts visant une cible, sans sanctionner. */
+export async function resolveTargetReportsAction(
+  targetType: 'ad' | 'user',
+  targetId: string,
+  status: 'resolved' | 'dismissed',
+  note?: string,
+): Promise<ActionResult<{ closedReports: number }>> {
+  try {
+    await requireUser();
+
+    const parsed = z
+      .object({
+        targetType: z.enum(['ad', 'user']),
+        targetId: uuidSchema,
+        status: z.enum(['resolved', 'dismissed']),
+        note: z.string().trim().max(1000).optional(),
+      })
+      .safeParse({ targetType, targetId, status, note });
+    if (!parsed.success) return { success: false, error: 'Requête invalide.' };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('resolve_reports_for_target', {
+      p_target_type: parsed.data.targetType,
+      p_target_id: parsed.data.targetId,
+      p_status: parsed.data.status,
+      p_note: parsed.data.note ?? null,
+    });
+
+    if (error) {
+      logger.warn('Clôture groupée refusée', { code: error.code });
+      return { success: false, error: toAdminError(error) };
+    }
+
+    revalidatePath('/admin/signalements');
+    return ok({ closedReports: data ?? 0 });
+  } catch (error) {
+    return fail(error);
+  }
+}

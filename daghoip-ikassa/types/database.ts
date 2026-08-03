@@ -1129,6 +1129,70 @@ export interface Database {
         Returns: Database['public']['Tables']['notification_settings']['Row'];
       };
 
+      /**
+       * Signale un compte. Un signalement déjà déposé par la même personne
+       * n'en crée pas un second — la fonction renvoie alors `null`.
+       */
+      report_user: {
+        Args: { p_user_id: string; p_reason: ReportReason; p_details?: string | null };
+        Returns: string | null;
+      };
+
+      /** File de triage groupée par cible. Personnel de modération uniquement. */
+      moderation_queue: {
+        Args: { p_limit?: number };
+        Returns: {
+          target_type: ReportTargetType;
+          target_id: string;
+          target_label: string;
+          target_href: string;
+          target_status: AccountStatus;
+          report_count: number;
+          reporter_count: number;
+          reasons: string[];
+          first_reported: string;
+          last_reported: string;
+        }[];
+      };
+
+      /** Éléments de contexte avant décision. Personnel de modération uniquement. */
+      account_dossier: {
+        Args: { p_user_id: string };
+        Returns: {
+          full_name: string;
+          status: AccountStatus;
+          role: UserRole;
+          is_verified: boolean;
+          created_at: string;
+          ads_total: number;
+          ads_published: number;
+          reports_received: number;
+          reporters_distinct: number;
+          reports_filed: number;
+          reports_filed_dismissed: number;
+        }[];
+      };
+
+      /**
+       * Sanctionne un compte et clôt les signalements qui le visent. Retourne
+       * le nombre de dossiers clos. Jamais automatique.
+       */
+      block_account: {
+        Args: { p_user_id: string; p_status: AccountStatus; p_reason?: string | null };
+        Returns: number;
+      };
+
+      /** Clôt d'un geste tous les signalements ouverts visant une même cible. */
+      resolve_reports_for_target: {
+        Args: {
+          p_target_type: ReportTargetType;
+          p_target_id: string;
+          p_status?: ReportStatus;
+          p_note?: string | null;
+        };
+        Returns: number;
+      };
+
       /** Enregistre une recherche. Sans effet pour un visiteur anonyme. */
       record_search: {
         Args: { p_query: string; p_filters?: Json; p_results?: number | null };

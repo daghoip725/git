@@ -3,7 +3,14 @@
  * Tout ce qui est spécifique au marché gabonais (villes, provinces, monnaie,
  * indicatif téléphonique) est centralisé ici.
  */
-import type { AdCondition, AdSort, AdStatus, PriceType } from '@/types';
+import type {
+  AdCondition,
+  AdSort,
+  AdStatus,
+  PriceType,
+  ReportReason,
+  ReportTargetType,
+} from '@/types';
 
 /** Identité du site, réutilisée par les métadonnées et le footer. */
 export const SITE = {
@@ -178,3 +185,30 @@ export const MAIN_NAV = [
   { href: '/securite', label: 'Sécurité' },
   { href: '/contact', label: 'Contact' },
 ] as const;
+
+/**
+ * Libellés des motifs de signalement.
+ *
+ * Partagés entre la fiche d'un signalement et la file de triage : deux copies
+ * auraient fini par diverger, et un modérateur aurait lu « Faux profil » d'un
+ * côté et « fake_profile » de l'autre.
+ */
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  spam: 'Spam ou publicité',
+  fraud: 'Arnaque ou fraude',
+  prohibited: 'Article interdit',
+  duplicate: 'Annonce en double',
+  wrong_category: 'Mauvaise catégorie',
+  offensive: 'Contenu offensant',
+  harassment: 'Harcèlement',
+  fake_profile: 'Faux profil',
+  other: 'Autre motif',
+};
+
+/** Ce que vise un signalement, en toutes lettres. */
+export const REPORT_TARGET_LABELS: Record<ReportTargetType, string> = {
+  ad: 'Annonce',
+  user: 'Compte',
+  message: 'Message',
+  review: 'Avis',
+};

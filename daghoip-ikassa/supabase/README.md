@@ -53,7 +53,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 12. `migrations/20260801001200_ai_features.sql`
 13. `migrations/20260801001300_notifications.sql`
 14. `migrations/20260801001400_history.sql`
-15. `seed.sql`
+15. `migrations/20260801001500_moderation.sql`
+16. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -386,12 +387,12 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 412 assertions réparties en dix fichiers : schéma et sécurité
+La suite couvre 462 assertions réparties en onze fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
 statistiques d'administration (`06`), paiements et facturation (`07`), aides
 intelligentes (`08`), notifications et file d'envoi (`09`), historiques
-personnels (`10`). Elle vérifie le cycle de vie des annonces, la
+personnels (`10`), modération et blocage de comptes (`11`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -550,6 +551,71 @@ ne doit jamais faire échouer l'action principale.
 successifs dans une même transaction porteraient le même horodatage, et
 l'éviction — qui garde « les trente plus récentes » — deviendrait arbitraire.
 Elle pourrait supprimer la dernière recherche au lieu de la première.
+
+## Modération
+
+### Signaler un compte, pas seulement une annonce
+
+L'arnaqueur type ne publie pas une mauvaise annonce : il en publie dix
+correctes et démarche en messagerie. Sans `report_user()`, la seule façon de le
+désigner était de signaler une annonce irréprochable — ce qui égarait le
+modérateur autant que le signaleur.
+
+`report_user()` est `security definer` pour trois raisons : vérifier l'existence
+de la cible sans accorder de lecture supplémentaire, refuser l'auto-signalement,
+et écrire sans donner au client un droit d'INSERT libre sur `reports` — il
+pourrait sinon forger un `reporter_id` et faire porter un signalement par
+quelqu'un d'autre.
+
+### Déduplication
+
+`reports_unique_user_reporter_idx` complète l'index qui n'existait que pour les
+annonces. Sans lui, une même personne pouvait signaler cinquante fois le même
+compte — par acharnement ou par simple double clic — et noyer la file au point
+que les signalements légitimes s'y perdent.
+
+Un second signalement ne rouvre pas un dossier clos : le faire permettrait de
+contourner la décision d'un modérateur en re-signalant.
+
+### La file de triage
+
+`moderation_queue()` regroupe **par cible** au lieu de lister à plat, et
+ordonne par **signaleurs distincts** :
+
+> Huit personnes sans lien entre elles qui désignent le même compte, c'est un
+> dossier. Huit signalements d'une même personne, c'est de l'acharnement.
+
+La liste chronologique confondait les deux. Trois chiffres suffisent alors à
+décider par où commencer : signaleurs distincts, ancienneté du plus vieux
+dossier, motifs invoqués.
+
+`account_dossier()` complète avant décision — ancienneté du compte, annonces
+publiées, signalements reçus, et **signalements émis**, parce qu'un signaleur
+compulsif dont les dossiers sont systématiquement rejetés est un signal en soi.
+
+### Blocage
+
+`block_account()` enchaîne le changement de statut et la clôture des
+signalements. Les deux gestes vont toujours ensemble en pratique ; les laisser
+séparés revenait à compter sur la discipline du modérateur pour que la file
+reste juste.
+
+Toutes les protections de `admin_set_user_status()` s'appliquent : on ne
+sanctionne ni soi-même, ni un membre de l'équipe sans être administrateur. Les
+annonces publiées sortent de la vitrine et l'action est inscrite au journal
+d'audit.
+
+### Aucune sanction automatique
+
+Aucun compte n'est bloqué par un compteur de signalements. Un mécanisme qui
+bannirait au bout de N signalements offrirait à n'importe quel groupe coordonné
+le moyen de faire taire un concurrent. Un signalement ouvre un dossier, une
+personne tranche — et la suite de tests le vérifie explicitement.
+
+Conséquence à connaître : un compte suspendu ou banni ne reçoit **plus** de
+notification dans l'application (`create_notification()` exige un compte actif).
+L'interface de modération le dit au modérateur plutôt que de laisser croire que
+la personne a été prévenue.
 
 ## Exploitation
 

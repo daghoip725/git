@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { ListingGrid } from '@/components/listings/ListingGrid';
 import { RatingStars } from '@/components/profile/RatingStars';
+import { ReportUserDialog } from '@/components/profile/ReportUserDialog';
 import { ReviewForm } from '@/components/profile/ReviewForm';
 import { ReviewList } from '@/components/profile/ReviewList';
 import { Badge } from '@/components/ui/Badge';
@@ -211,6 +212,18 @@ export default async function SellerProfilePage({ params }: PageProps) {
             </p>
           </section>
         ) : null}
+
+        {/* Signalement du compte : c'est ici qu'on désigne une personne, et non
+            depuis une annonce en particulier — un arnaqueur publie souvent des
+            annonces irréprochables. */}
+        <div className="mt-4">
+          <ReportUserDialog
+            userId={seller.id}
+            userName={seller.full_name}
+            isAuthenticated={Boolean(viewer)}
+            isSelf={isOwner}
+          />
+        </div>
       </header>
 
       {/* ------------------------------ Annonces ------------------------------ */}

@@ -19,16 +19,17 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 6. [Paiements](#paiements)
 7. [Aides intelligentes](#aides-intelligentes)
 8. [Modèle de sécurité](#modèle-de-sécurité)
-9. [Favoris et historiques](#favoris-et-historiques)
-10. [Notifications](#notifications)
-11. [Thème clair et sombre](#thème-clair-et-sombre)
-12. [Application installable (PWA)](#application-installable-pwa)
-13. [Performance et référencement](#performance-et-référencement)
-14. [Tests](#tests)
-15. [Identité visuelle](#identité-visuelle)
-16. [Docker](#docker)
-17. [Scripts](#scripts)
-18. [Exploitation](#exploitation)
+9. [Modération](#modération)
+10. [Favoris et historiques](#favoris-et-historiques)
+11. [Notifications](#notifications)
+12. [Thème clair et sombre](#thème-clair-et-sombre)
+13. [Application installable (PWA)](#application-installable-pwa)
+14. [Performance et référencement](#performance-et-référencement)
+15. [Tests](#tests)
+16. [Identité visuelle](#identité-visuelle)
+17. [Docker](#docker)
+18. [Scripts](#scripts)
+19. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -441,7 +442,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-412 assertions), qui rejoue notamment des tentatives d’auto-promotion
+462 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
@@ -505,6 +506,38 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
   échouer le build s’ils sont importés depuis un composant client.
 - **Anti-spam** : le numéro de téléphone d’une annonce n’est pas présent dans le
   HTML initial ; il n’est révélé qu’après un clic explicite.
+
+---
+
+## Modération
+
+Trois niveaux, du plus ouvert au plus restreint.
+
+**Signaler** — une annonce depuis sa page, **un compte** depuis sa fiche
+vendeur. Les motifs diffèrent : « mauvaise catégorie » n'a aucun sens pour une
+personne, « harcèlement » n'en a aucun pour une annonce. Une même personne ne
+signale qu'une fois la même cible, et ne peut pas se signaler elle-même.
+
+**Trier** — `/admin/signalements` regroupe les dossiers **par cible** et les
+ordonne par nombre de **signaleurs distincts**. C'est la seule mesure qui
+résiste à quelqu'un qui signalerait en boucle : huit personnes sans lien entre
+elles qui désignent le même compte, c'est un dossier ; huit signalements d'une
+même personne, non.
+
+**Sanctionner** — suspendre ou bannir depuis la file, en un geste qui retire les
+annonces de la vitrine, clôt tous les signalements visant le compte et inscrit
+la décision au journal d'audit. Un modérateur ne peut sanctionner ni lui-même,
+ni un membre de l'équipe.
+
+### Rien n'est automatique
+
+Aucun compte n'est bloqué par un compteur de signalements. Un mécanisme qui
+bannirait au bout de N signalements offrirait à tout groupe coordonné le moyen
+de faire taire un concurrent. Un signalement ouvre un dossier, une personne
+tranche.
+
+Le détail — déduplication, dossier de compte, protections — est dans
+[`supabase/README.md`](supabase/README.md#modération).
 
 ---
 
@@ -666,7 +699,7 @@ Deux suites, exécutables hors ligne, sans service tiers :
 
 ```bash
 npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 412 assertions sur un PostgreSQL jetable
+npm run test:sql   # 462 assertions sur un PostgreSQL jetable
 npm run verify     # typage + lint + tests + build
 ```
 

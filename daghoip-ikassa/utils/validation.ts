@@ -232,6 +232,20 @@ export const reportSchema = z.object({
   details: z.string().trim().max(1000).nullable(),
 });
 
+/**
+ * Signalement d'un compte.
+ *
+ * Motifs volontairement différents de ceux d'une annonce : « mauvaise
+ * catégorie » ou « annonce en double » n'ont aucun sens pour une personne, et
+ * les proposer conduirait à des signalements ininterprétables. À l'inverse
+ * « harcèlement » et « faux profil » ne concernent qu'un compte.
+ */
+export const reportUserSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.enum(['fraud', 'fake_profile', 'harassment', 'offensive', 'spam', 'other']),
+  details: z.string().trim().max(1000).nullable(),
+});
+
 /** Anciennetés proposées par le filtre « date de publication », en jours. */
 export const PUBLICATION_AGES = [1, 7, 30, 90] as const;
 

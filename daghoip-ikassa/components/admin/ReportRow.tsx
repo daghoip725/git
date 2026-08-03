@@ -10,20 +10,9 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import type { ReportReason } from '@/types';
+import { REPORT_REASON_LABELS, REPORT_TARGET_LABELS } from '@/utils/constants';
 import { formatRelativeDate } from '@/utils/format';
 import { buildListingHref } from '@/utils/slug';
-
-const REASON_LABELS: Record<ReportReason, string> = {
-  spam: 'Spam ou publicité',
-  fraud: 'Arnaque ou fraude',
-  prohibited: 'Article interdit',
-  duplicate: 'Annonce en double',
-  wrong_category: 'Mauvaise catégorie',
-  offensive: 'Contenu offensant',
-  harassment: 'Harcèlement',
-  fake_profile: 'Faux profil',
-  other: 'Autre motif',
-};
 
 /** Un motif grave mérite d'être repéré au premier coup d'œil. */
 const REASON_TONES: Partial<Record<ReportReason, BadgeTone>> = {
@@ -67,9 +56,12 @@ export function ReportRow({ report }: ReportRowProps) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge tone={REASON_TONES[report.reason] ?? 'neutral'}>
-              {REASON_LABELS[report.reason]}
+              {REPORT_REASON_LABELS[report.reason]}
             </Badge>
-            <Badge tone="neutral">{report.target_type}</Badge>
+            <Badge tone="neutral">
+              {REPORT_TARGET_LABELS[report.target_type as keyof typeof REPORT_TARGET_LABELS] ??
+                report.target_type}
+            </Badge>
             {report.status === 'reviewing' ? <Badge tone="warning">En cours</Badge> : null}
           </div>
 
@@ -118,7 +110,7 @@ export function ReportRow({ report }: ReportRowProps) {
                   const moderated = await moderateAdAction(
                     report.ad!.id,
                     'reject',
-                    REASON_LABELS[report.reason],
+                    REPORT_REASON_LABELS[report.reason],
                   );
                   if (!moderated.success) return moderated;
                   return resolveReportAction(report.id, 'resolved', 'Annonce retirée.');
