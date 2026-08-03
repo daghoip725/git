@@ -55,7 +55,13 @@ psql -q -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/supabase/seed.sql" >/de
 
 # Chaque suite part d'une base vierge : les tests d'authentification créent
 # leurs propres comptes et supposent qu'aucun administrateur n'existe encore.
-for suite in "$SCRIPT_DIR"/0[1-9]_*.sql; do
+# `[0-9][0-9]_` et non `0[1-9]_` : la dixième suite existe, et le motif
+# précédent l'aurait ignorée en silence — le pire mode d'échec pour une suite
+# de tests, qui passe alors au vert sans avoir rien exécuté.
+for suite in "$SCRIPT_DIR"/[0-9][0-9]_*.sql; do
+  # Le fichier 00 est le simulacre Supabase, chargé plus haut, pas une suite.
+  [ "$(basename "$suite")" = "00_supabase_shim.sql" ] && continue
+
   echo
   echo "==> Suite : $(basename "$suite")"
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { incrementViewsAction } from '@/app/actions/ads.actions';
+import { recordAdViewAction } from '@/app/actions/history.actions';
 import { CollapsibleText } from '@/components/common/CollapsibleText';
 import { ContactActions } from '@/components/listings/ContactActions';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
@@ -13,6 +14,7 @@ import { ListingMap } from '@/components/listings/ListingMap';
 import { MessageSellerForm } from '@/components/listings/MessageSellerForm';
 import { ReportDialog } from '@/components/listings/ReportDialog';
 import { SellerCard } from '@/components/listings/SellerCard';
+import { LocalViewRecorder } from '@/components/listings/LocalViewRecorder';
 import { ShareButton } from '@/components/listings/ShareButton';
 import { JsonLd, breadcrumbSchema } from '@/components/seo/JsonLd';
 import { Alert } from '@/components/ui/Alert';
@@ -79,9 +81,16 @@ export default async function ListingDetailPage({ params }: PageProps) {
   // d'une requête d'agrégation dédiée.
   const sellerAdsCount = listing.seller?.ads_count ?? 0;
 
-  // Compteur de vues : jamais incrémenté par le propriétaire de l'annonce.
+  /*
+   * Deux enregistrements distincts, et c'est volontaire :
+   *  - `incrementViewsAction` alimente le compteur **public** de l'annonce ;
+   *  - `recordAdViewAction` alimente l'historique **privé** du visiteur.
+   * Les séparer permet d'effacer son historique sans faire baisser le compteur
+   * d'une annonce — et de garder le compteur pour les visiteurs anonymes, qui
+   * n'ont pas d'historique serveur.
+   */
   if (!isOwner && listing.status === 'published') {
-    await incrementViewsAction(listing.id);
+    await Promise.all([incrementViewsAction(listing.id), recordAdViewAction(listing.id)]);
   }
 
   const images = listing.images.flatMap((image, index) => {
@@ -155,6 +164,15 @@ export default async function ListingDetailPage({ params }: PageProps) {
             ]),
           ],
         }}
+      />
+
+      {/* Historique local : seul recours pour un visiteur sans compte, qui n'a
+          pas d'identité côté serveur. */}
+      <LocalViewRecorder
+        adId={listing.id}
+        title={listing.title}
+        href={href}
+        isAuthenticated={Boolean(user)}
       />
 
       <nav aria-label="Fil d’Ariane" className="mb-4 text-sm text-neutral-500">

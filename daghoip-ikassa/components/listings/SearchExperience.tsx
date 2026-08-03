@@ -17,6 +17,7 @@ import { ListingGrid } from '@/components/listings/ListingGrid';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { useInstantSearch } from '@/hooks/useInstantSearch';
+import { useSearchRecorder } from '@/hooks/useSearchRecorder';
 import type { AdCardData, AdFilters, AdSort, Category, Paginated } from '@/types';
 import { cn } from '@/utils/cn';
 
@@ -51,6 +52,7 @@ export function SearchExperience({
   isAuthenticated,
 }: SearchExperienceProps) {
   const inputId = useId();
+  const { recordSearch } = useSearchRecorder(isAuthenticated);
   const {
     filters,
     items,
@@ -64,7 +66,11 @@ export function SearchExperience({
     setFilters,
     resetFilters,
     loadMore,
-  } = useInstantSearch({ initialFilters, initialResult });
+  } = useInstantSearch({
+    initialFilters,
+    initialResult,
+    onSearchCompleted: recordSearch,
+  });
 
   const favorites = new Set(favoriteIds);
   const hasQuery = Boolean(filters.query?.trim());

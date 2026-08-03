@@ -466,3 +466,52 @@ export async function getRecommendedAds(
     reason: rows[0]?.reason ?? 'populaire',
   };
 }
+
+/**
+ * Annonces consultées récemment par l'utilisateur courant.
+ *
+ * `recent_ad_views()` est `security invoker` : la RLS de `ad_views` **et** celle
+ * de `ads` s'appliquent. Une annonce retirée depuis la visite disparaît donc
+ * d'elle-même — on ne renvoie personne vers une annonce qui n'existe plus.
+ */
+export async function getRecentlyViewedAds(
+  limit = 24,
+): Promise<(AdCardData & { viewedAt: string; viewCount: number })[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('recent_ad_views', { p_limit: limit });
+
+  if (error) {
+    logger.error('Chargement de l’historique de consultation impossible', error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    reference: row.reference,
+    title: row.title,
+    slug: row.slug,
+    price: row.price,
+    price_type: row.price_type,
+    city: row.city,
+    is_featured: row.is_featured,
+    published_at: row.published_at,
+    created_at: row.created_at,
+    categoryName: row.category_name,
+    categorySlug: row.category_slug,
+    coverImageUrl: getAdImageUrl(row.cover_image_path),
+    viewedAt: row.viewed_at,
+    viewCount: row.view_count,
+  }));
+}
+
+/** Recherches récentes de l'utilisateur courant. */
+export async function getRecentSearches(limit = 10) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('recent_searches', { p_limit: limit });
+
+  if (error) {
+    logger.error('Chargement de l’historique de recherche impossible', error);
+    return [];
+  }
+  return data ?? [];
+}

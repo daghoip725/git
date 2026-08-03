@@ -19,15 +19,16 @@ CSS 4 · Supabase (PostgreSQL, Auth, Storage) · Zod · Docker.
 6. [Paiements](#paiements)
 7. [Aides intelligentes](#aides-intelligentes)
 8. [Modèle de sécurité](#modèle-de-sécurité)
-9. [Notifications](#notifications)
-10. [Thème clair et sombre](#thème-clair-et-sombre)
-11. [Application installable (PWA)](#application-installable-pwa)
-12. [Performance et référencement](#performance-et-référencement)
-13. [Tests](#tests)
-14. [Identité visuelle](#identité-visuelle)
-15. [Docker](#docker)
-16. [Scripts](#scripts)
-17. [Exploitation](#exploitation)
+9. [Favoris et historiques](#favoris-et-historiques)
+10. [Notifications](#notifications)
+11. [Thème clair et sombre](#thème-clair-et-sombre)
+12. [Application installable (PWA)](#application-installable-pwa)
+13. [Performance et référencement](#performance-et-référencement)
+14. [Tests](#tests)
+15. [Identité visuelle](#identité-visuelle)
+16. [Docker](#docker)
+17. [Scripts](#scripts)
+18. [Exploitation](#exploitation)
 
 Le déploiement en production (Coolify, VPS Hostinger, Docker) a son propre
 document : [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
@@ -440,7 +441,7 @@ Certaines colonnes ne sont tout simplement pas accordées au rôle
   `service_role` et les fonctions `SECURITY DEFINER` y écrivent.
 
 Ces protections sont couvertes par la suite de tests (`./supabase/tests/run.sh`,
-374 assertions), qui rejoue notamment des tentatives d’auto-promotion
+412 assertions), qui rejoue notamment des tentatives d’auto-promotion
 administrateur, de falsification de compteurs, de lecture du téléphone d’autrui,
 d’auto-attribution du badge vérifié, d’écriture dans le journal d’audit, de mise
 en avant d’une annonce sans paiement, de contournement d’un blocage par
@@ -504,6 +505,37 @@ SMS. Toutes convergent vers une session Supabase, et le trigger
   échouer le build s’ils sont importés depuis un composant client.
 - **Anti-spam** : le numéro de téléphone d’une annonce n’est pas présent dans le
   HTML initial ; il n’est révélé qu’après un clic explicite.
+
+---
+
+## Favoris et historiques
+
+**Favoris** — bascule optimiste : le cœur change d'état immédiatement, puis se
+resynchronise sur la réponse du serveur et revient en arrière en cas d'échec.
+La bascule elle-même est atomique côté PostgreSQL (`toggle_favorite`), ce qui
+évite le doublon qu'un double clic produirait avec un `insert`/`delete` séparés.
+Un visiteur non connecté est redirigé vers la connexion, avec retour à la page
+d'origine.
+
+**Historiques** — recherches récentes et annonces consultées, sur
+`/compte/historique`.
+
+|                              | Connecté                             | Anonyme        |
+| ---------------------------- | ------------------------------------ | -------------- |
+| Où                           | tables `search_history` / `ad_views` | `localStorage` |
+| Suit d'un appareil à l'autre | oui                                  | non            |
+| Trace côté serveur           | oui, effaçable, purgée à 90 jours    | **aucune**     |
+
+La majorité des visites d'une plateforme d'annonces se font sans compte :
+réserver la fonctionnalité aux personnes connectées reviendrait à en priver la
+plupart des gens. Le stockage local comble ce vide et n'expose rien — mais il
+ne suit pas d'un appareil à l'autre, ce qui est le bon compromis pour quelqu'un
+qui n'a de toute façon rien à synchroniser.
+
+Ces historiques sont **strictement privés** : la RLS n'accorde aucune exception
+au personnel, contrairement à toutes les autres tables. Le détail — plafonds,
+purge, séparation d'avec le compteur public de vues — est dans
+[`supabase/README.md`](supabase/README.md#historiques-personnels).
 
 ---
 
@@ -634,7 +666,7 @@ Deux suites, exécutables hors ligne, sans service tiers :
 
 ```bash
 npm test           # 66 tests unitaires (Node natif, zéro dépendance ajoutée)
-npm run test:sql   # 374 assertions sur un PostgreSQL jetable
+npm run test:sql   # 412 assertions sur un PostgreSQL jetable
 npm run verify     # typage + lint + tests + build
 ```
 

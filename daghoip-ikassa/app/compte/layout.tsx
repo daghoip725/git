@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   Bell,
+  History,
   CreditCard,
   Heart,
   KeyRound,
@@ -19,6 +20,7 @@ const NAV = [
   { href: '/compte', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/compte/annonces', label: 'Mes annonces', icon: ListOrdered },
   { href: '/compte/favoris', label: 'Mes favoris', icon: Heart },
+  { href: '/compte/historique', label: 'Mon historique', icon: History },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/compte/profil', label: 'Mon profil', icon: User },
   { href: '/compte/paiements', label: 'Paiements', icon: CreditCard },

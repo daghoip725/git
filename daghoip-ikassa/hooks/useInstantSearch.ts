@@ -59,6 +59,12 @@ const COUNTED_FILTERS = [
 export interface UseInstantSearchOptions {
   initialFilters: AdFilters;
   initialResult: Paginated<AdCardData>;
+  /**
+   * Appelée après chaque recherche aboutie, avec les filtres effectifs et le
+   * nombre de résultats. Sert à alimenter l'historique — le crochet lui-même
+   * ne sait rien de cet historique, et n'a pas à le savoir.
+   */
+  onSearchCompleted?: (filters: AdFilters, total: number) => void;
 }
 
 export interface UseInstantSearchResult {
@@ -105,6 +111,7 @@ function toSearchParams(filters: AdFilters): string {
 export function useInstantSearch({
   initialFilters,
   initialResult,
+  onSearchCompleted,
 }: UseInstantSearchOptions): UseInstantSearchResult {
   const [filters, setFiltersState] = useState<AdFilters>(() => compact(initialFilters));
   const [items, setItems] = useState<AdCardData[]>(initialResult.items);
@@ -124,6 +131,16 @@ export function useInstantSearch({
    */
   const signature = JSON.stringify(compact({ ...filters, query: debouncedQuery }));
   const effectiveFilters = useMemo(() => JSON.parse(signature) as AdFilters, [signature]);
+
+  /*
+   * Référence stable sur le rappel : le passer en dépendance de l'effet
+   * relancerait une recherche complète chaque fois que le composant parent se
+   * rend avec une nouvelle fonction fléchée.
+   */
+  const completedRef = useRef(onSearchCompleted);
+  useEffect(() => {
+    completedRef.current = onSearchCompleted;
+  }, [onSearchCompleted]);
 
   // La première recherche est déjà rendue par le serveur : on ne la rejoue pas.
   const initialSignature = useRef(signature);
@@ -153,6 +170,13 @@ export function useInstantSearch({
         setTotal(result.total);
         setPage(1);
         setIsSearching(false);
+        /*
+         * L'historique n'est alimenté qu'**une fois les résultats connus** :
+         * le nombre de résultats fait partie de ce qu'on réaffichera
+         * (« Toyota Corolla — 12 annonces »), et attendre évite d'enregistrer
+         * les frappes intermédiaires que la temporisation a déjà écartées.
+         */
+        completedRef.current?.(JSON.parse(signature) as AdFilters, result.total);
       })
       .catch(() => {
         if (current !== generation.current || controller.signal.aborted) return;

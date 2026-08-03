@@ -615,6 +615,47 @@ export interface Database {
       };
 
       /**
+       * Recherches récentes d'un compte.
+       *
+       * **Strictement privé** : la RLS n'accorde aucune exception au personnel,
+       * contrairement à toutes les autres tables. L'écriture passe par
+       * `record_search()`, qui normalise et plafonne.
+       */
+      search_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          query: string;
+          query_key: string;
+          filters: Json;
+          results_count: number | null;
+          created_at: string;
+        };
+        /** Aucun droit d'INSERT : passer par `record_search()`. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
+       * Annonces consultées par un compte. Même régime de confidentialité que
+       * `search_history`. Distincte de `ads.views_count`, qui compte sans dire
+       * qui a regardé.
+       */
+      ad_views: {
+        Row: {
+          user_id: string;
+          ad_id: string;
+          viewed_at: string;
+          view_count: number;
+        };
+        /** Aucun droit d'INSERT : passer par `record_ad_view()`. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+
+      /**
        * File d'envoi des e-mails. Aucune lecture ni écriture client : elle
        * contient des adresses. Seul `service_role` y touche.
        */
@@ -1087,6 +1128,59 @@ export interface Database {
         Args: { p_user_id: string };
         Returns: Database['public']['Tables']['notification_settings']['Row'];
       };
+
+      /** Enregistre une recherche. Sans effet pour un visiteur anonyme. */
+      record_search: {
+        Args: { p_query: string; p_filters?: Json; p_results?: number | null };
+        Returns: undefined;
+      };
+
+      /** Enregistre une consultation. Sans effet pour un anonyme ou le vendeur. */
+      record_ad_view: {
+        Args: { p_ad_id: string };
+        Returns: undefined;
+      };
+
+      /** Recherches récentes du compte courant. */
+      recent_searches: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          query: string;
+          filters: Json;
+          results_count: number | null;
+          created_at: string;
+        }[];
+      };
+
+      /** Annonces consultées récemment, prêtes à l'affichage. */
+      recent_ad_views: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          reference: string;
+          title: string;
+          slug: string;
+          price: number | null;
+          price_type: PriceType;
+          city: string;
+          is_featured: boolean;
+          views_count: number;
+          published_at: string | null;
+          created_at: string;
+          category_name: string | null;
+          category_slug: string | null;
+          cover_image_path: string | null;
+          viewed_at: string;
+          view_count: number;
+        }[];
+      };
+
+      /** Efface tout l'historique de recherche du compte courant. */
+      clear_search_history: { Args: Record<never, never>; Returns: number };
+
+      /** Efface tout l'historique de consultation du compte courant. */
+      clear_ad_views: { Args: Record<never, never>; Returns: number };
 
       /** Facture d'un paiement abouti. La RLS de `payments` décide qui la voit. */
       get_invoice: {

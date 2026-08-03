@@ -52,7 +52,8 @@ Dans **SQL Editor**, exécutez les fichiers **dans cet ordre exact** :
 11. `migrations/20260801001100_payments.sql`
 12. `migrations/20260801001200_ai_features.sql`
 13. `migrations/20260801001300_notifications.sql`
-14. `seed.sql`
+14. `migrations/20260801001400_history.sql`
+15. `seed.sql`
 
 Tous les fichiers sont **idempotents** : les rejouer ne casse rien.
 
@@ -385,11 +386,12 @@ lecture — portent la ligne entière et non la seule clé.
 
 ## Tests
 
-La suite couvre 374 assertions réparties en neuf fichiers : schéma et sécurité
+La suite couvre 412 assertions réparties en dix fichiers : schéma et sécurité
 générale (`01`), authentification, rôles et vérification vendeur (`02`),
 formulaire d'annonce (`03`), recherche et filtres (`04`), messagerie (`05`),
 statistiques d'administration (`06`), paiements et facturation (`07`), aides
-intelligentes (`08`), notifications et file d'envoi (`09`). Elle vérifie le cycle de vie des annonces, la
+intelligentes (`08`), notifications et file d'envoi (`09`), historiques
+personnels (`10`). Elle vérifie le cycle de vie des annonces, la
 recherche, les favoris, la messagerie, les avis, les quotas, les paiements, les
 signalements, la maintenance, les cascades, les filtres et tris de recherche, le
 blocage, les pièces jointes, l'archivage et les agrégats d'administration — et
@@ -505,6 +507,49 @@ Toutes les cinq minutes suffisent. `claim_pending_emails()` utilise
 `for update skip locked` : deux travailleurs lancés en parallèle se partagent la
 file au lieu d'envoyer deux fois le même message. Après cinq échecs, un envoi
 cesse d'être proposé — à ce stade, le problème n'est plus passager.
+
+## Historiques personnels
+
+Deux tables, `search_history` et `ad_views`, sous un régime de confidentialité
+que ne partage aucune autre table du projet.
+
+### Ce qu'elles ne sont pas
+
+Ce ne sont **pas** des journaux d'audience. Elles enregistrent ce que quelqu'un
+cherche et regarde : c'est parmi les données les plus intimes que produit une
+plateforme d'annonces — on y lit un déménagement, une naissance, une difficulté
+financière. Quatre règles en découlent :
+
+| Règle                                       | Mise en œuvre                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Personne d'autre que l'intéressé n'y accède | RLS `user_id = auth.uid()`, **sans exception pour le personnel** — contrairement à toutes les autres tables |
+| Effaçables à tout moment                    | politique `delete` propre + `clear_search_history()` / `clear_ad_views()`                                   |
+| Conservation bornée                         | 90 jours, `purge_history()` planifiée                                                                       |
+| Volume borné                                | 30 recherches, 100 annonces ; au-delà les plus anciennes sortent                                            |
+
+Les statistiques d'audience restent dans `ads.views_count`, qui compte sans dire
+_qui_ a regardé. `record_ad_view()` et `increment_ad_views()` sont donc deux
+fonctions distinctes : effacer son historique ne fait pas baisser le compteur
+d'une annonce.
+
+### Pourquoi aucun droit d'INSERT
+
+L'écriture passe par `record_search()` et `record_ad_view()`, en
+`security definer`. Accorder un INSERT direct au client lui permettrait de
+contourner le plafond et de saturer sa propre table — et rendrait la
+normalisation du dédoublonnage facultative.
+
+Ces deux fonctions sont **silencieuses pour un visiteur anonyme** : elles
+retournent sans rien faire plutôt que de lever. Elles sont appelées en marge
+d'une recherche ou de l'ouverture d'une annonce, et un historique indisponible
+ne doit jamais faire échouer l'action principale.
+
+### `clock_timestamp()` et non `now()`
+
+`now()` renvoie l'heure de **début de transaction** : deux enregistrements
+successifs dans une même transaction porteraient le même horodatage, et
+l'éviction — qui garde « les trente plus récentes » — deviendrait arbitraire.
+Elle pourrait supprimer la dernière recherche au lieu de la première.
 
 ## Exploitation
 
