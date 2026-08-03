@@ -21,11 +21,16 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+  # Appelable par un autre workflow. `deploiement.yml` s'en sert pour ne rien
+  # publier qui n'ait pas d'abord passé les mêmes contrôles — dupliquer les
+  # étapes ici et là-bas les aurait fatalement laissées diverger, et c'est
+  # toujours la copie du déploiement qui s'allège.
+  workflow_call:
 
 # Une seule exécution par branche : pousser trois fois de suite ne doit pas
 # occuper trois runners pour un résultat qui sera de toute façon écrasé.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

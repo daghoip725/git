@@ -25,4 +25,11 @@ coverage
 README.md
 Dockerfile
 docker-compose.yml
+docker-compose.prod.yml
 .dockerignore
+
+# Documentation et outillage de déploiement : rien de tout cela n'est utile à
+# l'image, et chaque fichier ajouté au contexte invalide le cache de build.
+DEPLOIEMENT.md
+scripts
+supabase/tests

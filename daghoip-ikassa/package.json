@@ -17,6 +17,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json}\"",
     "test": "node --experimental-strip-types --import ./tests/register.mjs --test 'tests/**/*.test.mts'",
     "test:sql": "./supabase/tests/run.sh",
+    "verify:env": "node scripts/verifier-env.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {

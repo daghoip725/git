@@ -950,19 +950,56 @@ L’image de production utilise la sortie `standalone` de Next.js, s’exécute 
 un utilisateur non privilégié (`nextjs`, uid 1001), avec système de fichiers en
 lecture seule, `no-new-privileges` et une sonde de santé HTTP.
 
+### En production : tirer plutôt que construire
+
+`docker-compose.prod.yml` **tire** l’image publiée par GitHub Actions au lieu de
+la construire sur place :
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Ce n’est pas un détail de confort. Construire Next.js demande environ 2 Go de
+mémoire ; un VPS d’entrée de gamme en a 1 ou 2. La construction y échoue — ou,
+plus pénible, y réussit en déclenchant le tueur de mémoire du noyau au milieu
+d’un déploiement, laissant le service à l’arrêt.
+
+### Déploiement automatique
+
+`.github/workflows/deploiement.yml` : à chaque poussée sur `main`, la CI est
+rejouée **en entier**, l’image est publiée sur GHCR (`latest` et le SHA du
+commit), puis Coolify est prévenu. L’étiquette par SHA est ce qui rend un retour
+en arrière possible — avec `latest` seul, la version précédente n’a plus de nom.
+
+Le workflow réutilise `ci.yml` par `workflow_call` plutôt que d’en recopier les
+étapes : dupliquer les contrôles les aurait fatalement laissés diverger, et
+c’est toujours la copie du déploiement qui s’allège.
+
+> ⚠️ **Une image = un environnement.** Les `NEXT_PUBLIC_*` sont inlinées au
+> build : l’image publiée est liée à un projet Supabase et à un domaine précis.
+> Deux environnements demandent deux constructions.
+
+Le détail — réglages GitHub, Coolify, VPS Hostinger, retour arrière — est dans
+[`DEPLOIEMENT.md`](DEPLOIEMENT.md).
+
 ---
 
 ## Scripts
 
-| Commande            | Effet                                                  |
-| ------------------- | ------------------------------------------------------ |
-| `npm run dev`       | Serveur de développement                               |
-| `npm run build`     | Build de production (`standalone`)                     |
-| `npm start`         | Sert le build de production                            |
-| `npm run typecheck` | Vérification TypeScript sans émission                  |
-| `npm run check:map` | Contrôles de la projection cartographique (Node 22.6+) |
-| `npm run lint`      | ESLint (config Next.js + TypeScript)                   |
-| `npm run format`    | Prettier (+ tri des classes Tailwind)                  |
+| Commande             | Effet                                                  |
+| -------------------- | ------------------------------------------------------ |
+| `npm run dev`        | Serveur de développement                               |
+| `npm run build`      | Build de production (`standalone`)                     |
+| `npm start`          | Sert le build de production                            |
+| `npm run typecheck`  | Vérification TypeScript sans émission                  |
+| `npm run lint`       | ESLint (config Next.js + TypeScript)                   |
+| `npm run format`     | Prettier (+ tri des classes Tailwind)                  |
+| `npm test`           | Tests unitaires (Node natif)                           |
+| `npm run test:sql`   | Suites SQL sur un PostgreSQL jetable                   |
+| `npm run verify`     | Typage + lint + tests + build                          |
+| `npm run verify:env` | Contrôle de configuration (`-- --prod` pour la prod)   |
+| `npm run check:map`  | Contrôles de la projection cartographique (Node 22.6+) |
 
 ---
 

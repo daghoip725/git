@@ -1,0 +1,89 @@
+##############################################################################
+#  Daghoip Ikassa — production, image déjà construite
+#
+#  Différence avec `docker-compose.yml` : celui-ci **tire** l'image publiée par
+#  GitHub Actions au lieu de la construire sur place.
+#
+#  Ce n'est pas un détail de confort. Construire Next.js demande environ 2 Go
+#  de mémoire ; un VPS Hostinger d'entrée de gamme en a 1 ou 2. La construction
+#  y échoue — ou, plus pénible, y réussit en déclenchant le tueur de mémoire du
+#  noyau au beau milieu d'un déploiement, laissant le service à l'arrêt.
+#
+#  Sur le serveur :
+#      docker login ghcr.io -u <utilisateur> --password-stdin   # une seule fois
+#      docker compose -f docker-compose.prod.yml pull
+#      docker compose -f docker-compose.prod.yml up -d
+#
+#  ⚠️ Les variables `NEXT_PUBLIC_*` ne figurent pas ici : elles sont **inlinées
+#  dans l'image au build**. Les redéfinir au démarrage n'aurait aucun effet sur
+#  le bundle client et donnerait la fausse impression qu'on peut réutiliser la
+#  même image ailleurs. Elles se règlent dans les variables du dépôt GitHub.
+##############################################################################
+
+services:
+  web:
+    # `latest` par défaut ; épinglez un SHA pour revenir en arrière :
+    #     IMAGE_TAG=sha-<empreinte> docker compose -f docker-compose.prod.yml up -d
+    image: ghcr.io/${GITHUB_REPOSITORY:-daghoip725/git}:${IMAGE_TAG:-latest}
+    container_name: daghoip-ikassa-web
+    restart: unless-stopped
+
+    # Publié uniquement sur la boucle locale : le service n'est joignable qu'à
+    # travers le proxy, qui porte TLS et les en-têtes de sécurité. Exposer le
+    # port sur toutes les interfaces le rendrait accessible en clair, en
+    # contournant le certificat.
+    ports:
+      - '127.0.0.1:${PORT:-3000}:3000'
+
+    environment:
+      NODE_ENV: production
+
+      # Secrets et réglages d'exécution — jamais dans l'image.
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      NOTIFICATIONS_CRON_SECRET: ${NOTIFICATIONS_CRON_SECRET:-}
+      AIRTEL_MONEY_BASE_URL: ${AIRTEL_MONEY_BASE_URL:-}
+      AIRTEL_MONEY_CLIENT_ID: ${AIRTEL_MONEY_CLIENT_ID:-}
+      AIRTEL_MONEY_CLIENT_SECRET: ${AIRTEL_MONEY_CLIENT_SECRET:-}
+      AIRTEL_MONEY_CALLBACK_SECRET: ${AIRTEL_MONEY_CALLBACK_SECRET:-}
+      MOOV_MONEY_BASE_URL: ${MOOV_MONEY_BASE_URL:-}
+      MOOV_MONEY_CLIENT_ID: ${MOOV_MONEY_CLIENT_ID:-}
+      MOOV_MONEY_CLIENT_SECRET: ${MOOV_MONEY_CLIENT_SECRET:-}
+      MOOV_MONEY_CALLBACK_SECRET: ${MOOV_MONEY_CALLBACK_SECRET:-}
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    # Même durcissement qu'en développement : système de fichiers en lecture
+    # seule, aucune élévation de privilèges. Next.js n'écrit qu'en /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+    # Les journaux d'un conteneur qui tourne des mois remplissent un petit
+    # disque de VPS sans prévenir. Trois fichiers de 10 Mo suffisent à
+    # diagnostiquer, et bornent la casse.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+    deploy:
+      resources:
+        limits:
+          memory: 1g
