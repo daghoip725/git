@@ -35,8 +35,11 @@ export const DEFAULT_LOCALE: Locale = 'fr';
  * Un cookie et pas seulement la colonne `users.language` : la majorité des
  * visites d'une plateforme d'annonces se font sans compte, et réserver le choix
  * aux personnes connectées reviendrait à en priver la plupart des gens. Pour un
- * compte, les deux sont tenus en phase — le cookie sert alors de cache lisible
- * par le middleware, qui n'a pas de session applicative sous la main.
+ * compte, les deux sont tenus en phase.
+ *
+ * C'est la **seule** source de la langue affichée. `Accept-Language` n'est pas
+ * consulté : voir `lib/i18n/server.ts` pour la raison, constatée en regardant
+ * l'application tourner.
  */
 export const LOCALE_COOKIE = 'ikassa:langue';
 
@@ -74,26 +77,4 @@ export const LOCALE_OG_TAGS: Record<Locale, string> = {
 /** Ramène n'importe quelle entrée à une langue connue. */
 export function normalizeLocale(value: unknown): Locale {
   return LOCALES.includes(value as Locale) ? (value as Locale) : DEFAULT_LOCALE;
-}
-
-/**
- * Déduit une langue d'un en-tête `Accept-Language`.
- *
- * Analyse volontairement sommaire : on ne cherche pas à respecter les
- * pondérations `q=` à la lettre, seulement à repérer la première langue connue.
- * Ce n'est qu'une valeur de départ — le choix explicite de la personne la
- * remplace au premier clic, et c'est lui qui compte.
- */
-export function localeFromAcceptLanguage(header: string | null): Locale {
-  if (!header) return DEFAULT_LOCALE;
-
-  for (const part of header.split(',')) {
-    const tag = part.split(';')[0]?.trim().toLowerCase();
-    if (!tag) continue;
-
-    const base = tag.split('-')[0];
-    if (LOCALES.includes(base as Locale)) return base as Locale;
-  }
-
-  return DEFAULT_LOCALE;
 }

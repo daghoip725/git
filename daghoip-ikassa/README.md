@@ -742,6 +742,14 @@ choix vit dans un cookie **et** dans `users.language` : le cookie sert aux
 visiteurs sans compte, qui sont la majorité, la colonne fait suivre la
 préférence d'un appareil à l'autre.
 
+**Seul un choix explicite change la langue.** `Accept-Language` n'est pas
+consulté, et c'est un renoncement délibéré : la première version le négociait,
+et l'essai a montré ce que cela donne — un navigateur configuré en anglais
+obtenait une navigation anglaise **par-dessus des annonces françaises**. Une
+page à moitié traduite est pire que la même page entièrement en français. Au
+Gabon, un téléphone configuré en anglais ne dit d'ailleurs rien de la langue
+dans laquelle son propriétaire veut lire des annonces.
+
 Le catalogue est un objet TypeScript typé, pas un JSON chargé à l'exécution ni
 une bibliothèque : `tsc` refuse alors de compiler s'il manque une clé en
 anglais — l'erreur la plus banale d'une traduction, et celle qui se voit le
