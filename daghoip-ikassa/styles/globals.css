@@ -236,9 +236,18 @@
     @apply py-12 sm:py-16 lg:py-20;
   }
 
-  /* Carte de surface, base commune aux catégories, encarts et blocs de contenu. */
+  /*
+   * Carte de surface, base commune aux catégories, encarts et blocs de contenu.
+   *
+   * `bg-card` et non `bg-white` : c'est précisément le piège que décrit le
+   * commentaire du jeton plus haut, et cette classe y était tombée. En mode
+   * sombre, les tuiles de catégorie s'affichaient sur fond **blanc** au milieu
+   * d'une page sombre, avec un texte vert pâle par-dessus — environ 1,5:1, soit
+   * illisible. Le défaut ne se voyait dans aucun diff : le jeton existait déjà
+   * et fonctionnait partout ailleurs.
+   */
   .surface-card {
-    @apply rounded-2xl border border-neutral-200 bg-white;
+    @apply rounded-2xl border border-neutral-200 bg-card;
   }
 
   /*
